@@ -1,0 +1,10 @@
+node_modules
+cache
+artifacts
+typechain-types
+scripts/balanceChecker.ts
+**/process.env
+**/processProd.env
+./test
+.DS_Store
+.openzeppelin
