@@ -1,0 +1,28 @@
+//devcontainer.json
+{
+  "name": "Developer container",
+  // input Docker file
+  "dockerFile": "../Dockerfile",
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+
+      // vs code extensions
+      "extensions": [
+        "nomicfoundation.hardhat-solidity",
+        "ms-vscode.vscode-typescript-next",
+        "dsznajder.es7-react-js-snippets",
+        "eamodio.gitlens",
+        "mikestead.dotenv",
+        "loiane.ts-extension-pack",
+        "sonarsource.sonarlint-vscode",
+        "esbenp.prettier-vscode",
+        "github.vscode-pull-request-github",
+        "streetsidesoftware.code-spell-checker"
+      ]
+    }
+  }
+}

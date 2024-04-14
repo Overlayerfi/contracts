@@ -1,0 +1,7 @@
+import {deployMintableToken} from '../../functions';
+
+deployMintableToken("", 1000000, "", "").catch(error => {
+  console.log(error);
+  console.log("🛑 Deployment failed");
+  process.exit(1);
+});
