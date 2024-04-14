@@ -4,7 +4,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
 
-dotenv.config({ path: process.cwd() + "/scripts/process.env"});
+dotenv.config({ path: process.cwd() + "/process.env"});
 
 const testAccounts = [
   {
