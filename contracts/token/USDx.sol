@@ -15,24 +15,24 @@ contract USDx is Ownable2Step, ERC20Burnable, ERC20Permit, IUSDxDefs {
   address public minter;
 
 	///@notice The constructor
-	///@param _admin The contract admin
-  constructor(address _admin) Ownable(_admin) ERC20("USDe", "USDe") ERC20Permit("USDe") {
-    if (_admin == address(0)) revert ZeroAddressException();
+	///@param admin The contract admin
+  constructor(address admin) Ownable(admin) ERC20("USDe", "USDe") ERC20Permit("USDe") {
+    if (admin == address(0)) revert ZeroAddressException();
   }
 
 	///@notice Set a new minter
-	///@param _newMinter The new minter address
-  function setMinter(address _newMinter) external onlyOwner {
-    emit MinterUpdated(_newMinter, minter);
-    minter = _newMinter;
+	///@param newMinter The new minter address
+  function setMinter(address newMinter) external onlyOwner {
+    emit MinterUpdated(newMinter, minter);
+    minter = newMinter;
   }
 
 	///@notice Mint tokens
-	///@param _to The recipient address
-	///@param _amount The amount to be minted
-  function mint(address _to, uint256 _amount) external {
+	///@param to The recipient address
+	///@param amount The amount to be minted
+  function mint(address to, uint256 amount) external {
     if (msg.sender != minter) revert OnlyMinter();
-    _mint(_to, _amount);
+    _mint(to, amount);
   }
 
 	///@notice Renounce contract ownership
