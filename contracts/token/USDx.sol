@@ -16,7 +16,7 @@ contract USDx is Ownable2Step, ERC20Burnable, ERC20Permit, IUSDxDefs {
 
 	///@notice The constructor
 	///@param admin The contract admin
-  constructor(address admin) Ownable(admin) ERC20("USDe", "USDe") ERC20Permit("USDe") {
+  constructor(address admin) Ownable(admin) ERC20("USDx", "USDx") ERC20Permit("USDx") {
     if (admin == address(0)) revert ZeroAddressException();
   }
 
