@@ -5,3 +5,6 @@ This is the standard USDx token which can be minted by an allowed minter. Mintin
 
 ## `USDxM`
 Minting and redeeming is controlled by the inherited contract `MintRedeemManager.sol`
+
+## `StakedUSDxFront`
+The staked version of `USDx`/`USDxM` based on ERC4626
