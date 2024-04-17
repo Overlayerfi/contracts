@@ -3,40 +3,31 @@ pragma solidity 0.8.20;
 
 /* solhint-disable var-name-mixedcase  */
 
-interface IMintRedeemManagerDefs {
-  /// @notice Event emitted when contract receives ETH
-  event Received(address, uint256);
+import './IMintRedeemManagerEvents.sol';
 
-  /// @notice Event emitted when USDx is minted
-  event Mint(
-    address indexed minter,
-    address indexed benefactor,
-    address indexed beneficiary,
-    address collateral_usdc,
-    address collateral_usdt,
-    uint256 collateral_usdc_amount,
-    uint256 collateral_usdt_amount,
-    uint256 usdx_amount
-  );
+interface IMintRedeemManagerDefs is IMintRedeemManagerEvents {
+    struct Order {
+        address benefactor;
+        address beneficiary;
+        address collateral_usdt;
+        address collateral_usdc;
+        uint256 collateral_usdt_amount;
+        uint256 collateral_usdc_amount;
+        uint256 usdx_amount;
+    }
 
-  /// @notice Event emitted when funds are redeemed
-  event Redeem(
-    address indexed redeemer,
-    address indexed benefactor,
-    address indexed beneficiary,
-    address collateral_usdc,
-    address collateral_usdt,
-    uint256 collateral_usdc_amount,
-    uint256 collateral_usdt_amount,
-    uint256 usdx_amount
-  );
+    struct StableCoin {
+        address addr;
+        uint256 decimals;
+    }
 
-  /// @notice Event emitted when assets are moved to custody provider wallet
-  event CustodyTransfer(address indexed wallet, address indexed asset, uint256 amount);
-
-  /// @notice Event emitted when the max mint per block is changed
-  event MaxMintPerBlockChanged(uint256 oldMaxMintPerBlock, uint256 newMaxMintPerBlock);
-
-  /// @notice Event emitted when the max redeem per block is changed
-  event MaxRedeemPerBlockChanged(uint256 oldMaxRedeemPerBlock, uint256 newMaxRedeemPerBlock);
+    error InvalidZeroAddress();
+    error InvalidDecimals();
+    error InvalidAssetAddress();
+    error InvalidAssetAmounts();
+    error UnsupportedAsset();
+    error NoAssetsProvided();
+    error TransferFailed();
+    error MaxMintPerBlockExceeded();
+    error MaxRedeemPerBlockExceeded();
 }

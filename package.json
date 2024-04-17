@@ -6,13 +6,15 @@
     "unit": "npx hardhat test",
     "compile": "npx hardhat compile",
     "node": "npx hardhat node",
-    "exec-local": "npx hardhat --network localhost run"
+    "exec-local": "npx hardhat --network localhost run",
+    "prettier-sol": "prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'",
+    "prettier-ts": "prettier --config .prettierrc 'test/**/*.ts' --write &&  prettier --config .prettierrc 'scripts/**/*.ts' --write"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "hardhat": "^2.22.2",
-    "prettier": "^2.8.4",
-    "prettier-plugin-solidity": "^1.1.2",
+    "prettier": "^2.8.8",
+    "prettier-plugin-solidity": "^1.3.1",
     "solhint": "^3.4.1"
   },
   "dependencies": {

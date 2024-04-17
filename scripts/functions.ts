@@ -1,31 +1,36 @@
-import { ethers, upgrades } from "hardhat";
-import { CRONOS_MAINNET_RPC, CRONOS_TESTNET_RPC } from "./constants";
-import erc20abi from "../artifacts/contracts/erc20/FixedSupplyAegisErc20.sol/FixedSupplyAegisERC20.json";
-import mintableErc20abi from "../artifacts/contracts/erc20/MintableAegisERC20.sol/MintableAegisERC20.json";
-import mintableLendingErc20abi from "../artifacts/contracts/erc20/AegisLendingToken.sol/AegisLendingToken.json";
-import launchpadAbi from "../artifacts/contracts/launchpad/AegisLaunchpad.sol/AegisLaunchpad.json";
-import vaultAbi from "../artifacts/contracts/vaults/AegisVault.sol/AegisVault.json";
-import aegisLendingAbi from "../artifacts/contracts/lending-borrowing/single-borrower/AegisLending.sol/AegisLending.json";
-import aegisRouterOracleAbi from "../artifacts/contracts/oracles/AegisRouterOracle.sol/AegisRouterOracle.json";
-import * as dotenv from "dotenv";
-import { env } from "../hardhat.config";
+import { ethers, upgrades } from 'hardhat';
+import { CRONOS_MAINNET_RPC, CRONOS_TESTNET_RPC } from './constants';
+import erc20abi from '../artifacts/contracts/erc20/FixedSupplyAegisErc20.sol/FixedSupplyAegisERC20.json';
+import mintableErc20abi from '../artifacts/contracts/erc20/MintableAegisERC20.sol/MintableAegisERC20.json';
+import mintableLendingErc20abi from '../artifacts/contracts/erc20/AegisLendingToken.sol/AegisLendingToken.json';
+import launchpadAbi from '../artifacts/contracts/launchpad/AegisLaunchpad.sol/AegisLaunchpad.json';
+import vaultAbi from '../artifacts/contracts/vaults/AegisVault.sol/AegisVault.json';
+import aegisLendingAbi from '../artifacts/contracts/lending-borrowing/single-borrower/AegisLending.sol/AegisLending.json';
+import aegisRouterOracleAbi from '../artifacts/contracts/oracles/AegisRouterOracle.sol/AegisRouterOracle.json';
+import * as dotenv from 'dotenv';
+import { env } from '../hardhat.config';
 
-dotenv.config({ path: process.cwd() + env === "prod" ? "/scripts/processProd.env" : "/scripts/process.env"});
+dotenv.config({
+  path:
+    process.cwd() + env === 'prod'
+      ? '/scripts/processProd.env'
+      : '/scripts/process.env'
+});
 
 const NETWORK_IN_USE = CRONOS_MAINNET_RPC;
 
 if (!NETWORK_IN_USE) {
-  throw new Error("Network RPC not set");
+  throw new Error('Network RPC not set');
 }
 
 const RPC_PROVIDER = new ethers.providers.JsonRpcProvider(NETWORK_IN_USE);
 
 const adminAddress = {
-  managerAddress: process.env.AEGIS_MANAGER_ADDRESS!,
+  managerAddress: process.env.AEGIS_MANAGER_ADDRESS!
 };
 
 const adminKeys = {
-  managerKey: process.env.AEGIS_MANAGER_KEY!,
+  managerKey: process.env.AEGIS_MANAGER_KEY!
 };
 
 export type LaunchpadProps = {
@@ -209,7 +214,7 @@ export type AegisLendingAddPool = PoolProps & {
 
 export type AegisLendingEthAddPool = PoolProps;
 
-export type Strat = "AegisStrat";
+export type Strat = 'AegisStrat';
 
 export type LaunchpadFinalWithdrawProps = {
   wantAmountEth: string;
@@ -233,11 +238,11 @@ export async function deployMintableToken(
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
   console.log(
-    "ℹ️  Deploying MintableAegisERC20 contract with address:",
+    'ℹ️  Deploying MintableAegisERC20 contract with address:',
     deployer.address
   );
 
-  const ContractSource = await ethers.getContractFactory("MintableAegisERC20");
+  const ContractSource = await ethers.getContractFactory('MintableAegisERC20');
   const deployedContract = await ContractSource.deploy(
     initialSupply,
     name,
@@ -246,11 +251,11 @@ export async function deployMintableToken(
 
   await deployedContract.deployed();
 
-  console.log("😎 Contract deployed at:", deployedContract.address);
-  console.log("✅ Deployment passed");
+  console.log('😎 Contract deployed at:', deployedContract.address);
+  console.log('✅ Deployment passed');
 
   await deployedContract.setMinter(minter);
-  console.log("✅ Set minter");
+  console.log('✅ Set minter');
 
   return deployedContract.address;
 }
@@ -260,12 +265,12 @@ export async function deployMintableTokenWithFixedMaxSupply(
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
   console.log(
-    "ℹ️  Deploying MintableAegisERC20 contract with address:",
+    'ℹ️  Deploying MintableAegisERC20 contract with address:',
     deployer.address
   );
 
   const ContractSource = await ethers.getContractFactory(
-    "MintableAegisERC20WithFixedTotalSupply"
+    'MintableAegisERC20WithFixedTotalSupply'
   );
   const deployedContract = await ContractSource.deploy(
     ethers.utils.parseEther(props.initialSupplyEth),
@@ -276,12 +281,12 @@ export async function deployMintableTokenWithFixedMaxSupply(
 
   await deployedContract.deployed();
 
-  console.log("😎 Contract deployed at:", deployedContract.address);
-  console.log("✅ Deployment passed");
+  console.log('😎 Contract deployed at:', deployedContract.address);
+  console.log('✅ Deployment passed');
 
   if (props.minter) {
     await deployedContract.setMinter(props.minter);
-    console.log("✅ Set minter");
+    console.log('✅ Set minter');
   }
 
   return deployedContract.address;
@@ -294,12 +299,12 @@ export async function deployFixedSupplyToken(
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
   console.log(
-    "ℹ️  Deploying FixedSupplyAegisERC20 contract with address:",
+    'ℹ️  Deploying FixedSupplyAegisERC20 contract with address:',
     deployer.address
   );
 
   const ContractSource = await ethers.getContractFactory(
-    "FixedSupplyAegisERC20"
+    'FixedSupplyAegisERC20'
   );
   const deployedContract = await ContractSource.deploy(
     totalSupply,
@@ -309,8 +314,8 @@ export async function deployFixedSupplyToken(
 
   await deployedContract.deployed();
 
-  console.log("😎 Contract deployed at:", deployedContract.address);
-  console.log("✅ Deployment passed ");
+  console.log('😎 Contract deployed at:', deployedContract.address);
+  console.log('✅ Deployment passed ');
 
   return deployedContract.address;
 }
@@ -318,17 +323,17 @@ export async function deployFixedSupplyToken(
 export async function deploySixDecimalsUsd(supply: number): Promise<string> {
   const [deployer] = await ethers.getSigners();
   console.log(
-    "ℹ️  Deploying SixDecimalsUsd contract with address:",
+    'ℹ️  Deploying SixDecimalsUsd contract with address:',
     deployer.address
   );
 
-  const ContractSource = await ethers.getContractFactory("SixDecimalsUsd");
-  const deployedContract = await ContractSource.deploy(supply, "Usd", "USD");
+  const ContractSource = await ethers.getContractFactory('SixDecimalsUsd');
+  const deployedContract = await ContractSource.deploy(supply, 'Usd', 'USD');
 
   await deployedContract.deployed();
 
-  console.log("😎 Contract deployed at:", deployedContract.address);
-  console.log("✅ Deployment passed ");
+  console.log('😎 Contract deployed at:', deployedContract.address);
+  console.log('✅ Deployment passed ');
 
   return deployedContract.address;
 }
@@ -339,11 +344,11 @@ export async function deployFarm(
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
   console.log(
-    "ℹ️  Deploying AegisFarm contract with address:",
+    'ℹ️  Deploying AegisFarm contract with address:',
     deployer.address
   );
 
-  const ContractSource = await ethers.getContractFactory("AegisFarm");
+  const ContractSource = await ethers.getContractFactory('AegisFarm');
   const deployedContract = await ContractSource.deploy(
     devAddress,
     startingBlock
@@ -351,8 +356,8 @@ export async function deployFarm(
 
   await deployedContract.deployed();
 
-  console.log("😎 Contract deployed at:", deployedContract.address);
-  console.log("✅ Deployment passed ");
+  console.log('😎 Contract deployed at:', deployedContract.address);
+  console.log('✅ Deployment passed ');
 
   return deployedContract.address;
 }
@@ -363,39 +368,39 @@ export async function deployVaultWithStrat(
 ): Promise<{ vault: string; strat: string }> {
   const [deployer] = await ethers.getSigners();
   console.log(
-    "ℹ️  Deploying AegisVault with",
+    'ℹ️  Deploying AegisVault with',
     strat,
-    "with address:",
+    'with address:',
     deployer.address
   );
 
   const AegisStratFactoryInstance = await ethers.getContractFactory(strat);
   const AegisVaultFactoryInstance = await ethers.getContractFactory(
-    "AegisVault"
+    'AegisVault'
   );
 
   const managerWallet = new ethers.Wallet(adminKeys.managerKey, RPC_PROVIDER);
   const managerWalletSigner = managerWallet.connect(RPC_PROVIDER);
 
   let ret: { vault: string; strat: string } = {
-    vault: "",
-    strat: "",
+    vault: '',
+    strat: ''
   };
 
   const deployedAegisVaultContract = await upgrades.deployProxy(
     AegisVaultFactoryInstance,
     [
-      "0x0000000000000000000000000000000000000000",
+      '0x0000000000000000000000000000000000000000',
       adminAddress.managerAddress,
-      "AEGV",
-      "Aegis Vault",
+      'AEGV',
+      'Aegis Vault'
     ]
   );
   await deployedAegisVaultContract.deployed();
   console.log(
-    "😎 AegisVault contract with",
+    '😎 AegisVault contract with',
     strat,
-    "at:",
+    'at:',
     deployedAegisVaultContract.address
   );
 
@@ -413,12 +418,12 @@ export async function deployVaultWithStrat(
     props.l0ToL1Route
   );
   await deployedAegisStratContract.deployed();
-  console.log("😎 AegisStrat contract at:", deployedAegisStratContract.address);
+  console.log('😎 AegisStrat contract at:', deployedAegisStratContract.address);
 
   const connectedAegisStrat =
     deployedAegisStratContract.connect(managerWalletSigner);
   await connectedAegisStrat.giveAllowances();
-  console.log("😎 Given allowances");
+  console.log('😎 Given allowances');
 
   const vault = new ethers.Contract(
     deployedAegisVaultContract.address,
@@ -428,7 +433,7 @@ export async function deployVaultWithStrat(
   await vault
     .connect(managerWalletSigner)
     .upgradeStrat(deployedAegisStratContract.address);
-  console.log("😎 Set the strategy address");
+  console.log('😎 Set the strategy address');
 
   ret.vault = deployedAegisVaultContract.address;
   ret.strat = deployedAegisStratContract.address;
@@ -440,21 +445,21 @@ export async function deployLottery(
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
   console.log(
-    "ℹ️  Deploying AegisLottery contract with address:",
+    'ℹ️  Deploying AegisLottery contract with address:',
     deployer.address
   );
 
-  const ContractSource = await ethers.getContractFactory("AegisLottery");
+  const ContractSource = await ethers.getContractFactory('AegisLottery');
   const deployedContract = await upgrades.deployProxy(ContractSource, [
     [
       props.addressInitializer.prizePoolAddress,
-      props.addressInitializer.lpPoolPrizeAddress,
+      props.addressInitializer.lpPoolPrizeAddress
     ],
     [
       props.tokenInitializer.want,
       props.tokenInitializer.prize,
       props.tokenInitializer.tPrize,
-      props.tokenInitializer.lpPrize,
+      props.tokenInitializer.lpPrize
     ],
     [
       ethers.utils.parseEther(
@@ -471,29 +476,29 @@ export async function deployLottery(
       ),
       ethers.utils.parseEther(
         props.winningAmountInitializer.thirdTierWinningRewardAmount
-      ),
+      )
     ],
     props.treasury,
-    ethers.utils.parseEther(props.ticketPrice),
+    ethers.utils.parseEther(props.ticketPrice)
   ]);
   await deployedContract.deployed();
 
-  console.log("😎 Contract deployed at:", deployedContract.address);
-  console.log("✅ Deployment passed ");
+  console.log('😎 Contract deployed at:', deployedContract.address);
+  console.log('✅ Deployment passed ');
 
   return deployedContract.address;
 }
 
 export async function upgradeLottery(proxy: string): Promise<string> {
   const [deployer] = await ethers.getSigners();
-  console.log("ℹ️  Upgrading Lottery contract with address:", deployer.address);
+  console.log('ℹ️  Upgrading Lottery contract with address:', deployer.address);
 
-  const ContractSource = await ethers.getContractFactory("Lottery");
+  const ContractSource = await ethers.getContractFactory('Lottery');
   const deployedContract = await upgrades.upgradeProxy(proxy, ContractSource);
   await deployedContract.deployed();
 
-  console.log("😎 Contract upgraded at:", deployedContract.address);
-  console.log("✅ Upgrade passed ");
+  console.log('😎 Contract upgraded at:', deployedContract.address);
+  console.log('✅ Upgrade passed ');
 
   return deployedContract.address;
 }
@@ -502,7 +507,7 @@ export async function giveAllowanceERC20(
   props: GiveAllowanceErc20Props
 ): Promise<void> {
   const MAX_APPROVAL =
-    "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+    '115792089237316195423570985008687907853269984665640564039457584007913129639935';
   const wallet = new ethers.Wallet(props.key, RPC_PROVIDER);
   const walletSigner = wallet.connect(RPC_PROVIDER);
 
@@ -516,7 +521,7 @@ export async function giveAllowanceERC20(
     .approve(props.dest, MAX_APPROVAL);
   await tx.wait();
 
-  console.log("✅ Given approval");
+  console.log('✅ Given approval');
 }
 
 export async function deployNFTAegisDivineAnvils(
@@ -524,20 +529,20 @@ export async function deployNFTAegisDivineAnvils(
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
   console.log(
-    "ℹ️  Deploying NFT Aegis Divine Anvils contract with address:",
+    'ℹ️  Deploying NFT Aegis Divine Anvils contract with address:',
     deployer.address
   );
 
-  const ContractSource = await ethers.getContractFactory("AegisDivineAnvils");
+  const ContractSource = await ethers.getContractFactory('AegisDivineAnvils');
   const deployedContract = await upgrades.deployProxy(ContractSource, [
     props.want,
     props.treasury,
-    props.maxSupply,
+    props.maxSupply
   ]);
   await deployedContract.deployed();
 
-  console.log("😎 Contract deployed at:", deployedContract.address);
-  console.log("✅ Deployment passed ");
+  console.log('😎 Contract deployed at:', deployedContract.address);
+  console.log('✅ Deployment passed ');
 
   return deployedContract.address;
 }
@@ -547,21 +552,21 @@ export async function deployNFTAegisAtlantisPass(
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
   console.log(
-    "ℹ️  Deploying NFT Aegis Atlantis Pass contract with address:",
+    'ℹ️  Deploying NFT Aegis Atlantis Pass contract with address:',
     deployer.address
   );
 
-  const ContractSource = await ethers.getContractFactory("AegisAtlantisPass");
+  const ContractSource = await ethers.getContractFactory('AegisAtlantisPass');
   const deployedContract = await upgrades.deployProxy(ContractSource, [
     props.want,
     props.treasury,
     props.maxSupply,
-    props.mintPrice,
+    props.mintPrice
   ]);
   await deployedContract.deployed();
 
-  console.log("😎 Contract deployed at:", deployedContract.address);
-  console.log("✅ Deployment passed ");
+  console.log('😎 Contract deployed at:', deployedContract.address);
+  console.log('✅ Deployment passed ');
 
   return deployedContract.address;
 }
@@ -569,28 +574,28 @@ export async function deployNFTAegisAtlantisPass(
 export async function deployCroPriceOracle(): Promise<string> {
   const [deployer] = await ethers.getSigners();
   console.log(
-    "ℹ️  Deploying CroPriceOracle contract with address:",
+    'ℹ️  Deploying CroPriceOracle contract with address:',
     deployer.address
   );
 
   const CRO_MAINNET_PYTH_CONTRACT_ADDRESS =
-    "0xE0d0e68297772Dd5a1f1D99897c581E2082dbA5B";
-  const ContractSource = await ethers.getContractFactory("CroPriceOracle");
+    '0xE0d0e68297772Dd5a1f1D99897c581E2082dbA5B';
+  const ContractSource = await ethers.getContractFactory('CroPriceOracle');
   const deployedContract = await ContractSource.deploy(
     CRO_MAINNET_PYTH_CONTRACT_ADDRESS
   );
 
   await deployedContract.deployed();
 
-  console.log("😎 Contract deployed at:", deployedContract.address);
-  console.log("✅ Deployment passed");
+  console.log('😎 Contract deployed at:', deployedContract.address);
+  console.log('✅ Deployment passed');
 
   const price = await deployedContract.getPrice(
-    ethers.utils.parseEther("1"),
+    ethers.utils.parseEther('1'),
     18,
     20
   );
-  console.log("Oracle price:", price);
+  console.log('Oracle price:', price);
 
   return deployedContract.address;
 }
@@ -598,14 +603,14 @@ export async function deployCroPriceOracle(): Promise<string> {
 export async function deployCroPriceOracleTestnet(): Promise<string> {
   const [deployer] = await ethers.getSigners();
   console.log(
-    "ℹ️  Deploying CroPriceOracle contract with address:",
+    'ℹ️  Deploying CroPriceOracle contract with address:',
     deployer.address
   );
 
   const CRO_TESTNET_PYTH_CONTRACT_ADDRESS =
-    "0xBAEA4A1A2Eaa4E9bb78f2303C213Da152933170E";
+    '0xBAEA4A1A2Eaa4E9bb78f2303C213Da152933170E';
   const ContractSource = await ethers.getContractFactory(
-    "CroPriceOracleTestnet"
+    'CroPriceOracleTestnet'
   );
   const deployedContract = await ContractSource.deploy(
     CRO_TESTNET_PYTH_CONTRACT_ADDRESS
@@ -613,15 +618,15 @@ export async function deployCroPriceOracleTestnet(): Promise<string> {
 
   await deployedContract.deployed();
 
-  console.log("😎 Contract deployed at:", deployedContract.address);
-  console.log("✅ Deployment passed");
+  console.log('😎 Contract deployed at:', deployedContract.address);
+  console.log('✅ Deployment passed');
 
   const price = await deployedContract.getPrice(
-    ethers.utils.parseEther("1"),
+    ethers.utils.parseEther('1'),
     18,
     20
   );
-  console.log("Oracle price:", price);
+  console.log('Oracle price:', price);
 
   return deployedContract.address;
 }
@@ -631,21 +636,21 @@ export async function deployAegisRouterOracle(
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
   console.log(
-    "ℹ️  Deploying Aegis Router Oracle contract with address:",
+    'ℹ️  Deploying Aegis Router Oracle contract with address:',
     deployer.address
   );
 
-  const ContractSource = await ethers.getContractFactory("AegisRouterOracle");
+  const ContractSource = await ethers.getContractFactory('AegisRouterOracle');
   const deployedContract = await upgrades.deployProxy(ContractSource, [
     props.router,
     props.factory,
     props.targetUsd,
-    props.targetUsdDecimals,
+    props.targetUsdDecimals
   ]);
   await deployedContract.deployed();
 
-  console.log("😎 Contract deployed at:", deployedContract.address);
-  console.log("✅ Deployment passed ");
+  console.log('😎 Contract deployed at:', deployedContract.address);
+  console.log('✅ Deployment passed ');
 
   return deployedContract.address;
 }
@@ -666,8 +671,8 @@ export async function updateAegisOracleRouter(
     .updateRouter(props.newRouter);
   const receipt = await tx.wait();
 
-  console.log("😎 Oracle router updated at:", receipt.transactionHash);
-  console.log("✅ Operation passed");
+  console.log('😎 Oracle router updated at:', receipt.transactionHash);
+  console.log('✅ Operation passed');
 }
 
 export async function updateAegisOracleFactory(
@@ -686,8 +691,8 @@ export async function updateAegisOracleFactory(
     .updateFactory(props.newFactory);
   const receipt = await tx.wait();
 
-  console.log("😎 Oracle factory updated at:", receipt.transactionHash);
-  console.log("✅ Operation passed");
+  console.log('😎 Oracle factory updated at:', receipt.transactionHash);
+  console.log('✅ Operation passed');
 }
 
 export async function updateAegisOracleTargetUsd(
@@ -706,8 +711,8 @@ export async function updateAegisOracleTargetUsd(
     .updateTargetUsd(props.newTargetUsd, props.newDecimals);
   const receipt = await tx.wait();
 
-  console.log("😎 Oracle target usd updated at:", receipt.transactionHash);
-  console.log("✅ Operation passed");
+  console.log('😎 Oracle target usd updated at:', receipt.transactionHash);
+  console.log('✅ Operation passed');
 }
 
 export async function aegisOracleSetQuote(
@@ -726,8 +731,8 @@ export async function aegisOracleSetQuote(
     .setQuote(props.token, props.path);
   const receipt = await tx.wait();
 
-  console.log("😎 Oracle quote set at:", receipt.transactionHash);
-  console.log("✅ Operation passed");
+  console.log('😎 Oracle quote set at:', receipt.transactionHash);
+  console.log('✅ Operation passed');
 }
 
 export async function aegisOracleSetLpQuote(
@@ -746,8 +751,8 @@ export async function aegisOracleSetLpQuote(
     .setLpQuote(props.lpToken);
   const receipt = await tx.wait();
 
-  console.log("😎 Oracle lp quote set at:", receipt.transactionHash);
-  console.log("✅ Operation passed");
+  console.log('😎 Oracle lp quote set at:', receipt.transactionHash);
+  console.log('✅ Operation passed');
 }
 
 export async function deployAegisLending(
@@ -755,23 +760,23 @@ export async function deployAegisLending(
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
   console.log(
-    "ℹ️  Deploying Aegis Lending contract with address:",
+    'ℹ️  Deploying Aegis Lending contract with address:',
     deployer.address
   );
 
-  const ContractSource = await ethers.getContractFactory("AegisLending");
+  const ContractSource = await ethers.getContractFactory('AegisLending');
   const deployedContract = await upgrades.deployProxy(ContractSource, [
     props.borrower,
     props.startBlock,
     props.ethOracleAddress,
     props.wethAddress,
     props.collateralNum,
-    props.collateralDen,
+    props.collateralDen
   ]);
   await deployedContract.deployed();
 
-  console.log("😎 Contract deployed at:", deployedContract.address);
-  console.log("✅ Deployment passed ");
+  console.log('😎 Contract deployed at:', deployedContract.address);
+  console.log('✅ Deployment passed ');
 
   return deployedContract.address;
 }
@@ -781,11 +786,11 @@ export async function deployAegisLendingToken(
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
   console.log(
-    "ℹ️  Deploying AegisLendingToken contract with address:",
+    'ℹ️  Deploying AegisLendingToken contract with address:',
     deployer.address
   );
 
-  const ContractSource = await ethers.getContractFactory("AegisLendingToken");
+  const ContractSource = await ethers.getContractFactory('AegisLendingToken');
   const deployedContract = await ContractSource.deploy(
     props.initialSupplyNotWei,
     props.allowedTransferer,
@@ -795,12 +800,12 @@ export async function deployAegisLendingToken(
 
   await deployedContract.deployed();
 
-  console.log("😎 Contract deployed at:", deployedContract.address);
-  console.log("✅ Deployment passed");
+  console.log('😎 Contract deployed at:', deployedContract.address);
+  console.log('✅ Deployment passed');
 
   if (props.minter) {
     await deployedContract.setMinter(props.minter);
-    console.log("✅ Set minter");
+    console.log('✅ Set minter');
   }
 
   return deployedContract.address;
@@ -809,7 +814,7 @@ export async function deployAegisLendingToken(
 export async function aegisLendingAddNewMarket(
   props: AegisLendingAddNewMarketProps
 ): Promise<void> {
-  console.log("ℹ️  Adding new market to AegisLending", props);
+  console.log('ℹ️  Adding new market to AegisLending', props);
 
   const contract = new ethers.Contract(
     props.contract,
@@ -824,14 +829,14 @@ export async function aegisLendingAddNewMarket(
     .addNewMarket(props.marketAddress, props.receiptAddress);
   const receipt = await tx.wait();
 
-  console.log("😎 New market added at:", receipt.transactionHash);
-  console.log("✅ Operation passed");
+  console.log('😎 New market added at:', receipt.transactionHash);
+  console.log('✅ Operation passed');
 }
 
 export async function aegisLendingSetRouterOracle(
   props: AegisLendingSetRouterOracleProps
 ): Promise<void> {
-  console.log("ℹ️  Setting router oracle for AegisLending", props);
+  console.log('ℹ️  Setting router oracle for AegisLending', props);
 
   const contract = new ethers.Contract(
     props.contract,
@@ -846,14 +851,14 @@ export async function aegisLendingSetRouterOracle(
     .setRouterOracle(props.marketAddress, props.oracleAddress);
   const receipt = await tx.wait();
 
-  console.log("😎 New oracle set at:", receipt.transactionHash);
-  console.log("✅ Operation passed");
+  console.log('😎 New oracle set at:', receipt.transactionHash);
+  console.log('✅ Operation passed');
 }
 
 export async function aegisLendingAddPoolReward(
   props: AegisLendingAddPoolReward
 ): Promise<void> {
-  console.log("ℹ️  Adding pool reward for AegisLending", props);
+  console.log('ℹ️  Adding pool reward for AegisLending', props);
 
   const contract = new ethers.Contract(
     props.contract,
@@ -871,14 +876,14 @@ export async function aegisLendingAddPoolReward(
     );
   const receipt = await tx.wait();
 
-  console.log("😎 Reward added to pool at:", receipt.transactionHash);
-  console.log("✅ Operation passed");
+  console.log('😎 Reward added to pool at:', receipt.transactionHash);
+  console.log('✅ Operation passed');
 }
 
 export async function aegisLendingAddPool(
   props: AegisLendingAddPool
 ): Promise<void> {
-  console.log("ℹ️  Adding pool for AegisLending", props);
+  console.log('ℹ️  Adding pool for AegisLending', props);
 
   const contract = new ethers.Contract(
     props.contract,
@@ -898,14 +903,14 @@ export async function aegisLendingAddPool(
     );
   const receipt = await tx.wait();
 
-  console.log("😎 Added to pool at:", receipt.transactionHash);
-  console.log("✅ Operation passed");
+  console.log('😎 Added to pool at:', receipt.transactionHash);
+  console.log('✅ Operation passed');
 }
 
 export async function aegisLendingAddEthPool(
   props: AegisLendingAddPool
 ): Promise<void> {
-  console.log("ℹ️  Adding eth pool for AegisLending", props);
+  console.log('ℹ️  Adding eth pool for AegisLending', props);
 
   const contract = new ethers.Contract(
     props.contract,
@@ -920,20 +925,20 @@ export async function aegisLendingAddEthPool(
     .addPoolEth(props.rewardAddress, props.allocationPoints, props.withUpdate);
   const receipt = await tx.wait();
 
-  console.log("😎 Added eth to pool at:", receipt.transactionHash);
-  console.log("✅ Operation passed");
+  console.log('😎 Added eth to pool at:', receipt.transactionHash);
+  console.log('✅ Operation passed');
 }
 
 export async function upgradeAegisLending(proxy: string): Promise<string> {
   const [deployer] = await ethers.getSigners();
-  console.log("ℹ️  Upgrading Lending contract with address:", deployer.address);
+  console.log('ℹ️  Upgrading Lending contract with address:', deployer.address);
 
-  const ContractSource = await ethers.getContractFactory("AegisLending");
+  const ContractSource = await ethers.getContractFactory('AegisLending');
   const deployedContract = await upgrades.upgradeProxy(proxy, ContractSource);
   await deployedContract.deployed();
 
-  console.log("😎 Contract upgraded at:", deployedContract.address);
-  console.log("✅ Upgrade passed ");
+  console.log('😎 Contract upgraded at:', deployedContract.address);
+  console.log('✅ Upgrade passed ');
 
   return deployedContract.address;
 }
@@ -952,7 +957,7 @@ export async function setMinter(props: SetMinterProps) {
     .setMinter(props.minter);
   await tx.wait();
 
-  console.log("✅ Minter set");
+  console.log('✅ Minter set');
 }
 
 export async function removeMinter(props: RemoveMinterProps) {
@@ -969,7 +974,7 @@ export async function removeMinter(props: RemoveMinterProps) {
     .removeMinter(props.minter);
   await tx.wait();
 
-  console.log("✅ Minter removed");
+  console.log('✅ Minter removed');
 }
 
 export async function mint(props: MintProps) {
@@ -986,7 +991,7 @@ export async function mint(props: MintProps) {
     .mint(ethers.utils.parseEther(props.amountEth));
   await tx.wait();
 
-  console.log("✅ Minted", props.amountEth, "to", managerWallet.address);
+  console.log('✅ Minted', props.amountEth, 'to', managerWallet.address);
 }
 
 export async function updateLendingTokenTransferer(
@@ -1005,12 +1010,17 @@ export async function updateLendingTokenTransferer(
     .updateAllowedTransferer(props.transferer);
   await tx.wait();
 
-  console.log("✅ Updated transferer");
+  console.log('✅ Updated transferer');
 }
 
-export default async function deployLaunchpad(deploymentProps: LaunchpadProps) : Promise<string> {
+export default async function deployLaunchpad(
+  deploymentProps: LaunchpadProps
+): Promise<string> {
   const [deployer] = await ethers.getSigners();
-  console.log('Deploying HellsKitchen contract with address:', deployer.address);
+  console.log(
+    'Deploying HellsKitchen contract with address:',
+    deployer.address
+  );
 
   const ContractSource = await ethers.getContractFactory('AegisLaunchpad');
   const deployedContract = await ContractSource.deploy(
@@ -1019,23 +1029,29 @@ export default async function deployLaunchpad(deploymentProps: LaunchpadProps) :
     deploymentProps.start,
     deploymentProps.end,
     0,
-    deploymentProps.admin,
+    deploymentProps.admin
   );
 
   await deployedContract.deployed();
 
   console.log('😎 Contract deployed at:', deployedContract.address);
-  console.log("✅ Deployment passed");
+  console.log('✅ Deployment passed');
 
   //set the pool
   let tx = await deployedContract.setPool(
-    ethers.utils.parseUnits(deploymentProps.offeredEth, deploymentProps.offerDecimals),
-    ethers.utils.parseUnits(deploymentProps.collectingEth, deploymentProps.wantDecimals),
+    ethers.utils.parseUnits(
+      deploymentProps.offeredEth,
+      deploymentProps.offerDecimals
+    ),
+    ethers.utils.parseUnits(
+      deploymentProps.collectingEth,
+      deploymentProps.wantDecimals
+    ),
     0,
     false
   );
   await tx.wait();
-  console.log("✅ Launchpad pool set, remember to fund the launchpad!");
+  console.log('✅ Launchpad pool set, remember to fund the launchpad!');
 
   return deployedContract.address;
 }
@@ -1053,10 +1069,13 @@ export async function launchpadFinalWithdraw(
 
   const tx = await contract
     .connect(managerWalletSigner)
-    .finalWithdraw(ethers.utils.parseUnits(props.wantAmountEth, props.wantDecimals), ethers.utils.parseUnits(props.soldAmountEth, props.soldDecimals));
+    .finalWithdraw(
+      ethers.utils.parseUnits(props.wantAmountEth, props.wantDecimals),
+      ethers.utils.parseUnits(props.soldAmountEth, props.soldDecimals)
+    );
   await tx.wait();
 
-  console.log("✅ Launchpad collected");
+  console.log('✅ Launchpad collected');
 }
 
 export async function launchpadUpdateStartAndEndBlocks(
@@ -1075,5 +1094,5 @@ export async function launchpadUpdateStartAndEndBlocks(
     .updateStartAndEndBlocks(props.startBlock, props.endBlock);
   await tx.wait();
 
-  console.log("✅ Launchpad updated");
+  console.log('✅ Launchpad updated');
 }

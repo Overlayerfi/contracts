@@ -1,12 +1,15 @@
-import { updateLendingTokenTransferer, UpdateLendingAllowedTransfererProps } from '../../functions';
+import {
+  updateLendingTokenTransferer,
+  UpdateLendingAllowedTransfererProps
+} from '../../functions';
 
 const props: UpdateLendingAllowedTransfererProps = {
-  transferer: "",
-  contractAddress: ""
-}
+  transferer: '',
+  contractAddress: ''
+};
 
-updateLendingTokenTransferer(props).catch(error => {
+updateLendingTokenTransferer(props).catch((error) => {
   console.log(error);
-  console.log("🛑 Operation failed");
+  console.log('🛑 Operation failed');
   process.exit(1);
 });

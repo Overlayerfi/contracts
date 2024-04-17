@@ -1,12 +1,12 @@
-import { removeMinter, RemoveMinterProps } from "../../functions";
+import { removeMinter, RemoveMinterProps } from '../../functions';
 
 const props: RemoveMinterProps = {
-  minter: "",
-  contractAddress: "",
+  minter: '',
+  contractAddress: ''
 };
 
 removeMinter(props).catch((error) => {
   console.log(error);
-  console.log("🛑 Operation failed");
+  console.log('🛑 Operation failed');
   process.exit(1);
 });

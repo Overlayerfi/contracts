@@ -1,12 +1,12 @@
 import { setMinter, SetMinterProps } from '../../functions';
 
 const props: SetMinterProps = {
-  minter: "",
-  contractAddress: ""
-}
+  minter: '',
+  contractAddress: ''
+};
 
-setMinter(props).catch(error => {
+setMinter(props).catch((error) => {
   console.log(error);
-  console.log("🛑 Operation failed");
+  console.log('🛑 Operation failed');
   process.exit(1);
 });
