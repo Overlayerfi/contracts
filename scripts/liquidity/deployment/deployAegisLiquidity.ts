@@ -1,9 +1,7 @@
-import {deployFarm} from '../../functions';
+import { deployFarm } from '../../functions';
 
-deployFarm("", 0)
-  .catch(error => {
-    console.log(error);
-    console.log("🛑 Deployment failed");
-    process.exit(1);
+deployFarm('', 0).catch((error) => {
+  console.log(error);
+  console.log('🛑 Deployment failed');
+  process.exit(1);
 });
-

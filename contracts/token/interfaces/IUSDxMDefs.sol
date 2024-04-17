@@ -2,6 +2,6 @@
 pragma solidity 0.8.20;
 
 interface IUSDxMDefs {
-  /// @notice Zero address not allowed
-  error ZeroAddressException();
+    /// @notice Zero address not allowed
+    error ZeroAddressException();
 }

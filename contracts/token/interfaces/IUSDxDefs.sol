@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-interface IUSDxDefs {
-  /// @notice This event is fired when the minter changes
-  event MinterUpdated(address indexed newMinter, address indexed oldMinter);
+import './IUSDxEvents.sol';
 
-  /// @notice Zero address not allowed
-  error ZeroAddressException();
-  /// @notice It's not possible to renounce the ownership
-  error CantRenounceOwnership();
-  /// @notice Only the minter role can perform an action
-  error OnlyMinter();
+interface IUSDxDefs is IUSDxEvents {
+    /// @notice Zero address not allowed
+    error ZeroAddressException();
+    /// @notice It's not possible to renounce the ownership
+    error CantRenounceOwnership();
+    /// @notice Only the minter role can perform an action
+    error OnlyMinter();
 }

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
 contract MintableERC20WithFixedTotalSupply is ERC20, Ownable {
     /**
@@ -19,7 +19,7 @@ contract MintableERC20WithFixedTotalSupply is ERC20, Ownable {
         require(
             (minter[msg.sender] && msg.sender != address(0)) ||
                 msg.sender == owner(),
-            "ERC20: NOT_ALLOWED"
+            'MintableERC20WithFixedTotalSupply: NOT_ALLOWED'
         );
         _;
     }
@@ -34,7 +34,10 @@ contract MintableERC20WithFixedTotalSupply is ERC20, Ownable {
         uint amount = initialSupply;
         _mint(msg.sender, amount);
 
-        require(maxSupply >= totalSupply(), "ERC20: MAX_SUPPLY");
+        require(
+            maxSupply >= totalSupply(),
+            'MintableERC20WithFixedTotalSupply: MAX_SUPPLY'
+        );
     }
 
     /**
@@ -65,7 +68,10 @@ contract MintableERC20WithFixedTotalSupply is ERC20, Ownable {
             _mint(msg.sender, _amount);
             newSupply = totalSupply();
 
-            require(maxSupply >= newSupply, "ERC20: MAX_SUPPLY");
+            require(
+                maxSupply >= newSupply,
+                'MintableERC20WithFixedTotalSupply: MAX_SUPPLY'
+            );
         }
     }
 
