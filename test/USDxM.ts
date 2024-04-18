@@ -1,10 +1,6 @@
-import {
-  time,
-  loadFixture,
-  mineUpTo
-} from '@nomicfoundation/hardhat-network-helpers';
+import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
 import { ethers } from 'hardhat';
-import { expect, assert } from 'chai';
+import { expect } from 'chai';
 
 describe('USDxM', function () {
   async function deployFixture() {
@@ -76,8 +72,7 @@ describe('USDxM', function () {
 
   describe('Deployment', function () {
     it('Should set the admin', async function () {
-      const { usdc, usdt, contract, admin, gatekeeper, alice, bob } =
-        await loadFixture(deployFixture);
+      const { contract, admin } = await loadFixture(deployFixture);
       const adminAddress = await admin.getAddress();
       expect(await contract.owner()).to.equal(adminAddress);
     });
@@ -85,8 +80,7 @@ describe('USDxM', function () {
 
   describe('Roles', function () {
     it('Should set the collateral manager', async function () {
-      const { usdc, usdt, contract, admin, gatekeeper, alice, bob } =
-        await loadFixture(deployFixture);
+      const { contract, admin, alice } = await loadFixture(deployFixture);
       const collateralManagerAddress = await admin.getAddress();
       const aliceAddress = await alice.getAddress();
       await contract.grantRole(
@@ -108,8 +102,7 @@ describe('USDxM', function () {
     });
 
     it('Should set the gatekeeper', async function () {
-      const { usdc, usdt, contract, admin, gatekeeper, alice, bob } =
-        await loadFixture(deployFixture);
+      const { contract, gatekeeper, alice } = await loadFixture(deployFixture);
       const gatekeeperAddress = await gatekeeper.getAddress();
       const aliceAddress = await alice.getAddress();
       await contract.grantRole(
@@ -133,8 +126,7 @@ describe('USDxM', function () {
 
   describe('Mint Redeem Per Block', function () {
     it('Should set initial values', async function () {
-      const { usdc, usdt, contract, admin, gatekeeper, alice, bob } =
-        await loadFixture(deployFixture);
+      const { contract } = await loadFixture(deployFixture);
       expect(await contract.maxMintPerBlock()).to.equal(
         ethers.parseEther('100000000')
       );
@@ -144,8 +136,7 @@ describe('USDxM', function () {
     });
 
     it('Should change values', async function () {
-      const { usdc, usdt, contract, admin, gatekeeper, alice, bob } =
-        await loadFixture(deployFixture);
+      const { contract, admin, gatekeeper } = await loadFixture(deployFixture);
       await contract.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes('GATEKEEPER_ROLE')),
         await gatekeeper.getAddress()
@@ -175,8 +166,7 @@ describe('USDxM', function () {
     });
 
     it('Should stop mint and redeem', async function () {
-      const { usdc, usdt, contract, admin, gatekeeper, alice, bob } =
-        await loadFixture(deployFixture);
+      const { contract, admin, gatekeeper } = await loadFixture(deployFixture);
       await contract.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes('GATEKEEPER_ROLE')),
         await gatekeeper.getAddress()
@@ -193,8 +183,9 @@ describe('USDxM', function () {
 
   describe('Mint', function () {
     it('Should mint', async function () {
-      const { usdc, usdt, contract, admin, gatekeeper, alice, bob } =
-        await loadFixture(deployFixture);
+      const { usdc, usdt, contract, admin, alice } = await loadFixture(
+        deployFixture
+      );
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
@@ -220,8 +211,9 @@ describe('USDxM', function () {
     });
 
     it('Should mint small amount', async function () {
-      const { usdc, usdt, contract, admin, gatekeeper, alice, bob } =
-        await loadFixture(deployFixture);
+      const { usdc, usdt, contract, admin, alice } = await loadFixture(
+        deployFixture
+      );
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
@@ -247,8 +239,7 @@ describe('USDxM', function () {
     });
 
     it('Should not mint too small amount', async function () {
-      const { usdc, usdt, contract, admin, gatekeeper, alice, bob } =
-        await loadFixture(deployFixture);
+      const { usdc, usdt, contract, alice } = await loadFixture(deployFixture);
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
@@ -270,8 +261,7 @@ describe('USDxM', function () {
     });
 
     it('Should not mint on wrong ratio', async function () {
-      const { usdc, usdt, contract, admin, gatekeeper, alice, bob } =
-        await loadFixture(deployFixture);
+      const { usdc, usdt, contract, alice } = await loadFixture(deployFixture);
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
@@ -307,8 +297,7 @@ describe('USDxM', function () {
     });
 
     it('Should not mint on unsufficient balance', async function () {
-      const { usdc, usdt, contract, admin, gatekeeper, alice, bob } =
-        await loadFixture(deployFixture);
+      const { usdc, usdt, contract, alice } = await loadFixture(deployFixture);
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
@@ -334,8 +323,9 @@ describe('USDxM', function () {
 
   describe('Redeem', function () {
     it('Should redeem', async function () {
-      const { usdc, usdt, contract, admin, gatekeeper, alice, bob } =
-        await loadFixture(deployFixture);
+      const { usdc, usdt, contract, admin, alice } = await loadFixture(
+        deployFixture
+      );
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
@@ -389,8 +379,9 @@ describe('USDxM', function () {
     });
 
     it('Should not redeem on low USDx balance', async function () {
-      const { usdc, usdt, contract, admin, gatekeeper, alice, bob } =
-        await loadFixture(deployFixture);
+      const { usdc, usdt, contract, admin, alice } = await loadFixture(
+        deployFixture
+      );
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
@@ -445,8 +436,7 @@ describe('USDxM', function () {
 
   describe('Deployment', function () {
     it('Should set the admin', async function () {
-      const { usdc, usdt, contract, admin, gatekeeper, alice, bob } =
-        await loadFixture(deployFixture);
+      const { contract, admin } = await loadFixture(deployFixture);
       const adminAddress = await admin.getAddress();
       expect(await contract.owner()).to.equal(adminAddress);
     });

@@ -1,10 +1,6 @@
-import {
-  time,
-  loadFixture,
-  mineUpTo
-} from '@nomicfoundation/hardhat-network-helpers';
+import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
 import { ethers } from 'hardhat';
-import { expect, assert } from 'chai';
+import { expect } from 'chai';
 
 describe('USDx', function () {
   // We define a fixture to reuse the same setup in every test.
