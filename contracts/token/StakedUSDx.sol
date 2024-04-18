@@ -38,7 +38,7 @@ contract StakedUSDx is
     bytes32 private constant FULL_RESTRICTED_STAKER_ROLE =
         keccak256('FULL_RESTRICTED_STAKER_ROLE');
     /// @notice The vesting period of lastDistributionAmount over which it increasingly becomes available to stakers
-    uint256 private constant VESTING_PERIOD = 8 hours;
+    uint256 private _vestingPeriod;
     /// @notice Minimum non-zero shares amount to prevent donation attack
     uint256 private constant MIN_SHARES = 1 ether;
 
@@ -72,12 +72,14 @@ contract StakedUSDx is
      * @param _asset The address of the USDx token.
      * @param _initialRewarder The address of the initial rewarder.
      * @param _owner The address of the admin role.
+     * @param vestingPeriod The rewards vesting period
      *
      */
     constructor(
         IERC20 _asset,
         address _initialRewarder,
-        address _owner
+        address _owner,
+        uint256 vestingPeriod
     ) ERC20('Staked USDx', 'sUSDe') ERC4626(_asset) ERC20Permit('sUSDe') {
         if (
             _owner == address(0) ||
@@ -89,6 +91,8 @@ contract StakedUSDx is
 
         _grantRole(REWARDER_ROLE, _initialRewarder);
         _grantRole(DEFAULT_ADMIN_ROLE, _owner);
+
+        _vestingPeriod = vestingPeriod;
     }
 
     /* ------------- EXTERNAL ------------- */
@@ -196,15 +200,17 @@ contract StakedUSDx is
         uint256 timeSinceLastDistribution = block.timestamp -
             lastDistributionTimestamp;
 
-        if (timeSinceLastDistribution >= VESTING_PERIOD) {
+        if (
+            timeSinceLastDistribution >= _vestingPeriod
+        ) {
             return 0;
+        } else {
+            uint256 deltaT;
+            unchecked {
+                deltaT = (_vestingPeriod - timeSinceLastDistribution);
+            }
+            return (deltaT * vestingAmount) / _vestingPeriod;
         }
-
-        uint256 deltaT;
-        unchecked {
-            deltaT = (VESTING_PERIOD - timeSinceLastDistribution);
-        }
-        return (deltaT * vestingAmount) / VESTING_PERIOD;
     }
 
     /// @dev Necessary because both ERC20 (from ERC20Permit) and ERC4626 declare decimals()

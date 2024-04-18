@@ -45,11 +45,13 @@ contract StakedUSDxFront is IStakedUSDxCooldown, StakedUSDx {
     /// @param _asset The address of the USDx token.
     /// @param initialRewarder The address of the initial rewarder.
     /// @param _owner The address of the admin role.
+    /// @param vestingPeriod The rewards vesting period
     constructor(
         IERC20 _asset,
         address initialRewarder,
-        address _owner
-    ) StakedUSDx(_asset, initialRewarder, _owner) {
+        address _owner,
+        uint256 vestingPeriod
+    ) StakedUSDx(_asset, initialRewarder, _owner, vestingPeriod) {
         silo = new USDxSilo(address(this), address(_asset));
         cooldownDuration = MAX_COOLDOWN_DURATION;
     }
