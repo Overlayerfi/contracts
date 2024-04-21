@@ -7,7 +7,7 @@ describe('USDxM', function () {
     const [admin, gatekeeper, alice, bob] = await ethers.getSigners();
 
     const Usdc = await ethers.getContractFactory('SixDecimalsUsd');
-    const usdc = await Usdc.deploy(100, '', 'USDC');
+    const usdc = await Usdc.deploy(100, 'USDC', 'USDC');
 
     const Usdt = await ethers.getContractFactory('FixedSupplyERC20');
     const usdt = await Usdt.deploy(100, 'USDT', 'USDT');

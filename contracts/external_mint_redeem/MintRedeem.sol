@@ -11,7 +11,7 @@ import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import '@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol';
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 
-import './interfaces/IUSDx.sol';
+import '../token/interfaces/IUSDx.sol';
 import './interfaces/IMintRedeem.sol';
 
 /**

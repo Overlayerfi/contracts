@@ -6,21 +6,6 @@ pragma solidity 0.8.20;
 import './IMintRedeemManagerEvents.sol';
 
 interface IMintRedeemManagerDefs is IMintRedeemManagerEvents {
-    struct Order {
-        address benefactor;
-        address beneficiary;
-        address collateral_usdt;
-        address collateral_usdc;
-        uint256 collateral_usdt_amount;
-        uint256 collateral_usdc_amount;
-        uint256 usdx_amount;
-    }
-
-    struct StableCoin {
-        address addr;
-        uint256 decimals;
-    }
-
     error InvalidZeroAddress();
     error InvalidDecimals();
     error InvalidAssetAddress();
