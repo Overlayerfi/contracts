@@ -21,3 +21,6 @@ npm run compile
 ```
 npm run unit
 ```
+
+## Note
+Keys and addresses inside `processCI.env` are dummy, DO NOT SEND ANY FUNDS TO THEM.
