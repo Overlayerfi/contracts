@@ -200,9 +200,7 @@ contract StakedUSDx is
         uint256 timeSinceLastDistribution = block.timestamp -
             lastDistributionTimestamp;
 
-        if (
-            timeSinceLastDistribution >= _vestingPeriod
-        ) {
+        if (timeSinceLastDistribution >= _vestingPeriod) {
             return 0;
         } else {
             uint256 deltaT;

@@ -9,9 +9,9 @@ import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import '@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol';
-import 'hardhat/console.sol';
 
 import './interfaces/IMintRedeemManagerDefs.sol';
+import './types/MintRedeemManagerTypes.sol';
 
 /**
  * @title MintRedeemManager
@@ -41,8 +41,8 @@ contract MintRedeemManager is
 
     /// @notice Supported assets
     /// @dev immutability inferred by non upgradable contract and no edit functions
-    StableCoin public usdt;
-    StableCoin public usdc;
+    MintRedeemManagerTypes.StableCoin public usdt;
+    MintRedeemManagerTypes.StableCoin public usdc;
 
     /// @notice Parent token decimals
     uint256 internal immutable _decimals;
@@ -78,14 +78,16 @@ contract MintRedeemManager is
         _;
     }
 
-    /// @notice ensure that the minimum amount is at least 1 USDC and 1 USDT
+    /// @notice ensure that the minimum amount is at least 1 USDC, 1 USDT and 1 USDx
     /// @param order The order struct
-    modifier validMinAmount(Order calldata order) {
+    modifier validMinAmount(MintRedeemManagerTypes.Order calldata order) {
         uint256 usdc_denom = 10 ** usdc.decimals;
         uint256 usdt_denom = 10 ** usdt.decimals;
+        uint256 usdx_denom = 10 ** _decimals;
         if (
             order.collateral_usdc_amount < usdc_denom ||
-            order.collateral_usdt_amount < usdt_denom
+            order.collateral_usdt_amount < usdt_denom ||
+            order.usdx_amount < usdx_denom
         ) revert InvalidAssetAmounts();
         _;
     }
@@ -93,8 +95,8 @@ contract MintRedeemManager is
     /* --------------- CONSTRUCTOR --------------- */
 
     constructor(
-        StableCoin memory _usdc,
-        StableCoin memory _usdt,
+        MintRedeemManagerTypes.StableCoin memory _usdc,
+        MintRedeemManagerTypes.StableCoin memory _usdt,
         address assetDestinationWallet,
         address admin,
         uint256 decimals,
@@ -186,7 +188,7 @@ contract MintRedeemManager is
     /// @dev The minimum amount is 1 USDC and 1 USDT
     /// @param order A struct containing the order
     function validateInvariant(
-        Order calldata order
+        MintRedeemManagerTypes.Order calldata order
     ) internal view validMinAmount(order) {
         uint256 usdc_denom = 10 ** usdc.decimals;
         uint256 usdt_denom = 10 ** usdt.decimals;
@@ -206,7 +208,7 @@ contract MintRedeemManager is
     /// @notice Mint stablecoins from assets
     /// @param order A struct containing the mint order
     function mintInternal(
-        Order calldata order
+        MintRedeemManagerTypes.Order calldata order
     ) internal belowMaxMintPerBlock(order.usdx_amount) {
         validateInvariant(order);
         // Add to the minted amount in this block
@@ -226,7 +228,7 @@ contract MintRedeemManager is
     /// @notice Redeem stablecoins for assets
     /// @param order struct containing order details and confirmation from server
     function redeemInternal(
-        Order calldata order
+        MintRedeemManagerTypes.Order calldata order
     ) internal belowMaxRedeemPerBlock(order.usdx_amount) {
         validateInvariant(order);
         // Add to the redeemed amount in this block

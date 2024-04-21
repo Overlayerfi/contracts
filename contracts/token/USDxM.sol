@@ -7,6 +7,7 @@ import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol';
 import './MintRedeemManager.sol';
 import './interfaces/IUSDxMDefs.sol';
+import './types/MintRedeemManagerTypes.sol';
 
 /**
  * @title USDxM
@@ -15,8 +16,8 @@ import './interfaces/IUSDxMDefs.sol';
 contract USDxM is ERC20Burnable, ERC20Permit, IUSDxMDefs, MintRedeemManager {
     constructor(
         address admin,
-        StableCoin memory usdc,
-        StableCoin memory usdt,
+        MintRedeemManagerTypes.StableCoin memory usdc,
+        MintRedeemManagerTypes.StableCoin memory usdt,
         address newAssetDestinationWallet,
         uint256 maxMintPerBlock,
         uint256 maxRedeemPerBlock
@@ -38,7 +39,9 @@ contract USDxM is ERC20Burnable, ERC20Permit, IUSDxMDefs, MintRedeemManager {
 
     /// @notice Mint tokens
     /// @param order A struct containing the mint order
-    function mint(Order calldata order) external nonReentrant {
+    function mint(
+        MintRedeemManagerTypes.Order calldata order
+    ) external nonReentrant {
         mintInternal(order);
         _mint(order.beneficiary, order.usdx_amount);
         emit Mint(
@@ -55,7 +58,9 @@ contract USDxM is ERC20Burnable, ERC20Permit, IUSDxMDefs, MintRedeemManager {
 
     /// @notice Redeem collateral
     /// @param order A struct containing the mint order
-    function redeem(Order calldata order) external nonReentrant {
+    function redeem(
+        MintRedeemManagerTypes.Order calldata order
+    ) external nonReentrant {
         redeemInternal(order);
         if (msg.sender == order.benefactor) {
             _burn(msg.sender, order.usdx_amount);
