@@ -3,6 +3,7 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
+import { ETH_RPC, GOERLI_RPC } from "./rpc";
 
 dotenv.config({ path: process.cwd() + "/process.env"});
 
@@ -45,39 +46,30 @@ const config: HardhatUserConfig = {
   },
   defaultNetwork: "localhost",
   networks: {
-    // Configure each network to the respective Cronos instances
     hardhat: {
-      //forking: {
-      //  url: "https://evm.cronos.org",
-      //  enabled: true,
-      //  blockNumber: 5168517,
-      //},
+      forking: {
+        url: ETH_RPC,
+        enabled: true,
+        blockNumber: 19709557,
+      },
       accounts: testAccounts,
     },
-    //cronosMainnet: {
-    //  url: "https://evm.cronos.org",
-    //  chainId: 25,
-    //  accounts: [process.env.AEGIS_MANAGER_KEY!],
-    //  gas: "auto",
-    //  gasPrice: "auto",
-    //  allowUnlimitedContractSize: true,
-    //},
-    //cronosTestnet: {
-    //  url: "https://evm-t3.cronos.org",
-    //  chainId: 338,
-    //  accounts: [process.env.AEGIS_MANAGER_KEY!],
-    //  gas: "auto",
-    //  gasPrice: "auto",
-    //  allowUnlimitedContractSize: true,
-    //},
-    //avaxTestnet: {
-    //  url: "https://api.avax-test.network/ext/bc/C/rpc",
-    //  chainId: 43113,
-    //  accounts: [process.env.AEGIS_MANAGER_KEY!],
-    //  gas: "auto",
-    //  gasPrice: "auto",
-    //  allowUnlimitedContractSize: true,
-    //},
+    eth: {
+      url: ETH_RPC,
+      chainId: 0x1,
+      accounts: [process.env.ADMIN_WALLET_KEY!, process.env.TEAM_WALLET_KEY!],
+      gas: "auto",
+      gasPrice: "auto",
+      allowUnlimitedContractSize: true,
+    },
+    goerli: {
+      url: GOERLI_RPC,
+      chainId: 0x5,
+      accounts: [process.env.ADMIN_WALLET_KEY!, process.env.TEAM_WALLET_KEY!],
+      gas: "auto",
+      gasPrice: "auto",
+      allowUnlimitedContractSize: true,
+    }
   },
 };
 

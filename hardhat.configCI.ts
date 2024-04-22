@@ -45,39 +45,9 @@ const config: HardhatUserConfig = {
   },
   defaultNetwork: "localhost",
   networks: {
-    // Configure each network to the respective Cronos instances
     hardhat: {
-      //forking: {
-      //  url: "https://evm.cronos.org",
-      //  enabled: true,
-      //  blockNumber: 5168517,
-      //},
       accounts: testAccounts,
     },
-    //cronosMainnet: {
-    //  url: "https://evm.cronos.org",
-    //  chainId: 25,
-    //  accounts: [process.env.AEGIS_MANAGER_KEY!],
-    //  gas: "auto",
-    //  gasPrice: "auto",
-    //  allowUnlimitedContractSize: true,
-    //},
-    //cronosTestnet: {
-    //  url: "https://evm-t3.cronos.org",
-    //  chainId: 338,
-    //  accounts: [process.env.AEGIS_MANAGER_KEY!],
-    //  gas: "auto",
-    //  gasPrice: "auto",
-    //  allowUnlimitedContractSize: true,
-    //},
-    //avaxTestnet: {
-    //  url: "https://api.avax-test.network/ext/bc/C/rpc",
-    //  chainId: 43113,
-    //  accounts: [process.env.AEGIS_MANAGER_KEY!],
-    //  gas: "auto",
-    //  gasPrice: "auto",
-    //  allowUnlimitedContractSize: true,
-    //},
   },
 };
 
