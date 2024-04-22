@@ -10,4 +10,6 @@ interface IUSDxDefs is IUSDxEvents {
     error CantRenounceOwnership();
     /// @notice Only the minter role can perform an action
     error OnlyMinter();
+    /// @notice The asset decimals can not be larger that the underlying decimals
+    error InvalidDecimals();
 }

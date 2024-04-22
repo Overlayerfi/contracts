@@ -78,20 +78,6 @@ contract MintRedeemManager is
         _;
     }
 
-    /// @notice ensure that the minimum amount is at least 1 USDC, 1 USDT and 1 USDx
-    /// @param order The order struct
-    modifier validMinAmount(MintRedeemManagerTypes.Order calldata order) {
-        uint256 usdc_denom = 10 ** usdc.decimals;
-        uint256 usdt_denom = 10 ** usdt.decimals;
-        uint256 usdx_denom = 10 ** _decimals;
-        if (
-            order.collateral_usdc_amount < usdc_denom ||
-            order.collateral_usdt_amount < usdt_denom ||
-            order.usdx_amount < usdx_denom
-        ) revert InvalidAssetAmounts();
-        _;
-    }
-
     /* --------------- CONSTRUCTOR --------------- */
 
     constructor(
@@ -185,24 +171,27 @@ contract MintRedeemManager is
     /* --------------- INTERNAL --------------- */
 
     /// @notice Check mint and redeem invariant
-    /// @dev The minimum amount is 1 USDC and 1 USDT
+    /// @dev The minimum amount is 1 USDC and 1 USDT. This invariant holds only if _decimasl >= usdc.decimals >= usdt.decimals
     /// @param order A struct containing the order
     function validateInvariant(
         MintRedeemManagerTypes.Order calldata order
-    ) internal view validMinAmount(order) {
-        uint256 usdc_denom = 10 ** usdc.decimals;
-        uint256 usdt_denom = 10 ** usdt.decimals;
-        uint256 usdc_amount_normalized = order.collateral_usdc_amount /
-            usdc_denom;
-        uint256 usdt_amount_normalized = order.collateral_usdt_amount /
-            usdt_denom;
-        if (usdc_amount_normalized != usdt_amount_normalized)
-            revert InvalidAssetAmounts();
+    ) internal view {
+        uint256 usdcDecimalsDiff = _decimals -  usdc.decimals;
+        uint256 usdtDecimalsDiff = _decimals -  usdt.decimals;
+        uint256 usdc_amount_normalized = order.collateral_usdc_amount *
+            (10 ** usdcDecimalsDiff);
+        uint256 usdt_amount_normalized = order.collateral_usdt_amount *
+            (10 ** usdtDecimalsDiff);
+        if (usdc_amount_normalized != usdt_amount_normalized) {
+            revert DifferentAssetsAmounts();
+        }
         // Their sum must be equal to USDx amount
         if (
             usdc_amount_normalized + usdt_amount_normalized !=
-            order.usdx_amount / (10 ** _decimals)
-        ) revert InvalidAssetAmounts();
+            order.usdx_amount
+        ) {
+            revert InvalidAssetAmounts();
+        }
     }
 
     /// @notice Mint stablecoins from assets
@@ -276,7 +265,7 @@ contract MintRedeemManager is
         if (!(asset == usdc.addr || asset == usdt.addr))
             revert UnsupportedAsset();
         IERC20 token = IERC20(asset);
-        token.transferFrom(benefactor, _assetsDestinationWallet, amount);
+        token.safeTransferFrom(benefactor, _assetsDestinationWallet, amount);
     }
 
     /// @notice Sets the max mintPerBlock limit
