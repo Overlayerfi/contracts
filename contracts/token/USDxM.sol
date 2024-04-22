@@ -35,6 +35,9 @@ contract USDxM is ERC20Burnable, ERC20Permit, IUSDxMDefs, MintRedeemManager {
         )
     {
         if (admin == address(0)) revert ZeroAddressException();
+        if (decimals() < usdc.decimals || decimals() < usdt.decimals) {
+            revert InvalidDecimals();
+        }
     }
 
     /// @notice Mint tokens

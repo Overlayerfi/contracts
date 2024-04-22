@@ -5,7 +5,7 @@ import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedUSDxFront.sol/St
 
 export async function deployUSDx(
 ): Promise<void> {
-  const [deployer] = await ethers.getSigners();
+  const [deployer, team] = await ethers.getSigners();
 
   console.log(
     'Deploying USDxM contract with address:',
@@ -16,7 +16,7 @@ export async function deployUSDx(
     'USDxM'
   );
   const deployedContract = await ContractSource.deploy(
-		await deployer.getAddress(),
+		deployer.address,
 		{
 			addr: USDC_ADDRESS,
 			decimals: 6
@@ -25,13 +25,14 @@ export async function deployUSDx(
 			addr: USDT_ADDRESS,
 			decimals: 6
 		},
-		await deployer.getAddress(),
+		team.address,
 		ethers.parseEther('100000000'),
 		ethers.parseEther('100000000')
   );
   await deployedContract.waitForDeployment();
 
   console.log('Contract deployed at:', await deployedContract.getAddress());
+  console.log('Destination asset wallet:', team.address);
 }
 
 export async function deployStakedUSDx(

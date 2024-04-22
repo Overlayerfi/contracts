@@ -10,6 +10,7 @@ interface IMintRedeemManagerDefs is IMintRedeemManagerEvents {
     error InvalidDecimals();
     error InvalidAssetAddress();
     error InvalidAssetAmounts();
+    error DifferentAssetsAmounts();
     error UnsupportedAsset();
     error NoAssetsProvided();
     error TransferFailed();

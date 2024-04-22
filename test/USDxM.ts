@@ -9,7 +9,7 @@ describe('USDxM', function () {
     const Usdc = await ethers.getContractFactory('SixDecimalsUsd');
     const usdc = await Usdc.deploy(100, 'USDC', 'USDC');
 
-    const Usdt = await ethers.getContractFactory('FixedSupplyERC20');
+    const Usdt = await ethers.getContractFactory('SixDecimalsUsd');
     const usdt = await Usdt.deploy(100, 'USDT', 'USDT');
 
     const Contract = await ethers.getContractFactory('USDxM');
@@ -238,8 +238,8 @@ describe('USDxM', function () {
       );
     });
 
-    it('Should not mint too small amount', async function () {
-      const { usdc, usdt, contract, alice } = await loadFixture(deployFixture);
+    it('Should mint too small amount', async function () {
+      const { admin,  usdc, usdt, contract, alice } = await loadFixture(deployFixture);
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
@@ -257,7 +257,16 @@ describe('USDxM', function () {
       };
       await expect(
         contract.connect(alice).mint(order)
-      ).to.be.eventually.rejectedWith('InvalidAssetAmounts');
+      ).to.not.be.eventually.rejected;
+      expect(await contract.balanceOf(alice.address)).to.equal(
+        ethers.parseEther((0.9999*2).toString())
+      );
+      expect(await usdt.balanceOf(admin.address)).to.equal(
+        ethers.parseUnits('0.9999', await usdt.decimals())
+      );
+      expect(await usdc.balanceOf(admin.address)).to.equal(
+        ethers.parseUnits('0.9999', await usdc.decimals())
+      );
     });
 
     it('Should not mint on wrong ratio', async function () {
@@ -276,7 +285,7 @@ describe('USDxM', function () {
       };
       await expect(
         contract.connect(alice).mint(order)
-      ).to.be.eventually.rejectedWith('InvalidAssetAmounts');
+      ).to.be.eventually.rejectedWith('DifferentAssetsAmounts');
       expect(await contract.balanceOf(alice.address)).to.equal(
         ethers.parseEther('0')
       );
@@ -290,7 +299,7 @@ describe('USDxM', function () {
       );
       await expect(
         contract.connect(alice).mint(order)
-      ).to.be.eventually.rejectedWith('InvalidAssetAmounts');
+      ).to.be.eventually.rejectedWith('DifferentAssetsAmounts');
       expect(await contract.balanceOf(alice.address)).to.equal(
         ethers.parseEther('0')
       );
