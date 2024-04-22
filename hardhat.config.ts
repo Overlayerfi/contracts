@@ -10,23 +10,23 @@ dotenv.config({ path: process.cwd() + "/process.env"});
 const testAccounts = [
   {
     privateKey: process.env.ADMIN_WALLET_KEY!,
-    balance: "1000000000000000000000000000000000000000000",
+    balance: "10000000000000000000",
   },
   {
     privateKey: process.env.TEAM_WALLET_KEY!,
-    balance: "1000000000000000000000000000000000000000000",
+    balance: "10000000000000000000",
   },
   {
     privateKey: process.env.USER_A_WALLET_KEY!,
-    balance: "1000000000000000000000000000000000000000000",
+    balance: "10000000000000000000",
   },
   {
     privateKey: process.env.USER_B_WALLET_KEY!,
-    balance: "1000000000000000000000000000000000000000000",
+    balance: "10000000000000000000",
   },
   {
     privateKey: process.env.USER_C_WALLET_KEY!,
-    balance: "1000000000000000000000000000000000000000000",
+    balance: "10000000000000000000",
   },
 ];
 
