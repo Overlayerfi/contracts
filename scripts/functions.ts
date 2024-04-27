@@ -27,7 +27,10 @@ export async function deployUSDx(
 		},
 		team.address,
 		ethers.parseEther('100000000'),
-		ethers.parseEther('100000000')
+		ethers.parseEther('100000000'),
+    //{
+    //  maxFeePerGas: 6702346660 * 10
+    //}
   );
   await deployedContract.waitForDeployment();
 
@@ -52,11 +55,31 @@ export async function deployStakedUSDx(
 		usdx,
 		deployer.address,
 		deployer.address,
-		0
+		0,
+    //{
+    //  maxFeePerGas: 6702346660 * 10
+    //}
   );
   await deployedContract.waitForDeployment();
 
   console.log('Contract deployed at:', await deployedContract.getAddress());
+}
+
+export async function setCooldownStaking(
+  addr: string,
+	seconds: number
+): Promise<void> {
+  const [deployer] = await ethers.getSigners();
+
+  console.log(
+    'Setting cooldown to staking with account:',
+    deployer.address
+  );
+
+  const contract = new ethers.Contract(addr, STAKED_USDX_ABI.abi);
+  await contract.connect(deployer).setCooldownDuration(seconds);
+
+  console.log('Operation passed');
 }
 
 export async function deployStakingRewardsDistributor(
@@ -80,7 +103,10 @@ export async function deployStakingRewardsDistributor(
 		USDC_ADDRESS,
 		USDT_ADDRESS,
 		deployer.address,
-		deployer.address
+		deployer.address,
+    //{
+    //  maxFeePerGas: 6702346660 * 10 
+    //}
   );
   await deployedContract.waitForDeployment();
 
