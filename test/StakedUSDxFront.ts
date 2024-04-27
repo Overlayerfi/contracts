@@ -2,7 +2,7 @@ import { time, loadFixture } from '@nomicfoundation/hardhat-network-helpers';
 import { ethers } from 'hardhat';
 import { expect } from 'chai';
 
-describe('StakedUSDx', function () {
+describe('StakedUSDxFront', function () {
   async function deployFixture() {
     const [admin, alice, bob] = await ethers.getSigners();
 
