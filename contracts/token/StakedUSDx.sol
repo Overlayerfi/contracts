@@ -80,7 +80,7 @@ abstract contract StakedUSDx is
         address _initialRewarder,
         address _owner,
         uint256 vestingPeriod
-    ) ERC20('Staked USDx', 'sUSDe') ERC4626(_asset) ERC20Permit('sUSDe') {
+    ) ERC20('Staked USDx', 'sUSDx') ERC4626(_asset) ERC20Permit('sUSDx') {
         if (
             _owner == address(0) ||
             _initialRewarder == address(0) ||

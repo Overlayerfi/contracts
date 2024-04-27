@@ -14,9 +14,9 @@ contract USDxSilo is IUSDxSiloDefinitions {
     address immutable _STAKING_VAULT;
     IERC20 immutable _USDX;
 
-    constructor(address stakingVault, address usde) {
+    constructor(address stakingVault, address USDx) {
         _STAKING_VAULT = stakingVault;
-        _USDX = IERC20(usde);
+        _USDX = IERC20(USDx);
     }
 
     modifier onlyStakingVault() {

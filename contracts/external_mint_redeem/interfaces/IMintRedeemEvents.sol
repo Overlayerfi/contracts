@@ -7,7 +7,7 @@ interface IMintRedeemEvents {
     /// @notice Event emitted when contract receives ETH
     event Received(address, uint256);
 
-    /// @notice Event emitted when USDe is minted
+    /// @notice Event emitted when USDx is minted
     event Mint(
         address indexed minter,
         address indexed benefactor,

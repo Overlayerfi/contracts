@@ -46,7 +46,7 @@ export async function deployStakedUSDx(
   );
 
   const ContractSource = await ethers.getContractFactory(
-    'StakedUSDx'
+    'StakedUSDxFront'
   );
   const deployedContract = await ContractSource.deploy(
 		usdx,
