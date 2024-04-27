@@ -16,7 +16,7 @@ interface IStakedUSDx {
     // Errors //
     /// @notice Error emitted shares or assets equal zero.
     error InvalidAmount();
-    /// @notice Error emitted when owner attempts to rescue USDe tokens.
+    /// @notice Error emitted when owner attempts to rescue USDx tokens.
     error InvalidToken();
     /// @notice Error emitted when a small non-zero share amount remains, which risks donations attack
     error MinSharesViolation();
