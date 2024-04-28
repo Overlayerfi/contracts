@@ -1,10 +1,10 @@
 # Note
 
-## `USDx`
-This is the standard USDx token which can be minted by an allowed minter. Minting and redeeming are controlled by an external party (see `external_mint_redeem`).
+## `USDO`
+This is the standard USDO token which can be minted by an allowed minter. Minting and redeeming are controlled by an external party (see `external_mint_redeem`).
 
-## `USDxM`
+## `USDOM`
 Minting and redeeming is controlled by the inherited contract `MintRedeemManager.sol`
 
-## `StakedUSDxFront`
-The staked version of `USDx`/`USDxM` based on ERC4626
+## `StakedUSDOFront`
+The staked version of `USDO`/`USDOM` based on ERC4626

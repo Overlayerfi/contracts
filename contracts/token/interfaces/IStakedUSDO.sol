@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.20;
 
-interface IStakedUSDx {
+interface IStakedUSDO {
     // Events //
     /// @notice Event emitted when the rewards are received
     event RewardsReceived(uint256 amount);
@@ -16,7 +16,7 @@ interface IStakedUSDx {
     // Errors //
     /// @notice Error emitted shares or assets equal zero.
     error InvalidAmount();
-    /// @notice Error emitted when owner attempts to rescue USDx tokens.
+    /// @notice Error emitted when owner attempts to rescue USDO tokens.
     error InvalidToken();
     /// @notice Error emitted when a small non-zero share amount remains, which risks donations attack
     error MinSharesViolation();

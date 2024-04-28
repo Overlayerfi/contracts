@@ -1,19 +1,19 @@
 
 import { ethers } from "hardhat";
 import { USDC_ADDRESS, USDT_ADDRESS } from "./addresses";
-import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedUSDxFront.sol/StakedUSDxFront.json";
+import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
 
-export async function deployUSDx(
+export async function deployUSDO(
 ): Promise<void> {
   const [deployer, team] = await ethers.getSigners();
 
   console.log(
-    'Deploying USDxM contract with address:',
+    'Deploying USDOM contract with address:',
     deployer.address
   );
 
   const ContractSource = await ethers.getContractFactory(
-    'USDxM'
+    'USDOM'
   );
   const deployedContract = await ContractSource.deploy(
 		deployer.address,
@@ -38,21 +38,21 @@ export async function deployUSDx(
   console.log('Destination asset wallet:', team.address);
 }
 
-export async function deployStakedUSDx(
-	usdx: string
+export async function deployStakedUSDO(
+	usdo: string
 ): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
   console.log(
-    'Deploying StakedUSDx contract with address:',
+    'Deploying StakedUSDO contract with address:',
     deployer.address
   );
 
   const ContractSource = await ethers.getContractFactory(
-    'StakedUSDxFront'
+    'StakedUSDOFront'
   );
   const deployedContract = await ContractSource.deploy(
-		usdx,
+		usdo,
 		deployer.address,
 		deployer.address,
 		0,
@@ -83,7 +83,7 @@ export async function setCooldownStaking(
 }
 
 export async function deployStakingRewardsDistributor(
-	stakedUsdx: string, usdx: string, grantRewarderRole: boolean
+	stakedUsdx: string, usdo: string, grantRewarderRole: boolean
 ): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
@@ -91,15 +91,15 @@ export async function deployStakingRewardsDistributor(
     'Deploying StakingRewardsDistributor contract with address:',
     deployer.address
   );
-	console.log("USDx:", usdx);
-	console.log("StakedUSDx:", stakedUsdx);
+	console.log("USDO:", usdo);
+	console.log("StakedUSDO:", stakedUsdx);
 
   const ContractSource = await ethers.getContractFactory(
     'StakingRewardsDistributor'
   );
   const deployedContract = await ContractSource.deploy(
 		stakedUsdx,
-		usdx,
+		usdo,
 		USDC_ADDRESS,
 		USDT_ADDRESS,
 		deployer.address,

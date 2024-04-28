@@ -13,8 +13,8 @@ describe('StakingRewardsDistributor', function () {
     const Usdt = await ethers.getContractFactory('FixedSupplyERC20');
     const usdt = await Usdt.deploy(100, 'USDT', 'USDT');
 
-    const USDx = await ethers.getContractFactory('USDxM');
-    const usdx = await USDx.deploy(
+    const USDO = await ethers.getContractFactory('USDOM');
+    const usdo = await USDO.deploy(
       await admin.getAddress(),
       {
         addr: await usdc.getAddress(),
@@ -29,9 +29,9 @@ describe('StakingRewardsDistributor', function () {
       ethers.parseEther('100000000')
     );
 
-    const StakedUSDx = await ethers.getContractFactory('StakedUSDxFront');
-    const stakedusdx = await StakedUSDx.deploy(
-      await usdx.getAddress(),
+    const StakedUSDO = await ethers.getContractFactory('StakedUSDOFront');
+    const stakedusdo = await StakedUSDO.deploy(
+      await usdo.getAddress(),
       admin.address,
       admin.address,
       0
@@ -41,8 +41,8 @@ describe('StakingRewardsDistributor', function () {
       'StakingRewardsDistributor'
     );
     const stakingrewardsdistributor = await Stakingrewardsdistributor.deploy(
-      await stakedusdx.getAddress(),
-      await usdx.getAddress(),
+      await stakedusdo.getAddress(),
+      await usdo.getAddress(),
       await usdc.getAddress(),
       await usdt.getAddress(),
       admin.address,
@@ -64,7 +64,7 @@ describe('StakingRewardsDistributor', function () {
       );
 
     // Grant rewarder role
-    await stakedusdx
+    await stakedusdo
       .connect(admin)
       .grantRole(
         ethers.keccak256(ethers.toUtf8Bytes('REWARDER_ROLE')),
@@ -76,8 +76,8 @@ describe('StakingRewardsDistributor', function () {
       operator,
       usdc,
       usdt,
-      usdx,
-      stakedusdx,
+      usdo,
+      stakedusdo,
       stakingrewardsdistributor
     };
   }
@@ -130,34 +130,34 @@ describe('StakingRewardsDistributor', function () {
 
   describe('Revoke Approvals', function () {
     it('Should revoke approvals to USDC and USDT', async function () {
-      const { admin, usdc, usdt, usdx, stakingrewardsdistributor } =
+      const { admin, usdc, usdt, usdo, stakingrewardsdistributor } =
         await loadFixture(deployFixture);
       const assets = [await usdc.getAddress(), await usdt.getAddress()];
       expect(
         await usdc.allowance(
           await stakingrewardsdistributor.getAddress(),
-          await usdx.getAddress()
+          await usdo.getAddress()
         )
       ).to.equal(ethers.MaxUint256);
       expect(
         await usdt.allowance(
           await stakingrewardsdistributor.getAddress(),
-          await usdx.getAddress()
+          await usdo.getAddress()
         )
       ).to.equal(ethers.MaxUint256);
       await stakingrewardsdistributor
         .connect(admin)
-        .revokeApprovals(assets, await usdx.getAddress());
+        .revokeApprovals(assets, await usdo.getAddress());
       expect(
         await usdt.allowance(
           await stakingrewardsdistributor.getAddress(),
-          await usdx.getAddress()
+          await usdo.getAddress()
         )
       ).to.equal(0);
       expect(
         await usdc.allowance(
           await stakingrewardsdistributor.getAddress(),
-          await usdx.getAddress()
+          await usdo.getAddress()
         )
       ).to.equal(0);
     });
@@ -170,8 +170,8 @@ describe('StakingRewardsDistributor', function () {
         operator,
         usdc,
         usdt,
-        usdx,
-        stakedusdx,
+        usdo,
+        stakedusdo,
         stakingrewardsdistributor
       } = await loadFixture(deployFixture);
       await stakingrewardsdistributor
@@ -181,14 +181,14 @@ describe('StakingRewardsDistributor', function () {
           ethers.parseUnits('50', await usdt.decimals()),
           ethers.parseEther('100')
         );
-      // usdx's USDT and USDC amount have been transfered to the destination address in the same transaction
+      // usdo's USDT and USDC amount have been transfered to the destination address in the same transaction
       expect(await usdc.balanceOf(await admin.getAddress())).to.equal(
         ethers.parseUnits('60', await usdc.decimals())
       );
       expect(await usdt.balanceOf(await admin.getAddress())).to.equal(
         ethers.parseUnits('60', await usdt.decimals())
       );
-      expect(await stakedusdx.totalAssets()).to.equal(ethers.parseEther('100'));
+      expect(await stakedusdo.totalAssets()).to.equal(ethers.parseEther('100'));
     });
 
     it('Should not transfer in rewards by not an operator', async function () {
@@ -197,8 +197,8 @@ describe('StakingRewardsDistributor', function () {
         operator,
         usdc,
         usdt,
-        usdx,
-        stakedusdx,
+        usdo,
+        stakedusdo,
         stakingrewardsdistributor
       } = await loadFixture(deployFixture);
       await expect(

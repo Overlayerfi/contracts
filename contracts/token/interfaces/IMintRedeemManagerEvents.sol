@@ -7,7 +7,7 @@ interface IMintRedeemManagerEvents {
     /// @notice Event emitted when contract receives ETH
     event Received(address, uint256);
 
-    /// @notice Event emitted when USDx is minted
+    /// @notice Event emitted when USDO is minted
     event Mint(
         address indexed minter,
         address indexed benefactor,
@@ -16,7 +16,7 @@ interface IMintRedeemManagerEvents {
         address collateral_usdt,
         uint256 collateral_usdc_amount,
         uint256 collateral_usdt_amount,
-        uint256 usdx_amount
+        uint256 usdo_amount
     );
 
     /// @notice Event emitted when funds are redeemed
@@ -28,7 +28,7 @@ interface IMintRedeemManagerEvents {
         address collateral_usdt,
         uint256 collateral_usdc_amount,
         uint256 collateral_usdt_amount,
-        uint256 usdx_amount
+        uint256 usdo_amount
     );
 
     /// @notice Event emitted when assets are moved to custody provider wallet

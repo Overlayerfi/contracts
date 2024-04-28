@@ -11,7 +11,7 @@ library MintRedeemManagerTypes {
         address collateral_usdc;
         uint256 collateral_usdt_amount;
         uint256 collateral_usdc_amount;
-        uint256 usdx_amount;
+        uint256 usdo_amount;
     }
 
     struct StableCoin {

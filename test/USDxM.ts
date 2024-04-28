@@ -2,7 +2,7 @@ import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
 import { ethers } from 'hardhat';
 import { expect } from 'chai';
 
-describe('USDxM', function () {
+describe('USDOM', function () {
   async function deployFixture() {
     const [admin, gatekeeper, alice, bob] = await ethers.getSigners();
 
@@ -12,7 +12,7 @@ describe('USDxM', function () {
     const Usdt = await ethers.getContractFactory('SixDecimalsUsd');
     const usdt = await Usdt.deploy(100, 'USDT', 'USDT');
 
-    const Contract = await ethers.getContractFactory('USDxM');
+    const Contract = await ethers.getContractFactory('USDOM');
     const contract = await Contract.deploy(
       await admin.getAddress(),
       {
@@ -193,7 +193,7 @@ describe('USDxM', function () {
         collateral_usdc: await usdc.getAddress(),
         collateral_usdt_amount: ethers.parseUnits('10', await usdt.decimals()),
         collateral_usdc_amount: ethers.parseUnits('10', await usdc.decimals()),
-        usdx_amount: ethers.parseEther('20')
+        usdo_amount: ethers.parseEther('20')
       };
       expect(await contract.balanceOf(alice.address)).to.equal(
         ethers.parseEther('0')
@@ -221,7 +221,7 @@ describe('USDxM', function () {
         collateral_usdc: await usdc.getAddress(),
         collateral_usdt_amount: ethers.parseUnits('1', await usdt.decimals()),
         collateral_usdc_amount: ethers.parseUnits('1', await usdc.decimals()),
-        usdx_amount: ethers.parseEther('2')
+        usdo_amount: ethers.parseEther('2')
       };
       expect(await contract.balanceOf(alice.address)).to.equal(
         ethers.parseEther('0')
@@ -253,7 +253,7 @@ describe('USDxM', function () {
           '0.9999',
           await usdc.decimals()
         ),
-        usdx_amount: ethers.parseEther('1.9998')
+        usdo_amount: ethers.parseEther('1.9998')
       };
       await expect(
         contract.connect(alice).mint(order)
@@ -281,7 +281,7 @@ describe('USDxM', function () {
           '9.9999',
           await usdc.decimals()
         ),
-        usdx_amount: ethers.parseEther('20')
+        usdo_amount: ethers.parseEther('20')
       };
       await expect(
         contract.connect(alice).mint(order)
@@ -320,7 +320,7 @@ describe('USDxM', function () {
           '50.001',
           await usdc.decimals()
         ),
-        usdx_amount: ethers.parseEther('20')
+        usdo_amount: ethers.parseEther('20')
       };
       await expect(contract.connect(alice).mint(order)).to.be.eventually
         .rejected;
@@ -342,7 +342,7 @@ describe('USDxM', function () {
         collateral_usdc: await usdc.getAddress(),
         collateral_usdt_amount: ethers.parseUnits('10', await usdt.decimals()),
         collateral_usdc_amount: ethers.parseUnits('10', await usdc.decimals()),
-        usdx_amount: ethers.parseEther('20')
+        usdo_amount: ethers.parseEther('20')
       };
       await contract.connect(alice).mint(order);
       expect(await contract.balanceOf(alice.address)).to.equal(
@@ -387,7 +387,7 @@ describe('USDxM', function () {
       );
     });
 
-    it('Should not redeem on low USDx balance', async function () {
+    it('Should not redeem on low USDO balance', async function () {
       const { usdc, usdt, contract, admin, alice } = await loadFixture(
         deployFixture
       );
@@ -398,7 +398,7 @@ describe('USDxM', function () {
         collateral_usdc: await usdc.getAddress(),
         collateral_usdt_amount: ethers.parseUnits('10', await usdt.decimals()),
         collateral_usdc_amount: ethers.parseUnits('10', await usdc.decimals()),
-        usdx_amount: ethers.parseEther('20')
+        usdo_amount: ethers.parseEther('20')
       };
       await contract.connect(alice).mint(order);
       const redeemOrder = {
@@ -414,7 +414,7 @@ describe('USDxM', function () {
           '10.0001',
           await usdc.decimals()
         ),
-        usdx_amount: ethers.parseEther('20.0002')
+        usdo_amount: ethers.parseEther('20.0002')
       };
       expect(await contract.balanceOf(alice.address)).to.equal(
         ethers.parseEther('20')

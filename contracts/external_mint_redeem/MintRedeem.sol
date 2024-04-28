@@ -11,12 +11,12 @@ import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import '@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol';
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 
-import '../token/interfaces/IUSDx.sol';
+import '../token/interfaces/IUSDO.sol';
 import './interfaces/IMintRedeem.sol';
 
 /**
- * @title USDx Minting
- * @notice This contract mints and redeems USDx
+ * @title USDO Minting
+ * @notice This contract mints and redeems USDO
  */
 contract MintRedeem is IMintRedeem, SingleAdminAccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -37,7 +37,7 @@ contract MintRedeem is IMintRedeem, SingleAdminAccessControl, ReentrancyGuard {
     /// @notice order type
     bytes32 private constant ORDER_TYPE =
         keccak256(
-            'Order(uint8 order_type,uint256 expiry,uint256 nonce,address benefactor,address beneficiary,address collateral_asset,uint256 collateral_amount,uint256 usdx_amount)'
+            'Order(uint8 order_type,uint256 expiry,uint256 nonce,address benefactor,address beneficiary,address collateral_asset,uint256 collateral_amount,uint256 usdo_amount)'
         );
 
     /// @notice role enabling to invoke mint
@@ -72,8 +72,8 @@ contract MintRedeem is IMintRedeem, SingleAdminAccessControl, ReentrancyGuard {
 
     /* --------------- STATE VARIABLES --------------- */
 
-    /// @notice usdx stablecoin
-    IUSDx public immutable usdx;
+    /// @notice usdo stablecoin
+    IUSDO public immutable usdo;
 
     /// @notice Supported assets
     EnumerableSet.AddressSet internal _supportedAssets;
@@ -90,32 +90,32 @@ contract MintRedeem is IMintRedeem, SingleAdminAccessControl, ReentrancyGuard {
     /// @notice user deduplication
     mapping(address => mapping(uint256 => uint256)) private _orderBitmaps;
 
-    /// @notice USDx minted per block
+    /// @notice USDO minted per block
     mapping(uint256 => uint256) public mintedPerBlock;
-    /// @notice USDx redeemed per block
+    /// @notice USDO redeemed per block
     mapping(uint256 => uint256) public redeemedPerBlock;
 
     /// @notice For smart contracts to delegate signing to EOA address
     mapping(address => mapping(address => DelegatedSignerStatus))
         public delegatedSigner;
 
-    /// @notice max minted USDx allowed per block
+    /// @notice max minted USDO allowed per block
     uint256 public maxMintPerBlock;
-    /// @notice max redeemed USDx allowed per block
+    /// @notice max redeemed USDO allowed per block
     uint256 public maxRedeemPerBlock;
 
     /* --------------- MODIFIERS --------------- */
 
-    /// @notice ensure that the already minted USDx in the actual block plus the amount to be minted is below the maxMintPerBlock var
-    /// @param mintAmount The USDx amount to be minted
+    /// @notice ensure that the already minted USDO in the actual block plus the amount to be minted is below the maxMintPerBlock var
+    /// @param mintAmount The USDO amount to be minted
     modifier belowMaxMintPerBlock(uint256 mintAmount) {
         if (mintedPerBlock[block.number] + mintAmount > maxMintPerBlock)
             revert MaxMintPerBlockExceeded();
         _;
     }
 
-    /// @notice ensure that the already redeemed USDx in the actual block plus the amount to be redeemed is below the maxRedeemPerBlock var
-    /// @param redeemAmount The USDx amount to be redeemed
+    /// @notice ensure that the already redeemed USDO in the actual block plus the amount to be redeemed is below the maxRedeemPerBlock var
+    /// @param redeemAmount The USDO amount to be redeemed
     modifier belowMaxRedeemPerBlock(uint256 redeemAmount) {
         if (redeemedPerBlock[block.number] + redeemAmount > maxRedeemPerBlock)
             revert MaxRedeemPerBlockExceeded();
@@ -125,17 +125,17 @@ contract MintRedeem is IMintRedeem, SingleAdminAccessControl, ReentrancyGuard {
     /* --------------- CONSTRUCTOR --------------- */
 
     constructor(
-        IUSDx _usdx,
+        IUSDO _usdo,
         address[] memory _assets,
         address _newAssetDestinationWallet,
         address _admin,
         uint256 _maxMintPerBlock,
         uint256 _maxRedeemPerBlock
     ) {
-        if (address(_usdx) == address(0)) revert InvalidusdxAddress();
+        if (address(_usdo) == address(0)) revert InvalidusdoAddress();
         if (_assets.length == 0) revert NoAssetsProvided();
         if (_admin == address(0)) revert InvalidZeroAddress();
-        usdx = _usdx;
+        usdo = _usdo;
         _assetsDestinationWallet = _newAssetDestinationWallet;
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -158,7 +158,7 @@ contract MintRedeem is IMintRedeem, SingleAdminAccessControl, ReentrancyGuard {
         _chainId = block.chainid;
         _domainSeparator = _computeDomainSeparator();
 
-        emit USDxSet(address(_usdx));
+        emit USDOSet(address(_usdo));
     }
 
     /* --------------- EXTERNAL --------------- */
@@ -184,26 +184,26 @@ contract MintRedeem is IMintRedeem, SingleAdminAccessControl, ReentrancyGuard {
         override
         nonReentrant
         onlyRole(MINTER_ROLE)
-        belowMaxMintPerBlock(order.usdx_amount)
+        belowMaxMintPerBlock(order.usdo_amount)
     {
         if (order.order_type != OrderType.MINT) revert InvalidOrder();
         verifyOrder(order, signature);
         _deduplicateOrder(order.benefactor, order.nonce);
         // Add to the minted amount in this block
-        mintedPerBlock[block.number] += order.usdx_amount;
+        mintedPerBlock[block.number] += order.usdo_amount;
         _transferCollateral(
             order.collateral_amount,
             order.collateral_asset,
             order.benefactor
         );
-        usdx.mint(order.beneficiary, order.usdx_amount);
+        usdo.mint(order.beneficiary, order.usdo_amount);
         emit Mint(
             msg.sender,
             order.benefactor,
             order.beneficiary,
             order.collateral_asset,
             order.collateral_amount,
-            order.usdx_amount
+            order.usdo_amount
         );
     }
 
@@ -220,14 +220,14 @@ contract MintRedeem is IMintRedeem, SingleAdminAccessControl, ReentrancyGuard {
         override
         nonReentrant
         onlyRole(REDEEMER_ROLE)
-        belowMaxRedeemPerBlock(order.usdx_amount)
+        belowMaxRedeemPerBlock(order.usdo_amount)
     {
         if (order.order_type != OrderType.REDEEM) revert InvalidOrder();
         verifyOrder(order, signature);
         _deduplicateOrder(order.benefactor, order.nonce);
         // Add to the redeemed amount in this block
-        redeemedPerBlock[block.number] += order.usdx_amount;
-        usdx.burnFrom(order.benefactor, order.usdx_amount);
+        redeemedPerBlock[block.number] += order.usdo_amount;
+        usdo.burnFrom(order.benefactor, order.usdo_amount);
         _transferToBeneficiary(
             order.beneficiary,
             order.collateral_asset,
@@ -239,7 +239,7 @@ contract MintRedeem is IMintRedeem, SingleAdminAccessControl, ReentrancyGuard {
             order.beneficiary,
             order.collateral_asset,
             order.collateral_amount,
-            order.usdx_amount
+            order.usdo_amount
         );
     }
 
@@ -353,7 +353,7 @@ contract MintRedeem is IMintRedeem, SingleAdminAccessControl, ReentrancyGuard {
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         if (
             asset == address(0) ||
-            asset == address(usdx) ||
+            asset == address(usdo) ||
             !_supportedAssets.add(asset)
         ) {
             revert InvalidAssetAddress();
@@ -395,7 +395,7 @@ contract MintRedeem is IMintRedeem, SingleAdminAccessControl, ReentrancyGuard {
                 order.beneficiary,
                 order.collateral_asset,
                 order.collateral_amount,
-                order.usdx_amount
+                order.usdo_amount
             );
     }
 
@@ -418,7 +418,7 @@ contract MintRedeem is IMintRedeem, SingleAdminAccessControl, ReentrancyGuard {
         }
         if (order.beneficiary == address(0)) revert InvalidAddress();
         if (order.collateral_amount == 0) revert InvalidAmount();
-        if (order.usdx_amount == 0) revert InvalidAmount();
+        if (order.usdo_amount == 0) revert InvalidAmount();
         if (block.timestamp > order.expiry) revert SignatureExpired();
     }
 

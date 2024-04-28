@@ -3,27 +3,27 @@ pragma solidity 0.8.20;
 
 /* solhint-disable var-name-mixedcase */
 
-import './StakedUSDx.sol';
-import './interfaces/IStakedUSDxCoolDown.sol';
-import './USDxSilo.sol';
+import './StakedUSDO.sol';
+import './interfaces/IStakedUSDOCoolDown.sol';
+import './USDOSilo.sol';
 
 /**
- * @title StakedUSDxFront
- * @notice The StakedUSDxFront contract allows users to
- * stake USDx tokens and earn a portion of protocol yield
+ * @title StakedUSDOFront
+ * @notice The StakedUSDOFront contract allows users to
+ * stake USDO tokens and earn a portion of protocol yield
  * @dev If cooldown duration is set to
- * zero, the StakedUSDxFront behavior changes to follow ERC4626 standard and
+ * zero, the StakedUSDOFront behavior changes to follow ERC4626 standard and
  * disables cooldownShares and cooldownAssets methods. If cooldown duration is
  * greater than zero, the ERC4626 withdrawal and redeem functions are disabled,
  * breaking the ERC4626 standard, and enabling the cooldownShares and the
  * cooldownAssets functions.
  */
-contract StakedUSDxFront is IStakedUSDxCooldown, StakedUSDx {
+contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
     using SafeERC20 for IERC20;
 
     mapping(address => UserCooldown) public cooldowns;
 
-    USDxSilo public immutable silo;
+    USDOSilo public immutable silo;
 
     uint24 public constant MAX_COOLDOWN_DURATION = 90 days;
 
@@ -41,8 +41,8 @@ contract StakedUSDxFront is IStakedUSDxCooldown, StakedUSDx {
         _;
     }
 
-    /// @notice Constructor for StakedUSDxFront contract.
-    /// @param _asset The address of the USDx token.
+    /// @notice Constructor for StakedUSDOFront contract.
+    /// @param _asset The address of the USDO token.
     /// @param initialRewarder The address of the initial rewarder.
     /// @param _owner The address of the admin role.
     /// @param vestingPeriod The rewards vesting period
@@ -51,8 +51,8 @@ contract StakedUSDxFront is IStakedUSDxCooldown, StakedUSDx {
         address initialRewarder,
         address _owner,
         uint256 vestingPeriod
-    ) StakedUSDx(_asset, initialRewarder, _owner, vestingPeriod) {
-        silo = new USDxSilo(address(this), address(_asset));
+    ) StakedUSDO(_asset, initialRewarder, _owner, vestingPeriod) {
+        silo = new USDOSilo(address(this), address(_asset));
         cooldownDuration = MAX_COOLDOWN_DURATION;
     }
 
@@ -133,7 +133,7 @@ contract StakedUSDxFront is IStakedUSDxCooldown, StakedUSDx {
         _withdraw(msg.sender, address(silo), msg.sender, assets, shares);
     }
 
-    /// @notice Set cooldown duration. If cooldown duration is set to zero, the StakedUSDxFront behavior changes to follow ERC4626 standard and disables cooldownShares and cooldownAssets methods. If cooldown duration is greater than zero, the ERC4626 withdrawal and redeem functions are disabled, breaking the ERC4626 standard, and enabling the cooldownShares and the cooldownAssets functions.
+    /// @notice Set cooldown duration. If cooldown duration is set to zero, the StakedUSDOFront behavior changes to follow ERC4626 standard and disables cooldownShares and cooldownAssets methods. If cooldown duration is greater than zero, the ERC4626 withdrawal and redeem functions are disabled, breaking the ERC4626 standard, and enabling the cooldownShares and the cooldownAssets functions.
     /// @param duration Duration of the cooldown
     function setCooldownDuration(
         uint24 duration
