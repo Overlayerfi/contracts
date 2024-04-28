@@ -3,7 +3,7 @@ import { Contract } from "ethers";
 import { USDC_ADDRESS, USDT_ADDRESS } from "./addresses";
 import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
 
-export async function deployUSDO(): Promise<void> {
+export async function deployUSDO(): Promise<string> {
   const [deployer, team] = await ethers.getSigners();
 
   console.log("Deploying USDOM contract with signer:", deployer.address);
@@ -30,9 +30,10 @@ export async function deployUSDO(): Promise<void> {
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
   console.log("Destination asset wallet:", team.address);
+  return await deployedContract.getAddress();
 }
 
-export async function deployStakedUSDO(usdo: string): Promise<void> {
+export async function deployStakedUSDO(usdo: string): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
   console.log("Deploying StakedUSDO contract with signer:", deployer.address);
@@ -50,6 +51,7 @@ export async function deployStakedUSDO(usdo: string): Promise<void> {
   await deployedContract.waitForDeployment();
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
+  return await deployedContract.getAddress();
 }
 
 export async function deployAirdropOBSIReceipt(usdo: string): Promise<void> {
@@ -71,6 +73,35 @@ export async function deployAirdropOBSIReceipt(usdo: string): Promise<void> {
   await deployedContract.waitForDeployment();
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
+}
+
+export async function deployLiquidityAirdropReward(
+  admin: string
+): Promise<string> {
+  const [deployer] = await ethers.getSigners();
+
+  if (!ethers.isAddress(admin)) {
+    throw new Error("admin is not an address");
+  }
+
+  console.log(
+    "Deploying LiquidityAirdropReward contract with signer:",
+    deployer.address
+  );
+
+  const ContractSource = await ethers.getContractFactory(
+    "LiquidityAirdropReward"
+  );
+  const deployedContract = await ContractSource.deploy(
+    admin
+    //{
+    //  maxFeePerGas: 6702346660 * 10
+    //}
+  );
+  await deployedContract.waitForDeployment();
+
+  console.log("Contract deployed at:", await deployedContract.getAddress());
+  return await deployedContract.getAddress();
 }
 
 export async function setCooldownStaking(
@@ -136,19 +167,22 @@ export async function deployStakingRewardsDistributor(
 }
 
 export async function deployLiquidity(
-  devAddress: string,
+  admin: string,
   startingBlock: number
-): Promise<void> {
+): Promise<string> {
   const [deployer] = await ethers.getSigners();
+
+  if (!ethers.isAddress(admin)) {
+    throw new Error("admin is not ad address");
+  }
+
   console.log("Deploying Liquidity contract with signer:", deployer.address);
 
   const ContractSource = await ethers.getContractFactory("Liquidity");
-  const deployedContract = await ContractSource.deploy(
-    devAddress,
-    startingBlock
-  );
+  const deployedContract = await ContractSource.deploy(admin, startingBlock);
 
   await deployedContract.waitForDeployment();
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
+  return await deployedContract.getAddress();
 }
