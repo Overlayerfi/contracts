@@ -133,7 +133,9 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
         _withdraw(msg.sender, address(silo), msg.sender, assets, shares);
     }
 
-    /// @notice Set cooldown duration. If cooldown duration is set to zero, the StakedUSDOFront behavior changes to follow ERC4626 standard and disables cooldownShares and cooldownAssets methods. If cooldown duration is greater than zero, the ERC4626 withdrawal and redeem functions are disabled, breaking the ERC4626 standard, and enabling the cooldownShares and the cooldownAssets functions.
+    /// @notice Set cooldown duration. If cooldown duration is set to zero, the StakedUSDOFront behavior changes to follow ERC4626 standard and disables
+    /// cooldownShares and cooldownAssets methods. If cooldown duration is greater than zero, the ERC4626 withdrawal and redeem functions are disabled,
+    /// breaking the ERC4626 standard, and enabling the cooldownShares and the cooldownAssets functions.
     /// @param duration Duration of the cooldown
     function setCooldownDuration(
         uint24 duration

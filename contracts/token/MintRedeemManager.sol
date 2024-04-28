@@ -176,8 +176,8 @@ contract MintRedeemManager is
     function validateInvariant(
         MintRedeemManagerTypes.Order calldata order
     ) internal view {
-        uint256 usdcDecimalsDiff = _decimals -  usdc.decimals;
-        uint256 usdtDecimalsDiff = _decimals -  usdt.decimals;
+        uint256 usdcDecimalsDiff = _decimals - usdc.decimals;
+        uint256 usdtDecimalsDiff = _decimals - usdt.decimals;
         uint256 usdc_amount_normalized = order.collateral_usdc_amount *
             (10 ** usdcDecimalsDiff);
         uint256 usdt_amount_normalized = order.collateral_usdt_amount *
@@ -187,8 +187,7 @@ contract MintRedeemManager is
         }
         // Their sum must be equal to USDO amount
         if (
-            usdc_amount_normalized + usdt_amount_normalized !=
-            order.usdo_amount
+            usdc_amount_normalized + usdt_amount_normalized != order.usdo_amount
         ) {
             revert InvalidAssetAmounts();
         }

@@ -11,58 +11,62 @@ contract UniswapV3SingleHopSwap {
     ISwapRouter02 private constant router = ISwapRouter02(SWAP_ROUTER_02);
     IERC20 private constant weth = IERC20(WETH);
 
-    function swapExactInputSingleHop(uint256 amountIn, uint256 amountOutMin, uint8 code)
-        external
-    {
+    function swapExactInputSingleHop(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        uint8 code
+    ) external {
         weth.transferFrom(msg.sender, address(this), amountIn);
         weth.approve(address(router), amountIn);
 
-	    address outAddress = DAI;
-	    if (code == 1) {
-		    outAddress = USDC;
-	    }
-	    if (code == 2) {
-		    outAddress = USDT;
-	    }
+        address outAddress = DAI;
+        if (code == 1) {
+            outAddress = USDC;
+        }
+        if (code == 2) {
+            outAddress = USDT;
+        }
 
         ISwapRouter02.ExactInputSingleParams memory params = ISwapRouter02
             .ExactInputSingleParams({
-            tokenIn: WETH,
-            tokenOut: outAddress,
-            fee: 3000,
-            recipient: msg.sender,
-            amountIn: amountIn,
-            amountOutMinimum: amountOutMin,
-            sqrtPriceLimitX96: 0
-        });
+                tokenIn: WETH,
+                tokenOut: outAddress,
+                fee: 3000,
+                recipient: msg.sender,
+                amountIn: amountIn,
+                amountOutMinimum: amountOutMin,
+                sqrtPriceLimitX96: 0
+            });
 
         router.exactInputSingle(params);
     }
 
-    function swapExactOutputSingleHop(uint256 amountOut, uint256 amountInMax, uint8 code)
-        external
-    {
+    function swapExactOutputSingleHop(
+        uint256 amountOut,
+        uint256 amountInMax,
+        uint8 code
+    ) external {
         weth.transferFrom(msg.sender, address(this), amountInMax);
         weth.approve(address(router), amountInMax);
 
-				address outAddress = DAI;
-				if (code == 1) {
-					outAddress = USDC;
-				}
-				if (code == 2) {
-					outAddress = USDT;
-				}
+        address outAddress = DAI;
+        if (code == 1) {
+            outAddress = USDC;
+        }
+        if (code == 2) {
+            outAddress = USDT;
+        }
 
         ISwapRouter02.ExactOutputSingleParams memory params = ISwapRouter02
             .ExactOutputSingleParams({
-            tokenIn: WETH,
-            tokenOut: DAI,
-            fee: 3000,
-            recipient: msg.sender,
-            amountOut: amountOut,
-            amountInMaximum: amountInMax,
-            sqrtPriceLimitX96: 0
-        });
+                tokenIn: WETH,
+                tokenOut: DAI,
+                fee: 3000,
+                recipient: msg.sender,
+                amountOut: amountOut,
+                amountInMaximum: amountInMax,
+                sqrtPriceLimitX96: 0
+            });
 
         uint256 amountIn = router.exactOutputSingle(params);
 
@@ -84,10 +88,9 @@ interface ISwapRouter02 {
         uint160 sqrtPriceLimitX96;
     }
 
-    function exactInputSingle(ExactInputSingleParams calldata params)
-        external
-        payable
-        returns (uint256 amountOut);
+    function exactInputSingle(
+        ExactInputSingleParams calldata params
+    ) external payable returns (uint256 amountOut);
 
     struct ExactOutputSingleParams {
         address tokenIn;
@@ -99,26 +102,28 @@ interface ISwapRouter02 {
         uint160 sqrtPriceLimitX96;
     }
 
-    function exactOutputSingle(ExactOutputSingleParams calldata params)
-        external
-        payable
-        returns (uint256 amountIn);
+    function exactOutputSingle(
+        ExactOutputSingleParams calldata params
+    ) external payable returns (uint256 amountIn);
 }
 
 interface IERC20 {
     function totalSupply() external view returns (uint256);
     function balanceOf(address account) external view returns (uint256);
-    function transfer(address recipient, uint256 amount)
-        external
-        returns (bool);
-    function allowance(address owner, address spender)
-        external
-        view
-        returns (uint256);
+    function transfer(
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256);
     function approve(address spender, uint256 amount) external returns (bool);
-    function transferFrom(address sender, address recipient, uint256 amount)
-        external
-        returns (bool);
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
 }
 
 interface IWETH is IERC20 {
