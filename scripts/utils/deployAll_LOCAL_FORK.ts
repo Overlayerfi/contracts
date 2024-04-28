@@ -1,23 +1,45 @@
+import { ethers } from "hardhat";
+import { Contract } from "ethers";
 import {
   deployUSDO,
   deployStakedUSDO,
   deployStakingRewardsDistributor,
-  deployAirdropOBSIReceipt
+  deployAirdropOBSIReceipt,
+  deployLiquidityAirdropReward,
+  deployLiquidity
 } from "../functions";
+import LIQUIDITY_REWARD_ABI from "../../artifacts/contracts/token/LiquidityAirdropReward.sol/LiquidityAirdropReward.json";
 
-// The input addresses below take in account the we use the same deployer account (signer) for the forked mainnet for local tests.
-// Addresses are hence reproducible at every restart of the local node as the signer will have the same nonce
-// (if signer does not transact on the forked networked before the pinned block: see hardhat config).
-
-const USDO = "0x72872f101327902fC805637Cccd9A3542ed31e47";
-const SUSDO = "0x9E7ef64F17E79366e70C1Fdc01E1A00323e1FCF8";
+const LIQUIDITY_REWARD_TOKEN_ADMIN =
+  "0x10fc45741bfE5D527c1b83Fe0BD70fC96D7ec30F";
+const LIQUIDITY_ADMIN = "0x10fc45741bfE5D527c1b83Fe0BD70fC96D7ec30F";
+const REWARD_STARTING_BLOCK = 19709557;
 
 async function main() {
   try {
-    await deployUSDO();
-    await deployStakedUSDO(USDO);
-    await deployStakingRewardsDistributor(SUSDO, USDO, true);
-    await deployAirdropOBSIReceipt(USDO);
+    const admin = await ethers.getSigner(
+      "0x10fc45741bfE5D527c1b83Fe0BD70fC96D7ec30F"
+    );
+    console.log("signer addr:", admin.address);
+
+    const usdoAddr = await deployUSDO();
+    const susdoAddr = await deployStakedUSDO(usdoAddr);
+    await deployStakingRewardsDistributor(susdoAddr, usdoAddr, true);
+    await deployAirdropOBSIReceipt(usdoAddr);
+    const liquidityRewardAssetAddr = await deployLiquidityAirdropReward(
+      LIQUIDITY_REWARD_TOKEN_ADMIN
+    );
+    const liquidityAddr = await deployLiquidity(
+      LIQUIDITY_ADMIN,
+      REWARD_STARTING_BLOCK
+    );
+    const rewardContract = new ethers.Contract(
+      liquidityRewardAssetAddr,
+      LIQUIDITY_REWARD_ABI.abi,
+      admin
+    );
+    await (rewardContract.connect(admin) as Contract).setMinter(liquidityAddr);
+    console.log("LiquidityAirdropReward minter set to:", liquidityAddr);
   } catch (err) {
     console.error("Batch deployment failed ->", err);
   }

@@ -6,51 +6,14 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../mock_ERC20/interfaces/IMintableErc20.sol";
+import "./interfaces/ILiquidityDefs.sol";
+import "./interfaces/IRewardAsset.sol";
 
 /**
  * @notice Liquidity contract implementation.
  */
-contract Liquidity is Ownable, ReentrancyGuard {
+contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     using SafeERC20 for IERC20;
-
-    /**
-     * @notice Info on each user.
-     */
-    struct UserInfo {
-        uint256 amount; // How many LP tokens the user has provided.
-        uint256 rewardDebt; // Reward debt. See explanation below.
-        /**
-         * @notice The strategy used by the vault.
-         *
-         * We do some fancy math here. Basically, any point in time, the amount of REWARD
-         * entitled to a user but is pending to be distributed is:
-         *
-         *  pending reward = (user.amount * pool.accRewardPerShare)
-         *
-         * Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
-         *  1. The pool's `accRewardPerShare` (and `lastRewardBlock`) gets updated.
-         *  2. User receives the pending reward sent to his/her address.
-         *  3. User's `amount` gets updated.
-         */
-    }
-
-    /**
-     * @notice Info on each pool.
-     */
-    struct PoolInfo {
-        IERC20 lpToken; // Address of LP token contract.
-        IERC20 reward; // REWARD token.
-        uint256 allocPoints; // Pool weight
-        uint256 lastRewardBlock; // Last block number that REWARD distribution occurs.
-        uint256 accRewardPerShare; // Accumulated REWARD per share, times 1e12. See below.
-    }
-
-    /**
-     * @notice The team address.
-     */
-    address public devaddr;
-
     /**
      * @notice The pool info.
      */
@@ -84,7 +47,7 @@ contract Liquidity is Ownable, ReentrancyGuard {
     /**
      * @notice The bonus multiplier for this chef.
      */
-    uint256 public BONUS_MULTIPLIER = 1;
+    uint256 public bonusMultiplier = 1;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -95,23 +58,15 @@ contract Liquidity is Ownable, ReentrancyGuard {
         uint256 amount
     );
 
-    modifier onlyTeam() {
-        require(
-            owner() == msg.sender || devaddr == msg.sender,
-            "Liquidity: Not allowed"
-        );
-        _;
-    }
-
     /**
      * @notice Contract constructor.
-     * @dev It sets the initial owner as the devaddr
-     * @param _devaddr The developer team address
+     * @param admin The contract admin
      * @param _startBlock The reward start block
      */
-    constructor(address _devaddr, uint256 _startBlock) Ownable(_devaddr) {
-        require(_devaddr != address(0));
-        devaddr = _devaddr;
+    constructor(address admin, uint256 _startBlock) Ownable(admin) {
+        if (admin == address(0)) {
+            revert InvalidZeroAddress();
+        }
         startBlock = _startBlock;
     }
 
@@ -119,8 +74,8 @@ contract Liquidity is Ownable, ReentrancyGuard {
      * @notice Update the multiplier value.
      * @param _new the new multiplier value.
      */
-    function updateMultiplier(uint256 _new) external onlyTeam {
-        BONUS_MULTIPLIER = _new;
+    function updateMultiplier(uint256 _new) external onlyOwner {
+        bonusMultiplier = _new;
     }
 
     /**
@@ -139,7 +94,7 @@ contract Liquidity is Ownable, ReentrancyGuard {
     function setReward(
         IERC20 _reward,
         uint256 _newRewardRate
-    ) external onlyTeam {
+    ) external onlyOwner {
         if (!activeRewards[address(_reward)]) {
             activeRewards[address(_reward)] = true;
         }
@@ -160,11 +115,10 @@ contract Liquidity is Ownable, ReentrancyGuard {
         IERC20 _reward,
         uint256 _allocPoints,
         bool _withUpdate
-    ) public onlyTeam {
-        require(
-            activeRewards[address(_reward)],
-            "Liquidity: Reward not active"
-        );
+    ) public onlyOwner {
+        if (!activeRewards[address(_reward)]) {
+            revert InvactiveReward();
+        }
         if (_withUpdate) {
             _massUpdatePools();
         }
@@ -176,8 +130,8 @@ contract Liquidity is Ownable, ReentrancyGuard {
             (_allocPoints);
         poolInfo.push(
             PoolInfo({
-                lpToken: _lpToken,
-                reward: _reward,
+                stakedAsset: _lpToken,
+                rewardAsset: _reward,
                 allocPoints: _allocPoints,
                 lastRewardBlock: lastRewardBlock,
                 accRewardPerShare: 0
@@ -192,9 +146,11 @@ contract Liquidity is Ownable, ReentrancyGuard {
      */
     function getTotalStakedInPool(
         uint256 _pid
-    ) external view onlyTeam returns (uint256) {
-        require(_pid < poolInfo.length, "Liquidity: Invalid pid");
-        return (poolInfo[_pid].lpToken.balanceOf(address(this)));
+    ) external view returns (uint256) {
+        if (_pid >= poolInfo.length) {
+            revert InvalidPid();
+        }
+        return (poolInfo[_pid].stakedAsset.balanceOf(address(this)));
     }
 
     /**
@@ -210,7 +166,7 @@ contract Liquidity is Ownable, ReentrancyGuard {
         if (_from >= _to) {
             return 0;
         }
-        return _to - (_from) / (BONUS_MULTIPLIER);
+        return _to - (_from) / (bonusMultiplier);
     }
 
     /**
@@ -223,8 +179,10 @@ contract Liquidity is Ownable, ReentrancyGuard {
         uint256 _pid,
         uint256 _newPoints,
         bool _withUpdate
-    ) external onlyTeam returns (uint256 newTotal) {
-        require(_pid < poolInfo.length, "Liquidity: Invalid pid");
+    ) external onlyOwner returns (uint256 newTotal) {
+        if (_pid >= poolInfo.length) {
+            revert InvalidPid();
+        }
 
         if (_withUpdate) {
             _massUpdatePools();
@@ -233,12 +191,12 @@ contract Liquidity is Ownable, ReentrancyGuard {
         uint256 oldPoints = pool.allocPoints;
         pool.allocPoints = _newPoints;
         if (oldPoints != _newPoints) {
-            totalAllocPointsPerReward[address(pool.reward)] =
-                totalAllocPointsPerReward[address(pool.reward)] -
+            totalAllocPointsPerReward[address(pool.rewardAsset)] =
+                totalAllocPointsPerReward[address(pool.rewardAsset)] -
                 (oldPoints) +
                 (_newPoints);
         }
-        newTotal = totalAllocPointsPerReward[address(pool.reward)];
+        newTotal = totalAllocPointsPerReward[address(pool.rewardAsset)];
     }
 
     /**
@@ -251,26 +209,28 @@ contract Liquidity is Ownable, ReentrancyGuard {
         uint256 _pid,
         address _user
     ) public view returns (uint256) {
-        require(_pid < poolInfo.length, "Liquidity: Invalid pid");
+        if (_pid >= poolInfo.length) {
+            revert InvalidPid();
+        }
 
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo memory user = userInfo[_pid][_user];
 
         uint256 accRewardPerShare = pool.accRewardPerShare;
-        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
-        if (block.number > pool.lastRewardBlock && lpSupply != 0) {
+        uint256 stakedAssetSupply = pool.stakedAsset.balanceOf(address(this));
+        if (block.number > pool.lastRewardBlock && stakedAssetSupply != 0) {
             uint256 multiplier = _getMultiplier(
                 pool.lastRewardBlock,
                 block.number
             );
             uint256 reward = (multiplier *
-                (rewardsPerBlock[address(pool.reward)]) *
+                (rewardsPerBlock[address(pool.rewardAsset)]) *
                 (pool.allocPoints)) /
-                (totalAllocPointsPerReward[address(pool.reward)]);
+                (totalAllocPointsPerReward[address(pool.rewardAsset)]);
             // Note, this calculation won't update pool accRewardPerShare status
             accRewardPerShare =
                 accRewardPerShare +
-                ((reward * (1e12)) / (lpSupply));
+                ((reward * (1e12)) / (stakedAssetSupply));
         }
         return (user.amount * (accRewardPerShare)) / (1e12) - (user.rewardDebt);
     }
@@ -294,20 +254,20 @@ contract Liquidity is Ownable, ReentrancyGuard {
         if (block.number <= pool.lastRewardBlock) {
             return;
         }
-        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
-        if (lpSupply == 0) {
+        uint256 stakedAssetSupply = pool.stakedAsset.balanceOf(address(this));
+        if (stakedAssetSupply == 0) {
             pool.lastRewardBlock = block.number;
             return;
         }
         uint256 multiplier = _getMultiplier(pool.lastRewardBlock, block.number);
         uint256 reward = (multiplier *
-            (rewardsPerBlock[address(pool.reward)]) *
+            (rewardsPerBlock[address(pool.rewardAsset)]) *
             (pool.allocPoints)) /
-            (totalAllocPointsPerReward[address(pool.reward)]);
+            (totalAllocPointsPerReward[address(pool.rewardAsset)]);
 
         pool.accRewardPerShare =
             pool.accRewardPerShare +
-            ((reward * (1e12)) / (lpSupply));
+            ((reward * (1e12)) / (stakedAssetSupply));
         pool.lastRewardBlock = block.number;
     }
 
@@ -317,7 +277,9 @@ contract Liquidity is Ownable, ReentrancyGuard {
      * @param _amount the amount to deposit.
      */
     function deposit(uint256 _pid, uint256 _amount) external nonReentrant {
-        require(_pid < poolInfo.length, "Liquidity: Invalid pid");
+        if (_pid >= poolInfo.length) {
+            revert InvalidPid();
+        }
 
         // Get pool and user
         PoolInfo storage pool = poolInfo[_pid];
@@ -332,11 +294,11 @@ contract Liquidity is Ownable, ReentrancyGuard {
                 (1e12) -
                 (user.rewardDebt);
             if (pending > 0) {
-                _payReward(pool.reward, msg.sender, pending);
+                _payReward(pool.rewardAsset, msg.sender, pending);
             }
         }
         if (_amount > 0) {
-            pool.lpToken.safeTransferFrom(
+            pool.stakedAsset.safeTransferFrom(
                 address(msg.sender),
                 address(this),
                 _amount
@@ -354,12 +316,16 @@ contract Liquidity is Ownable, ReentrancyGuard {
      * @param _amount the amount to withdraw.
      */
     function withdraw(uint256 _pid, uint256 _amount) external nonReentrant {
-        require(_pid < poolInfo.length, "Liquidity: Invalid pid");
+        if (_pid >= poolInfo.length) {
+            revert InvalidPid();
+        }
 
         // Get pool and user
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        require(user.amount >= _amount, "Liquidity: withdraw balance exceeded");
+        if (_amount > user.amount) {
+            revert InvalidAmount();
+        }
 
         // update the pool up to date
         updatePool(_pid);
@@ -369,11 +335,11 @@ contract Liquidity is Ownable, ReentrancyGuard {
             (user.rewardDebt);
 
         if (pending > 0) {
-            _payReward(pool.reward, msg.sender, pending);
+            _payReward(pool.rewardAsset, msg.sender, pending);
         }
         if (_amount > 0) {
             user.amount = user.amount - (_amount);
-            _returnStakedTokens(pool.lpToken, address(msg.sender), _amount);
+            _returnStakedTokens(pool.stakedAsset, address(msg.sender), _amount);
         }
         // update reward debt, there is harvest on withdraw so at every deposit the debt will be reset with the new amount the user has.
         user.rewardDebt = (user.amount * (pool.accRewardPerShare)) / (1e12);
@@ -385,7 +351,9 @@ contract Liquidity is Ownable, ReentrancyGuard {
      * @param _pid the pool identifier.
      */
     function harvest(uint256 _pid) external nonReentrant {
-        require(_pid < poolInfo.length, "Liquidity: Invalid pid");
+        if (_pid >= poolInfo.length) {
+            revert InvalidPid();
+        }
 
         // Get pool and user
         PoolInfo memory pool = poolInfo[_pid];
@@ -393,7 +361,7 @@ contract Liquidity is Ownable, ReentrancyGuard {
 
         uint256 pending = pendingReward(_pid, msg.sender);
         if (pending > 0) {
-            _payReward(pool.reward, msg.sender, pending);
+            _payReward(pool.rewardAsset, msg.sender, pending);
         }
 
         // update reward debt
@@ -403,13 +371,13 @@ contract Liquidity is Ownable, ReentrancyGuard {
 
     /**
      * @notice Pay the reward.
+     * @dev The reward asset is directly minted from the reward token
      * @param _reward the reward token.
      * @param _to the reward receiver.
      * @param _amount the amount to be payed.
      */
     function _payReward(IERC20 _reward, address _to, uint256 _amount) internal {
-        IMintableERC20(address(_reward)).mint(_amount);
-        _reward.safeTransfer(_to, _amount);
+        IRewardAsset(address(_reward)).mint(_to, _amount);
     }
 
     /**
@@ -438,19 +406,13 @@ contract Liquidity is Ownable, ReentrancyGuard {
         user.amount = 0;
         user.rewardDebt = 0;
         if (toWithdraw > 0) {
-            _returnStakedTokens(pool.lpToken, address(msg.sender), toWithdraw);
+            _returnStakedTokens(
+                pool.stakedAsset,
+                address(msg.sender),
+                toWithdraw
+            );
         }
 
         emit EmergencyWithdraw(msg.sender, _pid, toWithdraw);
-    }
-
-    /**
-     * @notice Update the team address.
-     * @param _devaddr the new team address.
-     */
-    function updateDev(address _devaddr) external onlyTeam {
-        require(_devaddr != address(0));
-        require(msg.sender == devaddr, "Liquidity: go away");
-        devaddr = _devaddr;
     }
 }
