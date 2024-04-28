@@ -2,7 +2,7 @@ import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
 import { ethers } from 'hardhat';
 import { expect } from 'chai';
 
-describe('USDx', function () {
+describe('USDO', function () {
   // We define a fixture to reuse the same setup in every test.
   // We use loadFixture to run this setup once, snapshot that state,
   // and reset Hardhat Network to that snapshot in every test.
@@ -10,7 +10,7 @@ describe('USDx', function () {
     // Contracts are deployed using the first signer/account by default
     const [admin, alice, bob] = await ethers.getSigners();
 
-    const Contract = await ethers.getContractFactory('USDx');
+    const Contract = await ethers.getContractFactory('USDO');
     const contract = await Contract.deploy(await admin.getAddress());
 
     return { contract, admin, alice, bob };

@@ -39,11 +39,11 @@ interface IMintRedeem is IMintRedeemEvents {
         address beneficiary;
         address collateral_asset;
         uint256 collateral_amount;
-        uint256 usdx_amount;
+        uint256 usdo_amount;
     }
 
     error InvalidAddress();
-    error InvalidusdxAddress();
+    error InvalidusdoAddress();
     error InvalidZeroAddress();
     error InvalidAssetAddress();
     error InvalidCustodianAddress();

@@ -5,20 +5,20 @@ import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol';
 import '@openzeppelin/contracts/access/Ownable2Step.sol';
-import './interfaces/IUSDxDefs.sol';
+import './interfaces/IUSDODefs.sol';
 
 /**
- * @title USDx
- * @notice USDx The starting point...
+ * @title USDO
+ * @notice USDO The starting point...
  */
-contract USDx is Ownable2Step, ERC20Burnable, ERC20Permit, IUSDxDefs {
+contract USDO is Ownable2Step, ERC20Burnable, ERC20Permit, IUSDODefs {
     address public minter;
 
     ///@notice The constructor
     ///@param admin The contract admin
     constructor(
         address admin
-    ) Ownable(admin) ERC20('USDx', 'USDx') ERC20Permit('USDx') {
+    ) Ownable(admin) ERC20('USDO', 'USDO') ERC20Permit('USDO') {
         if (admin == address(0)) revert ZeroAddressException();
     }
 

@@ -6,14 +6,14 @@ import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol';
 import './MintRedeemManager.sol';
-import './interfaces/IUSDxMDefs.sol';
+import './interfaces/IUSDOMDefs.sol';
 import './types/MintRedeemManagerTypes.sol';
 
 /**
- * @title USDxM
- * @notice USDxM The starting point...
+ * @title USDOM
+ * @notice USDOM The starting point...
  */
-contract USDxM is ERC20Burnable, ERC20Permit, IUSDxMDefs, MintRedeemManager {
+contract USDOM is ERC20Burnable, ERC20Permit, IUSDOMDefs, MintRedeemManager {
     constructor(
         address admin,
         MintRedeemManagerTypes.StableCoin memory usdc,
@@ -22,8 +22,8 @@ contract USDxM is ERC20Burnable, ERC20Permit, IUSDxMDefs, MintRedeemManager {
         uint256 maxMintPerBlock,
         uint256 maxRedeemPerBlock
     )
-        ERC20('USDx', 'USDx')
-        ERC20Permit('USDx')
+        ERC20('USDO', 'USDO')
+        ERC20Permit('USDO')
         MintRedeemManager(
             usdc,
             usdt,
@@ -46,7 +46,7 @@ contract USDxM is ERC20Burnable, ERC20Permit, IUSDxMDefs, MintRedeemManager {
         MintRedeemManagerTypes.Order calldata order
     ) external nonReentrant {
         mintInternal(order);
-        _mint(order.beneficiary, order.usdx_amount);
+        _mint(order.beneficiary, order.usdo_amount);
         emit Mint(
             msg.sender,
             order.benefactor,
@@ -55,7 +55,7 @@ contract USDxM is ERC20Burnable, ERC20Permit, IUSDxMDefs, MintRedeemManager {
             order.collateral_usdt,
             order.collateral_usdc_amount,
             order.collateral_usdt_amount,
-            order.usdx_amount
+            order.usdo_amount
         );
     }
 
@@ -66,9 +66,9 @@ contract USDxM is ERC20Burnable, ERC20Permit, IUSDxMDefs, MintRedeemManager {
     ) external nonReentrant {
         redeemInternal(order);
         if (msg.sender == order.benefactor) {
-            _burn(msg.sender, order.usdx_amount);
+            _burn(msg.sender, order.usdo_amount);
         } else {
-            burnFrom(order.benefactor, order.usdx_amount);
+            burnFrom(order.benefactor, order.usdo_amount);
         }
         emit Redeem(
             msg.sender,
@@ -78,7 +78,7 @@ contract USDxM is ERC20Burnable, ERC20Permit, IUSDxMDefs, MintRedeemManager {
             order.collateral_usdt,
             order.collateral_usdc_amount,
             order.collateral_usdt_amount,
-            order.usdx_amount
+            order.usdo_amount
         );
     }
 }

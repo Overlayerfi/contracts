@@ -7,14 +7,14 @@ interface IMintRedeemEvents {
     /// @notice Event emitted when contract receives ETH
     event Received(address, uint256);
 
-    /// @notice Event emitted when USDx is minted
+    /// @notice Event emitted when USDO is minted
     event Mint(
         address indexed minter,
         address indexed benefactor,
         address indexed beneficiary,
         address collateral_asset,
         uint256 collateral_amount,
-        uint256 usdx_amount
+        uint256 usdo_amount
     );
 
     /// @notice Event emitted when funds are redeemed
@@ -24,7 +24,7 @@ interface IMintRedeemEvents {
         address indexed beneficiary,
         address collateral_asset,
         uint256 collateral_amount,
-        uint256 usdx_amount
+        uint256 usdo_amount
     );
 
     /// @notice Event emitted when a supported asset is added
@@ -46,8 +46,8 @@ interface IMintRedeemEvents {
         uint256 amount
     );
 
-    /// @notice Event emitted when USDx is set
-    event USDxSet(address indexed USDx);
+    /// @notice Event emitted when USDO is set
+    event USDOSet(address indexed USDO);
 
     /// @notice Event emitted when the max mint per block is changed
     event MaxMintPerBlockChanged(

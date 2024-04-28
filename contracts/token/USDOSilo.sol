@@ -4,19 +4,19 @@ pragma solidity 0.8.20;
 /* solhint-disable var-name-mixedcase  */
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import './interfaces/IUSDxSiloDefinitions.sol';
+import './interfaces/IUSDOSiloDefinitions.sol';
 
 /**
- * @title USDxSilo
- * @notice The Silo allows to store USDx during the stake cooldown process.
+ * @title USDOSilo
+ * @notice The Silo allows to store USDO during the stake cooldown process.
  */
-contract USDxSilo is IUSDxSiloDefinitions {
+contract USDOSilo is IUSDOSiloDefinitions {
     address immutable _STAKING_VAULT;
     IERC20 immutable _USDX;
 
-    constructor(address stakingVault, address USDx) {
+    constructor(address stakingVault, address USDO) {
         _STAKING_VAULT = stakingVault;
-        _USDX = IERC20(USDx);
+        _USDX = IERC20(USDO);
     }
 
     modifier onlyStakingVault() {

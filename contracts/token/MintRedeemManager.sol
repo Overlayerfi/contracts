@@ -15,7 +15,7 @@ import './types/MintRedeemManagerTypes.sol';
 
 /**
  * @title MintRedeemManager
- * @notice This contract mints and redeems the parent USDxM that inherits this contract
+ * @notice This contract mints and redeems the parent USDOM that inherits this contract
  */
 contract MintRedeemManager is
     IMintRedeemManagerDefs,
@@ -50,28 +50,28 @@ contract MintRedeemManager is
     ///@notice Asset destination wallet
     address internal _assetsDestinationWallet;
 
-    /// @notice USDx minted per block
+    /// @notice USDO minted per block
     mapping(uint256 => uint256) public mintedPerBlock;
-    /// @notice USDx redeemed per block
+    /// @notice USDO redeemed per block
     mapping(uint256 => uint256) public redeemedPerBlock;
 
-    /// @notice max minted USDx allowed per block
+    /// @notice max minted USDO allowed per block
     uint256 public maxMintPerBlock;
-    /// @notice max redeemed USDx allowed per block
+    /// @notice max redeemed USDO allowed per block
     uint256 public maxRedeemPerBlock;
 
     /* --------------- MODIFIERS --------------- */
 
-    /// @notice ensure that the already minted USDx in the actual block plus the amount to be minted is below the maxMintPerBlock var
-    /// @param mintAmount The USDx amount to be minted
+    /// @notice ensure that the already minted USDO in the actual block plus the amount to be minted is below the maxMintPerBlock var
+    /// @param mintAmount The USDO amount to be minted
     modifier belowMaxMintPerBlock(uint256 mintAmount) {
         if (mintedPerBlock[block.number] + mintAmount > maxMintPerBlock)
             revert MaxMintPerBlockExceeded();
         _;
     }
 
-    /// @notice ensure that the already redeemed USDx in the actual block plus the amount to be redeemed is below the maxRedeemPerBlock var
-    /// @param redeemAmount The USDx amount to be redeemed
+    /// @notice ensure that the already redeemed USDO in the actual block plus the amount to be redeemed is below the maxRedeemPerBlock var
+    /// @param redeemAmount The USDO amount to be redeemed
     modifier belowMaxRedeemPerBlock(uint256 redeemAmount) {
         if (redeemedPerBlock[block.number] + redeemAmount > maxRedeemPerBlock)
             revert MaxRedeemPerBlockExceeded();
@@ -185,10 +185,10 @@ contract MintRedeemManager is
         if (usdc_amount_normalized != usdt_amount_normalized) {
             revert DifferentAssetsAmounts();
         }
-        // Their sum must be equal to USDx amount
+        // Their sum must be equal to USDO amount
         if (
             usdc_amount_normalized + usdt_amount_normalized !=
-            order.usdx_amount
+            order.usdo_amount
         ) {
             revert InvalidAssetAmounts();
         }
@@ -198,10 +198,10 @@ contract MintRedeemManager is
     /// @param order A struct containing the mint order
     function mintInternal(
         MintRedeemManagerTypes.Order calldata order
-    ) internal belowMaxMintPerBlock(order.usdx_amount) {
+    ) internal belowMaxMintPerBlock(order.usdo_amount) {
         validateInvariant(order);
         // Add to the minted amount in this block
-        mintedPerBlock[block.number] += order.usdx_amount;
+        mintedPerBlock[block.number] += order.usdo_amount;
         _transferCollateral(
             order.collateral_usdc_amount,
             order.collateral_usdc,
@@ -218,10 +218,10 @@ contract MintRedeemManager is
     /// @param order struct containing order details and confirmation from server
     function redeemInternal(
         MintRedeemManagerTypes.Order calldata order
-    ) internal belowMaxRedeemPerBlock(order.usdx_amount) {
+    ) internal belowMaxRedeemPerBlock(order.usdo_amount) {
         validateInvariant(order);
         // Add to the redeemed amount in this block
-        redeemedPerBlock[block.number] += order.usdx_amount;
+        redeemedPerBlock[block.number] += order.usdo_amount;
         _transferToBeneficiary(
             order.beneficiary,
             order.collateral_usdc,

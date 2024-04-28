@@ -8,20 +8,19 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol';
 import '../shared/SingleAdminAccessControl.sol';
-import './interfaces/IStakedUSDx.sol';
+import './interfaces/IStakedUSDO.sol';
 
 /**
- * @title StakedUSDx
- * @notice The StakedUSDx contract allows users to stake USDx tokens and earn a portion of protocol LST and perpetual yield that is allocated
- * to stakers by the Ethena DAO governance voted yield distribution algorithm.  The algorithm seeks to balance the stability of the protocol by funding
- * the protocol's insurance fund, DAO activities, and rewarding stakers with a portion of the protocol's yield.
+ * @title StakedUSDO
+ * @notice The StakedUSDO contract allows users to stake USDO tokens and earn a portion of yield
+ * @dev This contract is intended to be inherited in order to define custom vesting aka cooldowns policies
  */
-abstract contract StakedUSDx is
+abstract contract StakedUSDO is
     SingleAdminAccessControl,
     ReentrancyGuard,
     ERC20Permit,
     ERC4626,
-    IStakedUSDx
+    IStakedUSDO
 {
     using SafeERC20 for IERC20;
 
@@ -68,8 +67,8 @@ abstract contract StakedUSDx is
     /* ------------- CONSTRUCTOR ------------- */
 
     /**
-     * @notice Constructor for StakedUSDx contract.
-     * @param _asset The address of the USDx token.
+     * @notice Constructor for StakedUSDO contract.
+     * @param _asset The address of the USDO token.
      * @param _initialRewarder The address of the initial rewarder.
      * @param _owner The address of the admin role.
      * @param vestingPeriod The rewards vesting period
@@ -80,7 +79,7 @@ abstract contract StakedUSDx is
         address _initialRewarder,
         address _owner,
         uint256 vestingPeriod
-    ) ERC20('Staked USDx', 'sUSDx') ERC4626(_asset) ERC20Permit('sUSDx') {
+    ) ERC20('Staked USDO', 'sUSDO') ERC4626(_asset) ERC20Permit('sUSDO') {
         if (
             _owner == address(0) ||
             _initialRewarder == address(0) ||
@@ -143,8 +142,8 @@ abstract contract StakedUSDx is
 
     /**
      * @notice Allows the owner to rescue tokens accidentally sent to the contract.
-     * Note that the owner cannot rescue USDx tokens because they functionally sit here
-     * and belong to stakers but can rescue staked USDx as they should never actually
+     * Note that the owner cannot rescue USDO tokens because they functionally sit here
+     * and belong to stakers but can rescue staked USDO as they should never actually
      * sit in this contract and a staker may well transfer them here by accident.
      * @param token The token to be rescued.
      * @param amount The amount of tokens to be rescued.
@@ -187,14 +186,14 @@ abstract contract StakedUSDx is
     /* ------------- PUBLIC ------------- */
 
     /**
-     * @notice Returns the amount of USDx tokens that are vested in the contract.
+     * @notice Returns the amount of USDO tokens that are vested in the contract.
      */
     function totalAssets() public view override returns (uint256) {
         return IERC20(asset()).balanceOf(address(this)) - getUnvestedAmount();
     }
 
     /**
-     * @notice Returns the amount of USDx tokens that are unvested in the contract.
+     * @notice Returns the amount of USDO tokens that are unvested in the contract.
      */
     function getUnvestedAmount() public view returns (uint256) {
         uint256 timeSinceLastDistribution = block.timestamp -

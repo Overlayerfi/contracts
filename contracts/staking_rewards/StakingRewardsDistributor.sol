@@ -7,10 +7,10 @@ import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 import '@openzeppelin/contracts/access/Ownable2Step.sol';
 
 import './interfaces/IStakingRewardsDistributor.sol';
-import '../token/interfaces/IStakedUSDxCoolDown.sol';
-import '../token/interfaces/IStakedUSDx.sol';
-import '../token/interfaces/IUSDxM.sol';
-import '../token/interfaces/IStakedUSDx.sol';
+import '../token/interfaces/IStakedUSDOCoolDown.sol';
+import '../token/interfaces/IStakedUSDO.sol';
+import '../token/interfaces/IUSDOM.sol';
+import '../token/interfaces/IStakedUSDO.sol';
 import '../token/types/MintRedeemManagerTypes.sol';
 
 /**
@@ -19,8 +19,8 @@ import '../token/types/MintRedeemManagerTypes.sol';
  * the distribution frequency and automates almost the whole process, we also mitigate some arbitrage opportunities with this approach.
  * @dev We have one role:
  *      - The owner of this helper will be the multisig, only used for configuration calls.
- *      - The operator is only allowed to mint USDx using the available funds that land
- *        in this contract and calling transferInRewards to send the minted USDx rewards to the staking contract. The operator
+ *      - The operator is only allowed to mint USDO using the available funds that land
+ *        in this contract and calling transferInRewards to send the minted USDO rewards to the staking contract. The operator
  *        can be replaced by the owner at any time with a single transaction.
  */
 contract StakingRewardsDistributor is
@@ -37,9 +37,9 @@ contract StakingRewardsDistributor is
 
     // ---------------------- Immutables -----------------------
     /// @notice Staking contract
-    IStakedUSDx public immutable STAKING_VAULT;
-    /// @notice USDx stablecoin
-    IUSDxM public immutable USDX_TOKEN;
+    IStakedUSDO public immutable STAKING_VAULT;
+    /// @notice USDO stablecoin
+    IUSDOM public immutable USDX_TOKEN;
     /// @notice USDC stablecoin
     IERC20 public immutable USDC_TOKEN;
     /// @notice USDT stablecoin
@@ -50,8 +50,8 @@ contract StakingRewardsDistributor is
     address public operator;
 
     constructor(
-        IStakedUSDx stakingVault,
-        IUSDxM usdx,
+        IStakedUSDO stakingVault,
+        IUSDOM usdo,
         IERC20 usdc,
         IERC20 usdt,
         address admin,
@@ -59,7 +59,7 @@ contract StakingRewardsDistributor is
     ) Ownable(msg.sender) {
         // Constructor params check
         if (address(stakingVault) == address(0)) revert InvalidZeroAddress();
-        if (address(usdx) == address(0)) revert InvalidZeroAddress();
+        if (address(usdo) == address(0)) revert InvalidZeroAddress();
         if (address(usdc) == address(0)) revert InvalidZeroAddress();
         if (address(usdt) == address(0)) revert InvalidZeroAddress();
         if (admin == address(0)) revert InvalidZeroAddress();
@@ -67,17 +67,17 @@ contract StakingRewardsDistributor is
 
         // Assign immutables
         STAKING_VAULT = stakingVault;
-        USDX_TOKEN = usdx;
+        USDX_TOKEN = usdo;
         USDC_TOKEN = usdc;
         USDT_TOKEN = usdt;
 
         // Set the operator and delegate the signer
         setOperator(_operator);
 
-        // Approve USDC and USDT to USDx
-        USDC_TOKEN.safeIncreaseAllowance(address(usdx), type(uint256).max);
-        USDT_TOKEN.safeIncreaseAllowance(address(usdx), type(uint256).max);
-        // Also approve USDx to the staking contract to allow the transferInRewards call
+        // Approve USDC and USDT to USDO
+        USDC_TOKEN.safeIncreaseAllowance(address(usdo), type(uint256).max);
+        USDT_TOKEN.safeIncreaseAllowance(address(usdo), type(uint256).max);
+        // Also approve USDO to the staking contract to allow the transferInRewards call
         IERC20(address(USDX_TOKEN)).safeIncreaseAllowance(
             address(STAKING_VAULT),
             type(uint256).max
@@ -89,10 +89,10 @@ contract StakingRewardsDistributor is
     }
 
     /**
-     * @notice Only the operator can call transferInRewards in order to transfer USDx to the staking contract
+     * @notice Only the operator can call transferInRewards in order to transfer USDO to the staking contract
      * @param amountUsdc the amount of USDC
      * @param amountUsdt the amount of USDT
-     * @param amountUsdx the amount of USDx
+     * @param amountUsdx the amount of USDO
      * @dev In order to use this function, we need to set this contract as the REWARDER_ROLE in the staking contract
      *      No need to check that the input amount is not 0, since we already check this in the staking contract
      *      The 50/50 USDC/USDT split invariant for the mint oder is checked at lower contract level
