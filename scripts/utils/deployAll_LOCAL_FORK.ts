@@ -25,7 +25,6 @@ async function main() {
     const usdoAddr = await deployUSDO();
     const susdoAddr = await deployStakedUSDO(usdoAddr);
     await deployStakingRewardsDistributor(susdoAddr, usdoAddr, true);
-    await deployAirdropOBSIReceipt(usdoAddr);
     const liquidityRewardAssetAddr = await deployLiquidityAirdropReward(
       LIQUIDITY_REWARD_TOKEN_ADMIN
     );
