@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
-import '@openzeppelin/contracts/access/Ownable2Step.sol';
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
-import './interfaces/IStakingRewardsDistributor.sol';
-import '../token/interfaces/IStakedUSDOCoolDown.sol';
-import '../token/interfaces/IStakedUSDO.sol';
-import '../token/interfaces/IUSDOM.sol';
-import '../token/interfaces/IStakedUSDO.sol';
-import '../token/types/MintRedeemManagerTypes.sol';
+import "./interfaces/IStakingRewardsDistributor.sol";
+import "../token/interfaces/IStakedUSDOCoolDown.sol";
+import "../token/interfaces/IStakedUSDO.sol";
+import "../token/interfaces/IUSDOM.sol";
+import "../token/interfaces/IStakedUSDO.sol";
+import "../token/types/MintRedeemManagerTypes.sol";
 
 /**
  * @title StakingRewardsDistributor
@@ -143,7 +143,7 @@ contract StakingRewardsDistributor is
 
         // contract should never hold ETH
         if (token == _ETH_ADDRESS) {
-            (bool success, ) = to.call{value: amount}('');
+            (bool success, ) = to.call{value: amount}("");
             if (!success) revert TransferFailed();
         } else {
             IERC20(token).safeTransfer(to, amount);

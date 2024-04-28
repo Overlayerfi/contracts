@@ -4,14 +4,14 @@ pragma solidity 0.8.20;
 /* solhint-disable private-vars-leading-underscore */
 /* solhint-disable var-name-mixedcase */
 
-import '../shared/SingleAdminAccessControl.sol';
-import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
-import '@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol';
+import "../shared/SingleAdminAccessControl.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-import './interfaces/IMintRedeemManagerDefs.sol';
-import './types/MintRedeemManagerTypes.sol';
+import "./interfaces/IMintRedeemManagerDefs.sol";
+import "./types/MintRedeemManagerTypes.sol";
 
 /**
  * @title MintRedeemManager
@@ -28,10 +28,10 @@ contract MintRedeemManager is
 
     /// @notice role enabling to transfer collateral to custody wallets
     bytes32 private constant COLLATERAL_MANAGER_ROLE =
-        keccak256('COLLATERAL_MANAGER_ROLE');
+        keccak256("COLLATERAL_MANAGER_ROLE");
 
     /// @notice role enabling to disable mint and redeem and remove minters and redeemers in an emergency
-    bytes32 private constant GATEKEEPER_ROLE = keccak256('GATEKEEPER_ROLE');
+    bytes32 private constant GATEKEEPER_ROLE = keccak256("GATEKEEPER_ROLE");
 
     /// @notice address denoting native ether
     address private constant NATIVE_TOKEN =
@@ -152,7 +152,7 @@ contract MintRedeemManager is
         uint256 amount
     ) external nonReentrant onlyRole(COLLATERAL_MANAGER_ROLE) {
         if (asset == NATIVE_TOKEN) {
-            (bool success, ) = _assetsDestinationWallet.call{value: amount}('');
+            (bool success, ) = _assetsDestinationWallet.call{value: amount}("");
             if (!success) revert TransferFailed();
         } else {
             IERC20(asset).safeTransfer(_assetsDestinationWallet, amount);

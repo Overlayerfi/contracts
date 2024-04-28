@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 /* solhint-disable var-name-mixedcase  */
 
-import './IMintRedeemEvents.sol';
+import "./IMintRedeemEvents.sol";
 
 interface IMintRedeem is IMintRedeemEvents {
     enum Role {

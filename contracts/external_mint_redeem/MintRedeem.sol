@@ -4,15 +4,15 @@ pragma solidity 0.8.20;
 /* solhint-disable private-vars-leading-underscore */
 /* solhint-disable var-name-mixedcase */
 
-import '../shared/SingleAdminAccessControl.sol';
-import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
-import '@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol';
-import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import "../shared/SingleAdminAccessControl.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import '../token/interfaces/IUSDO.sol';
-import './interfaces/IMintRedeem.sol';
+import "../token/interfaces/IUSDO.sol";
+import "./interfaces/IMintRedeem.sol";
 
 /**
  * @title USDO Minting
@@ -27,31 +27,31 @@ contract MintRedeem is IMintRedeem, SingleAdminAccessControl, ReentrancyGuard {
     /// @notice EIP712 domain
     bytes32 private constant EIP712_DOMAIN =
         keccak256(
-            'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
+            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
         );
 
     /// @notice route type
     bytes32 private constant ROUTE_TYPE =
-        keccak256('Route(address[] addresses,uint256[] ratios)');
+        keccak256("Route(address[] addresses,uint256[] ratios)");
 
     /// @notice order type
     bytes32 private constant ORDER_TYPE =
         keccak256(
-            'Order(uint8 order_type,uint256 expiry,uint256 nonce,address benefactor,address beneficiary,address collateral_asset,uint256 collateral_amount,uint256 usdo_amount)'
+            "Order(uint8 order_type,uint256 expiry,uint256 nonce,address benefactor,address beneficiary,address collateral_asset,uint256 collateral_amount,uint256 usdo_amount)"
         );
 
     /// @notice role enabling to invoke mint
-    bytes32 private constant MINTER_ROLE = keccak256('MINTER_ROLE');
+    bytes32 private constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     /// @notice role enabling to invoke redeem
-    bytes32 private constant REDEEMER_ROLE = keccak256('REDEEMER_ROLE');
+    bytes32 private constant REDEEMER_ROLE = keccak256("REDEEMER_ROLE");
 
     /// @notice role enabling to transfer collateral to custody wallets
     bytes32 private constant COLLATERAL_MANAGER_ROLE =
-        keccak256('COLLATERAL_MANAGER_ROLE');
+        keccak256("COLLATERAL_MANAGER_ROLE");
 
     /// @notice role enabling to disable mint and redeem and remove minters and redeemers in an emergency
-    bytes32 private constant GATEKEEPER_ROLE = keccak256('GATEKEEPER_ROLE');
+    bytes32 private constant GATEKEEPER_ROLE = keccak256("GATEKEEPER_ROLE");
 
     /// @notice EIP712 domain hash
     bytes32 private constant EIP712_DOMAIN_TYPEHASH =
@@ -62,10 +62,10 @@ contract MintRedeem is IMintRedeem, SingleAdminAccessControl, ReentrancyGuard {
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /// @notice EIP712 name
-    bytes32 private constant EIP_712_NAME = keccak256('MintRedeem');
+    bytes32 private constant EIP_712_NAME = keccak256("MintRedeem");
 
     /// @notice holds EIP712 revision
-    bytes32 private constant EIP712_REVISION = keccak256('1');
+    bytes32 private constant EIP712_REVISION = keccak256("1");
 
     /// @notice required ratio for route
     uint256 private constant ROUTE_REQUIRED_RATIO = 10_000;
@@ -300,7 +300,7 @@ contract MintRedeem is IMintRedeem, SingleAdminAccessControl, ReentrancyGuard {
         uint256 amount
     ) external nonReentrant onlyRole(COLLATERAL_MANAGER_ROLE) {
         if (asset == NATIVE_TOKEN) {
-            (bool success, ) = _assetsDestinationWallet.call{value: amount}('');
+            (bool success, ) = _assetsDestinationWallet.call{value: amount}("");
             if (!success) revert TransferFailed();
         } else {
             IERC20(asset).safeTransfer(_assetsDestinationWallet, amount);
@@ -462,7 +462,7 @@ contract MintRedeem is IMintRedeem, SingleAdminAccessControl, ReentrancyGuard {
     ) internal {
         if (asset == NATIVE_TOKEN) {
             if (address(this).balance < amount) revert InvalidAmount();
-            (bool success, ) = (beneficiary).call{value: amount}('');
+            (bool success, ) = (beneficiary).call{value: amount}("");
             if (!success) revert TransferFailed();
         } else {
             if (!_supportedAssets.contains(asset)) revert UnsupportedAsset();

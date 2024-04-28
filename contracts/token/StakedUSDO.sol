@@ -3,12 +3,12 @@ pragma solidity 0.8.20;
 
 /* solhint-disable private-vars-leading-underscore */
 
-import '@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol';
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
-import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol';
-import '../shared/SingleAdminAccessControl.sol';
-import './interfaces/IStakedUSDO.sol';
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import "../shared/SingleAdminAccessControl.sol";
+import "./interfaces/IStakedUSDO.sol";
 
 /**
  * @title StakedUSDO
@@ -26,16 +26,16 @@ abstract contract StakedUSDO is
 
     /* ------------- CONSTANTS ------------- */
     /// @notice The role that is allowed to distribute rewards to this contract
-    bytes32 private constant REWARDER_ROLE = keccak256('REWARDER_ROLE');
+    bytes32 private constant REWARDER_ROLE = keccak256("REWARDER_ROLE");
     /// @notice The role that is allowed to blacklist and un-blacklist addresses
     bytes32 private constant BLACKLIST_MANAGER_ROLE =
-        keccak256('BLACKLIST_MANAGER_ROLE');
+        keccak256("BLACKLIST_MANAGER_ROLE");
     /// @notice The role which prevents an address to stake
     bytes32 private constant SOFT_RESTRICTED_STAKER_ROLE =
-        keccak256('SOFT_RESTRICTED_STAKER_ROLE');
+        keccak256("SOFT_RESTRICTED_STAKER_ROLE");
     /// @notice The role which prevents an address to transfer, stake, or unstake. The owner of the contract can redirect address staking balance if an address is in full restricting mode.
     bytes32 private constant FULL_RESTRICTED_STAKER_ROLE =
-        keccak256('FULL_RESTRICTED_STAKER_ROLE');
+        keccak256("FULL_RESTRICTED_STAKER_ROLE");
     /// @notice The vesting period of lastDistributionAmount over which it increasingly becomes available to stakers
     uint256 private _vestingPeriod;
     /// @notice Minimum non-zero shares amount to prevent donation attack
@@ -79,7 +79,7 @@ abstract contract StakedUSDO is
         address _initialRewarder,
         address _owner,
         uint256 vestingPeriod
-    ) ERC20('Staked USDO', 'sUSDO') ERC4626(_asset) ERC20Permit('sUSDO') {
+    ) ERC20("Staked USDO", "sUSDO") ERC4626(_asset) ERC20Permit("sUSDO") {
         if (
             _owner == address(0) ||
             _initialRewarder == address(0) ||

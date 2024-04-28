@@ -3,9 +3,9 @@ pragma solidity 0.8.20;
 
 /* solhint-disable var-name-mixedcase */
 
-import './StakedUSDO.sol';
-import './interfaces/IStakedUSDOCoolDown.sol';
-import './USDOSilo.sol';
+import "./StakedUSDO.sol";
+import "./interfaces/IStakedUSDOCoolDown.sol";
+import "./USDOSilo.sol";
 
 /**
  * @title StakedUSDOFront

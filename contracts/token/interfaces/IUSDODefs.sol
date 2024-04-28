@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import './IUSDOEvents.sol';
+import "./IUSDOEvents.sol";
 
 interface IUSDODefs is IUSDOEvents {
     /// @notice Zero address not allowed
