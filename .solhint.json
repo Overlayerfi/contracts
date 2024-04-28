@@ -15,7 +15,7 @@
     "event-name-camelcase": "warn",
     "func-param-name-mixedcase": "warn",
     "func-visibility": ["error",{"ignoreConstructors":true}],
-    "max-line-length": ["error",120],
+    "max-line-length": ["warn",120],
     "modifier-name-mixedcase": "warn",
     "no-complex-fallback": "warn",
     "no-console": "warn",

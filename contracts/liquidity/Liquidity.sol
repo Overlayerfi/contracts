@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.20;
 
-import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
-import '@openzeppelin/contracts/access/Ownable.sol';
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '../mock_ERC20/interfaces/IMintableErc20.sol';
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "../mock_ERC20/interfaces/IMintableErc20.sol";
 
 /**
  * @notice Liquidity contract implementation.
@@ -98,7 +98,7 @@ contract Liquidity is Ownable, ReentrancyGuard {
     modifier onlyTeam() {
         require(
             owner() == msg.sender || devaddr == msg.sender,
-            'Liquidity: Not allowed'
+            "Liquidity: Not allowed"
         );
         _;
     }
@@ -163,7 +163,7 @@ contract Liquidity is Ownable, ReentrancyGuard {
     ) public onlyTeam {
         require(
             activeRewards[address(_reward)],
-            'Liquidity: Reward not active'
+            "Liquidity: Reward not active"
         );
         if (_withUpdate) {
             _massUpdatePools();
@@ -193,7 +193,7 @@ contract Liquidity is Ownable, ReentrancyGuard {
     function getTotalStakedInPool(
         uint256 _pid
     ) external view onlyTeam returns (uint256) {
-        require(_pid < poolInfo.length, 'Liquidity: Invalid pid');
+        require(_pid < poolInfo.length, "Liquidity: Invalid pid");
         return (poolInfo[_pid].lpToken.balanceOf(address(this)));
     }
 
@@ -224,7 +224,7 @@ contract Liquidity is Ownable, ReentrancyGuard {
         uint256 _newPoints,
         bool _withUpdate
     ) external onlyTeam returns (uint256 newTotal) {
-        require(_pid < poolInfo.length, 'Liquidity: Invalid pid');
+        require(_pid < poolInfo.length, "Liquidity: Invalid pid");
 
         if (_withUpdate) {
             _massUpdatePools();
@@ -251,7 +251,7 @@ contract Liquidity is Ownable, ReentrancyGuard {
         uint256 _pid,
         address _user
     ) public view returns (uint256) {
-        require(_pid < poolInfo.length, 'Liquidity: Invalid pid');
+        require(_pid < poolInfo.length, "Liquidity: Invalid pid");
 
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo memory user = userInfo[_pid][_user];
@@ -317,7 +317,7 @@ contract Liquidity is Ownable, ReentrancyGuard {
      * @param _amount the amount to deposit.
      */
     function deposit(uint256 _pid, uint256 _amount) external nonReentrant {
-        require(_pid < poolInfo.length, 'Liquidity: Invalid pid');
+        require(_pid < poolInfo.length, "Liquidity: Invalid pid");
 
         // Get pool and user
         PoolInfo storage pool = poolInfo[_pid];
@@ -354,12 +354,12 @@ contract Liquidity is Ownable, ReentrancyGuard {
      * @param _amount the amount to withdraw.
      */
     function withdraw(uint256 _pid, uint256 _amount) external nonReentrant {
-        require(_pid < poolInfo.length, 'Liquidity: Invalid pid');
+        require(_pid < poolInfo.length, "Liquidity: Invalid pid");
 
         // Get pool and user
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        require(user.amount >= _amount, 'Liquidity: withdraw balance exceeded');
+        require(user.amount >= _amount, "Liquidity: withdraw balance exceeded");
 
         // update the pool up to date
         updatePool(_pid);
@@ -385,7 +385,7 @@ contract Liquidity is Ownable, ReentrancyGuard {
      * @param _pid the pool identifier.
      */
     function harvest(uint256 _pid) external nonReentrant {
-        require(_pid < poolInfo.length, 'Liquidity: Invalid pid');
+        require(_pid < poolInfo.length, "Liquidity: Invalid pid");
 
         // Get pool and user
         PoolInfo memory pool = poolInfo[_pid];
@@ -450,7 +450,7 @@ contract Liquidity is Ownable, ReentrancyGuard {
      */
     function updateDev(address _devaddr) external onlyTeam {
         require(_devaddr != address(0));
-        require(msg.sender == devaddr, 'Liquidity: go away');
+        require(msg.sender == devaddr, "Liquidity: go away");
         devaddr = _devaddr;
     }
 }

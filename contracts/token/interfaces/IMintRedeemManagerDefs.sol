@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 /* solhint-disable var-name-mixedcase  */
 
-import './IMintRedeemManagerEvents.sol';
+import "./IMintRedeemManagerEvents.sol";
 
 interface IMintRedeemManagerDefs is IMintRedeemManagerEvents {
     error InvalidZeroAddress();

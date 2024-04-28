@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
-import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol';
-import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol';
-import './MintRedeemManager.sol';
-import './interfaces/IUSDOMDefs.sol';
-import './types/MintRedeemManagerTypes.sol';
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import "./MintRedeemManager.sol";
+import "./interfaces/IUSDOMDefs.sol";
+import "./types/MintRedeemManagerTypes.sol";
 
 /**
  * @title USDOM
@@ -22,8 +22,8 @@ contract USDOM is ERC20Burnable, ERC20Permit, IUSDOMDefs, MintRedeemManager {
         uint256 maxMintPerBlock,
         uint256 maxRedeemPerBlock
     )
-        ERC20('USDO', 'USDO')
-        ERC20Permit('USDO')
+        ERC20("USDO", "USDO")
+        ERC20Permit("USDO")
         MintRedeemManager(
             usdc,
             usdt,

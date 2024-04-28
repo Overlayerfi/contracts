@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol';
-import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol';
-import '@openzeppelin/contracts/access/Ownable2Step.sol';
-import './interfaces/IUSDODefs.sol';
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
+import "./interfaces/IUSDODefs.sol";
 
 /**
  * @title USDO
@@ -18,7 +18,7 @@ contract USDO is Ownable2Step, ERC20Burnable, ERC20Permit, IUSDODefs {
     ///@param admin The contract admin
     constructor(
         address admin
-    ) Ownable(admin) ERC20('USDO', 'USDO') ERC20Permit('USDO') {
+    ) Ownable(admin) ERC20("USDO", "USDO") ERC20Permit("USDO") {
         if (admin == address(0)) revert ZeroAddressException();
     }
 

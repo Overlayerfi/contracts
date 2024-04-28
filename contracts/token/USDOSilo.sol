@@ -3,8 +3,8 @@ pragma solidity 0.8.20;
 
 /* solhint-disable var-name-mixedcase  */
 
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import './interfaces/IUSDOSiloDefinitions.sol';
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./interfaces/IUSDOSiloDefinitions.sol";
 
 /**
  * @title USDOSilo
