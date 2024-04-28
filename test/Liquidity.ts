@@ -2,11 +2,11 @@ import {
   time,
   loadFixture,
   mineUpTo
-} from '@nomicfoundation/hardhat-network-helpers';
-import { ethers } from 'hardhat';
-import { expect, assert } from 'chai';
+} from "@nomicfoundation/hardhat-network-helpers";
+import { ethers } from "hardhat";
+import { expect, assert } from "chai";
 
-describe('Liquidity', function () {
+describe("Liquidity", function () {
   // We define a fixture to reuse the same setup in every test.
   // We use loadFixture to run this setup once, snapshot that state,
   // and reset Hardhat Network to that snapshot in every test.
@@ -15,30 +15,30 @@ describe('Liquidity', function () {
     // Contracts are deployed using the first signer/account by default
     const [owner, otherAccount, alice, bob] = await ethers.getSigners();
 
-    const Liquidity = await ethers.getContractFactory('Liquidity');
+    const Liquidity = await ethers.getContractFactory("Liquidity");
     const liquidity = await Liquidity.deploy(owner.getAddress(), latestBlock);
 
-    const TokenLp_A_B = await ethers.getContractFactory('TokenLP_A_B');
+    const TokenLp_A_B = await ethers.getContractFactory("TokenLP_A_B");
     const tokenLp_A_B = await TokenLp_A_B.deploy(
-      ethers.parseEther('1000'),
-      'Lp_AB',
-      'LPAB'
+      ethers.parseEther("1000"),
+      "Lp_AB",
+      "LPAB"
     );
     await tokenLp_A_B.setMinter(liquidity.getAddress());
 
-    const TokenReward = await ethers.getContractFactory('TokenReward');
+    const TokenReward = await ethers.getContractFactory("TokenReward");
     const tokenReward = await TokenReward.deploy(
-      ethers.parseEther('0'),
-      'TokenReward',
-      'TKNR'
+      ethers.parseEther("0"),
+      "TokenReward",
+      "TKNR"
     );
     await tokenReward.setMinter(liquidity.getAddress());
 
-    const DemoToken = await ethers.getContractFactory('TokenLP_A_B');
+    const DemoToken = await ethers.getContractFactory("TokenLP_A_B");
     const demoToken = await DemoToken.deploy(
-      ethers.parseEther('1000'),
-      'DemoToken',
-      'TKND'
+      ethers.parseEther("1000"),
+      "DemoToken",
+      "TKND"
     );
     await demoToken.setMinter(liquidity.getAddress());
 
@@ -58,41 +58,41 @@ describe('Liquidity', function () {
     };
   }
 
-  describe('Deployment', function () {
-    it('Should set the right dev address', async function () {
+  describe("Deployment", function () {
+    it("Should set the right dev address", async function () {
       const { liquidity, owner } = await loadFixture(deployFixture);
       expect(await liquidity.devaddr()).to.equal(await owner.getAddress());
     });
 
-    it('Should set the right start block', async function () {
+    it("Should set the right start block", async function () {
       const { liquidity, latestBlock } = await loadFixture(deployFixture);
       expect(await liquidity.startBlock()).to.equal(latestBlock);
     });
   });
 
-  describe('ModifyParam', function () {
-    it('Should update multiplier', async function () {
+  describe("ModifyParam", function () {
+    it("Should update multiplier", async function () {
       const { liquidity } = await loadFixture(deployFixture);
       await liquidity.updateMultiplier(2);
       expect(await liquidity.BONUS_MULTIPLIER()).to.equal(2);
     });
 
-    it('Should revert update multiplier if not owner', async function () {
+    it("Should revert update multiplier if not owner", async function () {
       const { liquidity, otherAccount } = await loadFixture(deployFixture);
       await expect(liquidity.connect(otherAccount).updateMultiplier(2)).to.be
         .eventually.rejected;
     });
   });
 
-  describe('GetInfo', function () {
-    it('Should get pool length', async function () {
+  describe("GetInfo", function () {
+    it("Should get pool length", async function () {
       const { liquidity } = await loadFixture(deployFixture);
       expect(await liquidity.poolLength()).to.equal(0);
     });
   });
 
-  describe('AddPool', function () {
-    it('Should add a new pool', async function () {
+  describe("AddPool", function () {
+    it("Should add a new pool", async function () {
       const { liquidity, tokenLp_A_B, tokenReward } = await loadFixture(
         deployFixture
       );
@@ -114,7 +114,7 @@ describe('Liquidity', function () {
       expect(await liquidity.poolLength()).to.equal(2);
     });
 
-    it('Should return correct allocation points for different pools', async function () {
+    it("Should return correct allocation points for different pools", async function () {
       const { liquidity, tokenLp_A_B, tokenReward, demoToken } =
         await loadFixture(deployFixture);
       await liquidity.setReward(tokenReward.getAddress(), 1);
@@ -148,7 +148,7 @@ describe('Liquidity', function () {
       ).to.be.equal(110);
     });
 
-    it('Should not add a new pool if not owner', async function () {
+    it("Should not add a new pool if not owner", async function () {
       const { liquidity, tokenLp_A_B, tokenReward, otherAccount } =
         await loadFixture(deployFixture);
       await liquidity.setReward(tokenReward.getAddress(), 1);
@@ -160,8 +160,8 @@ describe('Liquidity', function () {
     });
   });
 
-  describe('SetReward', function () {
-    it('Should set reward', async function () {
+  describe("SetReward", function () {
+    it("Should set reward", async function () {
       const { liquidity, tokenLp_A_B } = await loadFixture(deployFixture);
       await liquidity.setReward(tokenLp_A_B.getAddress(), 1);
       expect(
@@ -169,7 +169,7 @@ describe('Liquidity', function () {
       ).to.be.equal(true);
     });
 
-    it('Should change reward rate', async function () {
+    it("Should change reward rate", async function () {
       const { liquidity, tokenLp_A_B } = await loadFixture(deployFixture);
       await liquidity.setReward(tokenLp_A_B.getAddress(), 1);
       expect(
@@ -184,7 +184,7 @@ describe('Liquidity', function () {
       ).to.be.equal(10);
     });
 
-    it('Should not set reward', async function () {
+    it("Should not set reward", async function () {
       const { liquidity, tokenLp_A_B, otherAccount } = await loadFixture(
         deployFixture
       );
@@ -194,8 +194,8 @@ describe('Liquidity', function () {
     });
   });
 
-  describe('SetPool', function () {
-    it('Should set pool', async function () {
+  describe("SetPool", function () {
+    it("Should set pool", async function () {
       const { liquidity, tokenLp_A_B, tokenReward } = await loadFixture(
         deployFixture
       );
@@ -217,7 +217,7 @@ describe('Liquidity', function () {
       expect((await liquidity.poolInfo(0)).allocPoints).to.be.equal(10);
     });
 
-    it('Should not add a new pool if not owner', async function () {
+    it("Should not add a new pool if not owner", async function () {
       const { liquidity, tokenLp_A_B, tokenReward, otherAccount } =
         await loadFixture(deployFixture);
       await liquidity.setReward(tokenLp_A_B.getAddress(), 1);
@@ -233,8 +233,8 @@ describe('Liquidity', function () {
     });
   });
 
-  describe('CoreFunctionality', function () {
-    it('Deposit', async function () {
+  describe("CoreFunctionality", function () {
+    it("Deposit", async function () {
       const { liquidity, tokenLp_A_B, tokenReward, alice, bob } =
         await loadFixture(deployFixture);
 
@@ -264,24 +264,24 @@ describe('Liquidity', function () {
 
       await expect(await liquidity.connect(alice).deposit(0, 5)).to.emit(
         liquidity,
-        'Deposit'
+        "Deposit"
       );
       await expect(await liquidity.connect(bob).deposit(0, 5)).to.emit(
         liquidity,
-        'Deposit'
+        "Deposit"
       );
     });
 
-    it('Should return right pending reward with block advance', async function () {
+    it("Should return right pending reward with block advance", async function () {
       // block number starts from zero
       const { liquidity, tokenLp_A_B, tokenReward, alice, bob } =
         await loadFixture(deployFixture);
       const users: Array<any> = [alice, bob];
-      const PARTICIPATION: string = '10';
+      const PARTICIPATION: string = "10";
       const TOTAL_PARTICIPATION: string = (
         users.length * +PARTICIPATION
       ).toString();
-      const REWARD_PER_BLOCK: string = '1';
+      const REWARD_PER_BLOCK: string = "1";
 
       const latestBlock: number = await time.latestBlock();
       await mineUpTo(latestBlock + 1);
@@ -321,24 +321,24 @@ describe('Liquidity', function () {
         await liquidity
           .connect(alice)
           .deposit(0, ethers.parseEther(PARTICIPATION))
-      ).to.emit(liquidity, 'Deposit');
+      ).to.emit(liquidity, "Deposit");
       const afterAliceDeposit: number = await time.latestBlock();
 
       await expect(
         await liquidity
           .connect(bob)
           .deposit(0, ethers.parseEther(PARTICIPATION))
-      ).to.emit(liquidity, 'Deposit');
+      ).to.emit(liquidity, "Deposit");
       const afterBobDeposit: number = await time.latestBlock();
 
       expect(await tokenLp_A_B.balanceOf(alice.getAddress())).to.equal(
-        ethers.parseEther('0')
+        ethers.parseEther("0")
       );
       expect(await tokenLp_A_B.balanceOf(bob.getAddress())).to.equal(
-        ethers.parseEther('0')
+        ethers.parseEther("0")
       );
       expect(await liquidity.getTotalStakedInPool(0)).to.equal(
-        ethers.parseEther('20')
+        ethers.parseEther("20")
       );
 
       const BLOCKS_TO_MINE: number = 100;
@@ -395,12 +395,12 @@ describe('Liquidity', function () {
       );
     });
 
-    it('Should have proportioned reward with same reward blocks and deposit with different weights', async function () {
+    it("Should have proportioned reward with same reward blocks and deposit with different weights", async function () {
       // block number starts from zero
       const { liquidity, tokenLp_A_B, tokenReward, demoToken, alice, bob } =
         await loadFixture(deployFixture);
-      const PARTICIPATION: string = '10';
-      const REWARD_PER_BLOCK: string = '1';
+      const PARTICIPATION: string = "10";
+      const REWARD_PER_BLOCK: string = "1";
 
       const latestBlock: number = await time.latestBlock();
       await mineUpTo(latestBlock + 1);
@@ -446,7 +446,7 @@ describe('Liquidity', function () {
         await liquidity
           .connect(alice)
           .deposit(0, ethers.parseEther(PARTICIPATION))
-      ).to.emit(liquidity, 'Deposit');
+      ).to.emit(liquidity, "Deposit");
       const afterAliceDeposit: number = await time.latestBlock();
 
       expect(await demoToken.balanceOf(bob.getAddress())).to.be.equal(
@@ -456,14 +456,14 @@ describe('Liquidity', function () {
         await liquidity
           .connect(bob)
           .deposit(1, ethers.parseEther(PARTICIPATION))
-      ).to.emit(liquidity, 'Deposit');
+      ).to.emit(liquidity, "Deposit");
       const afterBobDeposit: number = await time.latestBlock();
 
       expect(await tokenLp_A_B.balanceOf(alice.getAddress())).to.equal(
-        ethers.parseEther('0')
+        ethers.parseEther("0")
       );
       expect(await demoToken.balanceOf(bob.getAddress())).to.equal(
-        ethers.parseEther('0')
+        ethers.parseEther("0")
       );
       expect(await liquidity.getTotalStakedInPool(0)).to.equal(
         ethers.parseEther(PARTICIPATION)
@@ -515,16 +515,16 @@ describe('Liquidity', function () {
       );
     });
 
-    it('Should have same reward with same reward blocks and deposit', async function () {
+    it("Should have same reward with same reward blocks and deposit", async function () {
       // block number starts from zero
       const { liquidity, tokenLp_A_B, tokenReward, alice, bob } =
         await loadFixture(deployFixture);
       const users: Array<any> = [alice, bob];
-      const PARTICIPATION: string = '10';
+      const PARTICIPATION: string = "10";
       const TOTAL_PARTICIPATION: string = (
         users.length * +PARTICIPATION
       ).toString();
-      const REWARD_PER_BLOCK: string = '1';
+      const REWARD_PER_BLOCK: string = "1";
 
       const latestBlock: number = await time.latestBlock();
       await mineUpTo(latestBlock + 1);
@@ -564,24 +564,24 @@ describe('Liquidity', function () {
         await liquidity
           .connect(alice)
           .deposit(0, ethers.parseEther(PARTICIPATION))
-      ).to.emit(liquidity, 'Deposit');
+      ).to.emit(liquidity, "Deposit");
       const afterAliceDeposit: number = await time.latestBlock();
 
       await expect(
         await liquidity
           .connect(bob)
           .deposit(0, ethers.parseEther(PARTICIPATION))
-      ).to.emit(liquidity, 'Deposit');
+      ).to.emit(liquidity, "Deposit");
       const afterBobDeposit: number = await time.latestBlock();
 
       expect(await tokenLp_A_B.balanceOf(alice.getAddress())).to.equal(
-        ethers.parseEther('0')
+        ethers.parseEther("0")
       );
       expect(await tokenLp_A_B.balanceOf(bob.getAddress())).to.equal(
-        ethers.parseEther('0')
+        ethers.parseEther("0")
       );
       expect(await liquidity.getTotalStakedInPool(0)).to.equal(
-        ethers.parseEther('20')
+        ethers.parseEther("20")
       );
 
       const BLOCKS_TO_MINE: number = 100;
@@ -618,12 +618,12 @@ describe('Liquidity', function () {
         await liquidity
           .connect(alice)
           .withdraw(0, ethers.parseEther(PARTICIPATION))
-      ).to.emit(liquidity, 'Withdraw');
+      ).to.emit(liquidity, "Withdraw");
       await expect(
         await liquidity
           .connect(bob)
           .withdraw(0, ethers.parseEther(PARTICIPATION))
-      ).to.emit(liquidity, 'Withdraw');
+      ).to.emit(liquidity, "Withdraw");
       const aliceReward = await tokenReward.balanceOf(alice.getAddress());
       const bobReward = await tokenReward.balanceOf(bob.getAddress());
       assert.isTrue(
@@ -631,14 +631,14 @@ describe('Liquidity', function () {
       );
     });
 
-    it('Should have double reward with same blocks and double deposit deposit', async function () {
+    it("Should have double reward with same blocks and double deposit deposit", async function () {
       // block number starts from zero
       const { liquidity, tokenLp_A_B, tokenReward, alice, bob } =
         await loadFixture(deployFixture);
-      const PARTICIPATION: string = '10';
-      const HALF_PARTICIPATION: string = '5';
-      const TOTAL_PARTICIPATION: string = '15';
-      const REWARD_PER_BLOCK: string = '1';
+      const PARTICIPATION: string = "10";
+      const HALF_PARTICIPATION: string = "5";
+      const TOTAL_PARTICIPATION: string = "15";
+      const REWARD_PER_BLOCK: string = "1";
 
       const latestBlock: number = await time.latestBlock();
       await mineUpTo(latestBlock + 1);
@@ -678,24 +678,24 @@ describe('Liquidity', function () {
         await liquidity
           .connect(alice)
           .deposit(0, ethers.parseEther(PARTICIPATION))
-      ).to.emit(liquidity, 'Deposit');
+      ).to.emit(liquidity, "Deposit");
       const afterAliceDeposit: number = await time.latestBlock();
 
       await expect(
         await liquidity
           .connect(bob)
           .deposit(0, ethers.parseEther(HALF_PARTICIPATION))
-      ).to.emit(liquidity, 'Deposit');
+      ).to.emit(liquidity, "Deposit");
       const afterBobDeposit: number = await time.latestBlock();
 
       expect(await tokenLp_A_B.balanceOf(alice.getAddress())).to.equal(
-        ethers.parseEther('0')
+        ethers.parseEther("0")
       );
       expect(await tokenLp_A_B.balanceOf(bob.getAddress())).to.equal(
-        ethers.parseEther('0')
+        ethers.parseEther("0")
       );
       expect(await liquidity.getTotalStakedInPool(0)).to.equal(
-        ethers.parseEther('15')
+        ethers.parseEther("15")
       );
 
       const BLOCKS_TO_MINE: number = 100;
@@ -741,12 +741,12 @@ describe('Liquidity', function () {
         await liquidity
           .connect(alice)
           .withdraw(0, ethers.parseEther(PARTICIPATION))
-      ).to.emit(liquidity, 'Withdraw');
+      ).to.emit(liquidity, "Withdraw");
       await expect(
         await liquidity
           .connect(bob)
           .withdraw(0, ethers.parseEther(HALF_PARTICIPATION))
-      ).to.emit(liquidity, 'Withdraw');
+      ).to.emit(liquidity, "Withdraw");
       const aliceReward = await tokenReward.balanceOf(alice.getAddress());
       const bobReward = await tokenReward.balanceOf(bob.getAddress());
       assert.isTrue(
@@ -757,16 +757,16 @@ describe('Liquidity', function () {
       );
     });
 
-    it('Should harvest correct amount', async function () {
+    it("Should harvest correct amount", async function () {
       // block number starts from zero
       const { liquidity, tokenLp_A_B, tokenReward, alice, bob } =
         await loadFixture(deployFixture);
       const users: Array<any> = [alice, bob];
-      const PARTICIPATION: string = '10';
+      const PARTICIPATION: string = "10";
       const TOTAL_PARTICIPATION: string = (
         users.length * +PARTICIPATION
       ).toString();
-      const REWARD_PER_BLOCK: string = '1';
+      const REWARD_PER_BLOCK: string = "1";
 
       const latestBlock: number = await time.latestBlock();
       await mineUpTo(latestBlock + 1);
@@ -806,24 +806,24 @@ describe('Liquidity', function () {
         await liquidity
           .connect(alice)
           .deposit(0, ethers.parseEther(PARTICIPATION))
-      ).to.emit(liquidity, 'Deposit');
+      ).to.emit(liquidity, "Deposit");
       const afterAliceDeposit: number = await time.latestBlock();
 
       await expect(
         await liquidity
           .connect(bob)
           .deposit(0, ethers.parseEther(PARTICIPATION))
-      ).to.emit(liquidity, 'Deposit');
+      ).to.emit(liquidity, "Deposit");
       const afterBobDeposit: number = await time.latestBlock();
 
       expect(await tokenLp_A_B.balanceOf(alice.getAddress())).to.equal(
-        ethers.parseEther('0')
+        ethers.parseEther("0")
       );
       expect(await tokenLp_A_B.balanceOf(bob.getAddress())).to.equal(
-        ethers.parseEther('0')
+        ethers.parseEther("0")
       );
       expect(await liquidity.getTotalStakedInPool(0)).to.equal(
-        ethers.parseEther('20')
+        ethers.parseEther("20")
       );
 
       const BLOCKS_TO_MINE: number = 100;
@@ -838,12 +838,12 @@ describe('Liquidity', function () {
       const beforeAliceHarvestBlock: number = await time.latestBlock();
       expect(await liquidity.connect(alice).harvest(0)).to.emit(
         liquidity,
-        'Harvest'
+        "Harvest"
       );
       const afterAliceHarverstBlock: number = await time.latestBlock();
       expect(await liquidity.connect(bob).harvest(0)).to.emit(
         liquidity,
-        'Harvest'
+        "Harvest"
       );
       const afterBobHarverstBlock: number = await time.latestBlock();
       const aliceHarverstBlocksToAdd: number =
@@ -890,7 +890,7 @@ describe('Liquidity', function () {
       );
     });
 
-    it('Should not withdraw if requested more tokens than deposited amount', async function () {
+    it("Should not withdraw if requested more tokens than deposited amount", async function () {
       const { liquidity, tokenLp_A_B, tokenReward, alice, bob } =
         await loadFixture(deployFixture);
 
@@ -919,26 +919,26 @@ describe('Liquidity', function () {
       await mineUpTo(latestBlock + 1);
       await expect(await liquidity.connect(alice).deposit(0, 5)).to.emit(
         liquidity,
-        'Deposit'
+        "Deposit"
       );
       await expect(await liquidity.connect(bob).deposit(0, 5)).to.emit(
         liquidity,
-        'Deposit'
+        "Deposit"
       );
       await mineUpTo(latestBlock + 11);
 
       await expect(await liquidity.connect(alice).deposit(0, 0)).to.emit(
         liquidity,
-        'Deposit'
+        "Deposit"
       );
       await expect(await liquidity.connect(bob).deposit(0, 0)).to.emit(
         liquidity,
-        'Deposit'
+        "Deposit"
       );
       let aliceReward = await tokenReward.balanceOf(alice.getAddress());
       let bobReward = await tokenReward.balanceOf(bob.getAddress());
-      assert.isTrue(aliceReward.toString() == '5');
-      assert.isTrue(bobReward.toString() == '5');
+      assert.isTrue(aliceReward.toString() == "5");
+      assert.isTrue(bobReward.toString() == "5");
 
       await mineUpTo(latestBlock + 40);
       await expect(liquidity.connect(alice).withdraw(0, 10)).to.be.eventually
