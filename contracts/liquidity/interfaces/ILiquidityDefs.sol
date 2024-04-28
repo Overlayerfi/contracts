@@ -8,7 +8,7 @@ interface ILiquidityDefs {
      * @notice Info on each user.
      */
     struct UserInfo {
-        uint256 amount; // How many LP tokens the user has provided.
+        uint256 amount; // How many tokens the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
         /**
          * @notice The strategy used by the vault.
@@ -18,7 +18,7 @@ interface ILiquidityDefs {
          *
          *  pending reward = (user.amount * pool.accRewardPerShare)
          *
-         * Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
+         * Whenever a user deposits or withdraws tokens to a pool. Here's what happens:
          *  1. The pool's `accRewardPerShare` (and `lastRewardBlock`) gets updated.
          *  2. User receives the pending reward sent to his/her address.
          *  3. User's `amount` gets updated.
