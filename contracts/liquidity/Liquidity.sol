@@ -49,6 +49,8 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      */
     uint256 public bonusMultiplier = 1;
 
+    uint8 private constant NOT_ACTIVE = 0;
+
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
     event Harvest(address indexed user, uint256 indexed pid, uint256 amount);
@@ -71,6 +73,14 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     }
 
     /**
+     * @notice Update the rewards starting block.
+     * @param _startBlock the new multiplier value.
+     */
+    function updateStartBlock(uint256 _startBlock) external onlyOwner {
+        startBlock = _startBlock;
+    }
+
+    /**
      * @notice Update the multiplier value.
      * @param _new the new multiplier value.
      */
@@ -88,35 +98,39 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
 
     /**
      * @notice Set a reward rate.
-     * @param _reward the reward.
+     * @param _rewardAsset the reward.
      * @param _newRewardRate the new reward rate.
      */
     function setReward(
-        IERC20 _reward,
+        IERC20 _rewardAsset,
         uint256 _newRewardRate
     ) external onlyOwner {
-        if (!activeRewards[address(_reward)]) {
-            activeRewards[address(_reward)] = true;
+        if (!activeRewards[address(_rewardAsset)]) {
+            activeRewards[address(_rewardAsset)] = true;
         }
-        if (rewardsPerBlock[address(_reward)] != _newRewardRate) {
-            rewardsPerBlock[address(_reward)] = _newRewardRate;
+        if (rewardsPerBlock[address(_rewardAsset)] != _newRewardRate) {
+            rewardsPerBlock[address(_rewardAsset)] = _newRewardRate;
         }
     }
 
     /**
-     * @notice Add a new pool to the kitchen.
-     * @param _lpToken the wanted lp token.
-     * @param _reward the reward that will be payed out.
+     * @notice Add a new pool.
+     * @dev It reverts if the starting block is set to zero
+     * @param _stakedAsset the wanted lp token.
+     * @param _rewardAsset the reward that will be payed out.
      * @param _allocPoints the weight of the added pool.
      * @param _withUpdate a boolean flag stating if update or not old pools.
      */
     function add(
-        IERC20 _lpToken,
-        IERC20 _reward,
+        IERC20 _stakedAsset,
+        IERC20 _rewardAsset,
         uint256 _allocPoints,
         bool _withUpdate
     ) public onlyOwner {
-        if (!activeRewards[address(_reward)]) {
+        if (startBlock == NOT_ACTIVE) {
+            revert LiquidityNotActive();
+        }
+        if (!activeRewards[address(_rewardAsset)]) {
             revert InvactiveReward();
         }
         if (_withUpdate) {
@@ -125,13 +139,13 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         uint256 lastRewardBlock = block.number > startBlock
             ? block.number
             : startBlock;
-        totalAllocPointsPerReward[address(_reward)] =
-            totalAllocPointsPerReward[address(_reward)] +
+        totalAllocPointsPerReward[address(_rewardAsset)] =
+            totalAllocPointsPerReward[address(_rewardAsset)] +
             (_allocPoints);
         poolInfo.push(
             PoolInfo({
-                stakedAsset: _lpToken,
-                rewardAsset: _reward,
+                stakedAsset: _stakedAsset,
+                rewardAsset: _rewardAsset,
                 allocPoints: _allocPoints,
                 lastRewardBlock: lastRewardBlock,
                 accRewardPerShare: 0
@@ -372,12 +386,12 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     /**
      * @notice Pay the reward.
      * @dev The reward asset is directly minted from the reward token
-     * @param _reward the reward token.
+     * @param _rewardAsset the reward token.
      * @param _to the reward receiver.
      * @param _amount the amount to be payed.
      */
-    function _payReward(IERC20 _reward, address _to, uint256 _amount) internal {
-        IRewardAsset(address(_reward)).mint(_to, _amount);
+    function _payReward(IERC20 _rewardAsset, address _to, uint256 _amount) internal {
+        IRewardAsset(address(_rewardAsset)).mint(_to, _amount);
     }
 
     /**
