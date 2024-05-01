@@ -2,6 +2,7 @@ import { ethers } from "hardhat";
 import { Contract } from "ethers";
 import { USDC_ADDRESS, USDT_ADDRESS } from "./addresses";
 import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
+import LIQUIDITY_ABI from "../artifacts/contracts/liquidity/Liquidity.sol/Liquidity.json";
 
 export async function deployUSDO(): Promise<string> {
   const [deployer, team] = await ethers.getSigners();
@@ -185,4 +186,57 @@ export async function deployLiquidity(
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
   return await deployedContract.getAddress();
+}
+
+export async function addRewardLiquidity(
+  addr: string,
+  rewards: {addr: string, rewardPerBlockEther: string}[]
+): Promise<void> {
+  const [deployer] = await ethers.getSigners();
+
+  if (!ethers.isAddress(addr)) {
+    throw new Error("addr is not ad address");
+  }
+  for (const r of rewards) {
+    if (!ethers.isAddress(r.addr)) {
+      throw new Error("reward is not ad address: " + r);
+    }
+  }
+
+  console.log("Adding rewards to Liquidity contract with signer:", deployer.address);
+
+  const contract = new ethers.Contract(addr, LIQUIDITY_ABI.abi, deployer);
+  for (const r of rewards) {
+    await (contract.connect(deployer) as Contract).setReward(r.addr, r.rewardPerBlockEther);
+  }
+
+  console.log("Rewards added");
+}
+
+export async function addPoolLiquidity(
+  addr: string,
+  pools: {stakedAsset: string, rewardAsset: string, allocPoints: number, update: boolean}[]
+): Promise<void> {
+  const [deployer] = await ethers.getSigners();
+
+  if (!ethers.isAddress(addr)) {
+    throw new Error("addr is not ad address");
+  }
+  for (const p of pools) {
+    if (!ethers.isAddress(p.rewardAsset)) {
+      throw new Error("rewardAsset is not ad address: " + p.rewardAsset);
+    }
+    if (!ethers.isAddress(p.stakedAsset)) {
+      throw new Error("stakedAsset is not ad address: " + p.stakedAsset);
+    }
+  }
+
+  console.log("Adding pools to Liquidity contract with signer:", deployer.address);
+
+  const contract = new ethers.Contract(addr, LIQUIDITY_ABI.abi, deployer);
+  for (const p of pools) {
+    await (contract.connect(deployer) as Contract).add(p.stakedAsset, p.rewardAsset, p.allocPoints, p.update);
+  }
+
+  console.log("Pools added");
 }

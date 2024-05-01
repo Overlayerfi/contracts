@@ -1,0 +1,106 @@
+[
+	{
+		"info": {
+			"tokenA": {
+				"address": "0x72872f101327902fC805637Cccd9A3542ed31e47",
+				"decimals": 18,
+				"img": "",
+				"name": "USDO"
+			},
+			"tokenB": {
+				"address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				"decimals": 6,
+				"img": "",
+				"name": "USDC"
+			},
+			"singleStake": false,
+			"multiplier": "1",
+			"weight": "0.25",
+			"pid": "0",
+			"reward": {
+				"address": "0x00D15604415907AAE09e5454Ca299f2Ee93fA941",
+				"decimals": 18,
+				"img": "",
+				"name": "AUSDO"
+			},
+			"apy": "0.00",
+			"liquidityUsd": "0.00",
+			"stakedAsset": "0x0000000000000000000000000000000000000000"
+		}
+	},
+	{
+		"info": {
+			"tokenA": {
+				"address": "0x9E7ef64F17E79366e70C1Fdc01E1A00323e1FCF8",
+				"decimals": 18,
+				"img": "",
+				"name": "sUSDO"
+			},
+			"tokenB": {
+				"address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				"decimals": 6,
+				"img": "",
+				"name": "USDT"
+			},
+			"singleStake": false,
+			"multiplier": "1",
+			"weight": "0.25",
+			"pid": "1",
+			"reward": {
+				"address": "0x00D15604415907AAE09e5454Ca299f2Ee93fA941",
+				"decimals": 18,
+				"img": "",
+				"name": "AUSDO"
+			},
+			"apy": "0.00",
+			"liquidityUsd": "0.00",
+			"stakedAsset": "0x0000000000000000000000000000000000000000"
+		}
+	},
+	{
+		"info": {
+			"tokenA": {
+				"address": "0x72872f101327902fC805637Cccd9A3542ed31e47",
+				"decimals": 18,
+				"img": "",
+				"name": "USDO"
+			},
+			"singleStake": true,
+			"multiplier": "1",
+			"weight": "0.25",
+			"pid": "2",
+			"reward": {
+				"address": "0x00D15604415907AAE09e5454Ca299f2Ee93fA941",
+				"decimals": 18,
+				"img": "",
+				"name": "AUSDO"
+			},
+			"apy": "0.00",
+			"liquidityUsd": "0.00",
+			"stakedAsset": "0x0000000000000000000000000000000000000000"
+		}
+	},
+	{
+		"info": {
+			"tokenA": {
+				"address": "0x9E7ef64F17E79366e70C1Fdc01E1A00323e1FCF8",
+				"decimals": 18,
+				"img": "",
+				"name": "sUSDO"
+			},
+			"singleStake": true,
+			"multiplier": "1",
+			"weight": "0.25",
+			"pid": "3",
+			"reward": {
+				"address": "0x00D15604415907AAE09e5454Ca299f2Ee93fA941",
+				"decimals": 18,
+				"img": "",
+				"name": "AUSDO"
+			},
+			"apy": "0.00",
+			"liquidityUsd": "0.00",
+			"stakedAsset": "0x0000000000000000000000000000000000000000"
+		}
+	}
+]
