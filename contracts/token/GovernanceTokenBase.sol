@@ -1,0 +1,62 @@
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity 0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
+
+/**
+ * @title GovernanceTokenBase
+ * @notice This token represent a mintable token by an allowed minter.
+ */
+contract GovernanceTokenBase is Ownable2Step, ERC20Burnable, ERC20Permit {
+    error ZeroAddressException();
+
+    error OnlyMinter();
+
+    error CantRenounceOwnership();
+
+    error OperationNotAllowed();
+
+    event MinterStateChanged(address indexed _minter, bool _event);
+
+    /// @notice The allowed minter
+    mapping(address => bool) public minter;
+
+    ///@notice The constructor
+    ///@param admin The contract admin
+    constructor(
+        address admin
+    ) Ownable(admin) ERC20("AOBSI", "AOBSI") ERC20Permit("AOBSI") {
+        if (admin == address(0)) revert ZeroAddressException();
+    }
+
+    ///@notice Set a new minter
+    ///@param _minter The new minter address
+    function setMinter(address _minter) external onlyOwner {
+        minter[_minter] = true;
+        emit MinterStateChanged(_minter, true);
+    }
+
+    ///@notice Set a new minter
+    ///@param _minter The new minter address
+    function removeMinter(address _minter) external onlyOwner {
+        minter[_minter] = false;
+        emit MinterStateChanged(_minter, false);
+    }
+
+    ///@notice Mint tokens
+    ///@param to The recipient address
+    ///@param amount The amount to be minted
+    function mint(address to, uint256 amount) external {
+        if (minter[msg.sender] != true) revert OnlyMinter();
+        _mint(to, amount);
+    }
+
+    ///@notice Renounce contract ownership
+    ///@dev Reverts by design
+    function renounceOwnership() public view override onlyOwner {
+        revert CantRenounceOwnership();
+    }
+}

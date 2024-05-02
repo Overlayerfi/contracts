@@ -1,15 +1,16 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
+import { MinEthersFactory } from '../typechain-types/common';
 
-describe("LiquidityAirdropReward", function () {
+describe("OBSI", function () {
   async function deployFixture() {
     const [admin, minter, bob] = await ethers.getSigners();
 
-    const LiquidityAirdropReward = await ethers.getContractFactory(
-      "LiquidityAirdropReward"
+    const OBSI = await ethers.getContractFactory(
+      "OBSI"
     );
-    const liquidityAirdropReward = await LiquidityAirdropReward.deploy(
+    const liquidityAirdropReward = await OBSI.deploy(
       admin.address
     );
 
@@ -52,30 +53,6 @@ describe("LiquidityAirdropReward", function () {
       expect(await liquidityAirdropReward.balanceOf(bob.address)).to.equal(
         ethers.parseEther("10")
       );
-    });
-  });
-
-  describe("Transfer", function () {
-    it("Should not be transferable", async function () {
-      const { liquidityAirdropReward, minter, bob } = await loadFixture(
-        deployFixture
-      );
-      expect(await liquidityAirdropReward.balanceOf(bob.address)).to.equal(
-        ethers.parseEther("0")
-      );
-      await expect(
-        await liquidityAirdropReward
-          .connect(minter)
-          .mint(bob.address, ethers.parseEther("10"))
-      ).to.emit(liquidityAirdropReward, "Transfer");
-      expect(await liquidityAirdropReward.balanceOf(bob.address)).to.equal(
-        ethers.parseEther("10")
-      );
-      await expect(
-        liquidityAirdropReward
-          .connect(minter)
-          .transfer(bob.address, ethers.parseEther("1"))
-      ).to.be.eventually.rejectedWith("OperationNotAllowed");
     });
   });
 });
