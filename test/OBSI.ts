@@ -1,18 +1,14 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { MinEthersFactory } from '../typechain-types/common';
+import { MinEthersFactory } from "../typechain-types/common";
 
 describe("OBSI", function () {
   async function deployFixture() {
     const [admin, minter, bob] = await ethers.getSigners();
 
-    const OBSI = await ethers.getContractFactory(
-      "OBSI"
-    );
-    const liquidityAirdropReward = await OBSI.deploy(
-      admin.address
-    );
+    const OBSI = await ethers.getContractFactory("OBSI");
+    const liquidityAirdropReward = await OBSI.deploy(admin.address);
 
     await liquidityAirdropReward.waitForDeployment();
     await liquidityAirdropReward.connect(admin).setMinter(minter.address);
@@ -33,7 +29,9 @@ describe("OBSI", function () {
       const { liquidityAirdropReward, minter } = await loadFixture(
         deployFixture
       );
-      expect(await liquidityAirdropReward.minter(minter.address)).to.equal(true);
+      expect(await liquidityAirdropReward.minter(minter.address)).to.equal(
+        true
+      );
     });
   });
 

@@ -79,9 +79,11 @@ describe("Liquidity", function () {
     });
 
     it("Should update starting block", async function () {
-      const { liquidity, owner, latestBlock } = await loadFixture(deployFixture);
-      await liquidity.connect(owner).updateStartBlock(latestBlock+100);
-      expect(await liquidity.startBlock()).to.equal(latestBlock+100);
+      const { liquidity, owner, latestBlock } = await loadFixture(
+        deployFixture
+      );
+      await liquidity.connect(owner).updateStartBlock(latestBlock + 100);
+      expect(await liquidity.startBlock()).to.equal(latestBlock + 100);
     });
 
     it("Should revert update multiplier if not owner", async function () {
@@ -100,17 +102,18 @@ describe("Liquidity", function () {
 
   describe("AddPool", function () {
     it("Should not add a new pool if start block for rewards is zero", async function () {
-      const { liquidity, stakedAsset, owner, tokenRewardOne } = await loadFixture(
-        deployFixture
-      );
+      const { liquidity, stakedAsset, owner, tokenRewardOne } =
+        await loadFixture(deployFixture);
       await liquidity.connect(owner).updateStartBlock(0);
       await liquidity.setReward(tokenRewardOne.getAddress(), 1);
-      await expect(liquidity.add(
-        stakedAsset.getAddress(),
-        tokenRewardOne.getAddress(),
-        1,
-        true
-      )).to.be.eventually.rejectedWith("LiquidityNotActive");
+      await expect(
+        liquidity.add(
+          stakedAsset.getAddress(),
+          tokenRewardOne.getAddress(),
+          1,
+          true
+        )
+      ).to.be.eventually.rejectedWith("LiquidityNotActive");
     });
 
     it("Should add a new pool", async function () {
