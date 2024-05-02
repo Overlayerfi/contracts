@@ -32,7 +32,9 @@ describe("LiquidityAirdropReward", function () {
       const { liquidityAirdropReward, minter } = await loadFixture(
         deployFixture
       );
-      expect(await liquidityAirdropReward.minter(minter.address)).to.equal(true);
+      expect(await liquidityAirdropReward.minter(minter.address)).to.equal(
+        true
+      );
     });
   });
 

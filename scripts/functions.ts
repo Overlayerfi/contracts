@@ -3,6 +3,7 @@ import { Contract } from "ethers";
 import { USDC_ADDRESS, USDT_ADDRESS } from "./addresses";
 import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
 import LIQUIDITY_ABI from "../artifacts/contracts/liquidity/Liquidity.sol/Liquidity.json";
+import { ILiquidity } from "./types";
 
 export async function deployUSDO(): Promise<string> {
   const [deployer, team] = await ethers.getSigners();
@@ -188,9 +189,27 @@ export async function deployLiquidity(
   return await deployedContract.getAddress();
 }
 
+export async function deployGovernanceToken(admin: string): Promise<string> {
+  const [deployer] = await ethers.getSigners();
+
+  if (!ethers.isAddress(admin)) {
+    throw new Error("admin is not ad address");
+  }
+
+  console.log("Deploying OBSI contract with signer:", deployer.address);
+
+  const ContractSource = await ethers.getContractFactory("OBSI");
+  const deployedContract = await ContractSource.deploy(admin);
+
+  await deployedContract.waitForDeployment();
+
+  console.log("Contract deployed at:", await deployedContract.getAddress());
+  return await deployedContract.getAddress();
+}
+
 export async function addRewardLiquidity(
   addr: string,
-  rewards: {addr: string, rewardPerBlockEther: string}[]
+  rewards: { addr: string; rewardPerBlockEther: bigint }[]
 ): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
@@ -203,11 +222,17 @@ export async function addRewardLiquidity(
     }
   }
 
-  console.log("Adding rewards to Liquidity contract with signer:", deployer.address);
+  console.log(
+    "Adding rewards to Liquidity contract with signer:",
+    deployer.address
+  );
 
   const contract = new ethers.Contract(addr, LIQUIDITY_ABI.abi, deployer);
   for (const r of rewards) {
-    await (contract.connect(deployer) as Contract).setReward(r.addr, r.rewardPerBlockEther);
+    await (contract.connect(deployer) as Contract).setReward(
+      r.addr,
+      r.rewardPerBlockEther
+    );
   }
 
   console.log("Rewards added");
@@ -215,7 +240,8 @@ export async function addRewardLiquidity(
 
 export async function addPoolLiquidity(
   addr: string,
-  pools: {stakedAsset: string, rewardAsset: string, allocPoints: number, update: boolean}[]
+  pools: ILiquidity[],
+  update: boolean
 ): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
@@ -223,19 +249,32 @@ export async function addPoolLiquidity(
     throw new Error("addr is not ad address");
   }
   for (const p of pools) {
-    if (!ethers.isAddress(p.rewardAsset)) {
-      throw new Error("rewardAsset is not ad address: " + p.rewardAsset);
+    if (!ethers.isAddress(p.info.stakedAsset)) {
+      throw new Error("staked asset is not ad address: " + p.info.stakedAsset);
     }
-    if (!ethers.isAddress(p.stakedAsset)) {
-      throw new Error("stakedAsset is not ad address: " + p.stakedAsset);
+    if (!ethers.isAddress(p.info.reward.address)) {
+      throw new Error(
+        "rewards asset is not ad address: " + p.info.reward.address
+      );
+    }
+    if (isNaN(+p.info.weight)) {
+      throw new Error("weight is not number: " + p.info.weight);
     }
   }
 
-  console.log("Adding pools to Liquidity contract with signer:", deployer.address);
+  console.log(
+    "Adding pools to Liquidity contract with signer:",
+    deployer.address
+  );
 
   const contract = new ethers.Contract(addr, LIQUIDITY_ABI.abi, deployer);
   for (const p of pools) {
-    await (contract.connect(deployer) as Contract).add(p.stakedAsset, p.rewardAsset, p.allocPoints, p.update);
+    await (contract.connect(deployer) as Contract).add(
+      p.info.stakedAsset,
+      p.info.reward.address,
+      +p.info.weight,
+      update
+    );
   }
 
   console.log("Pools added");
