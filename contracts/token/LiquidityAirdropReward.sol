@@ -13,7 +13,7 @@ contract LiquidityAirdropReward is GovernanceTokenBase {
     ///@param admin The contract admin
     constructor(
         address admin
-    ) GovernanceTokenBase(admin) {}
+    ) GovernanceTokenBase(admin, "AOBSI", "AOBSI") {}
 
     /// @notice Token not transferable
     function _update(
