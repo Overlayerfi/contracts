@@ -13,5 +13,5 @@ contract OBSI is GovernanceTokenBase {
     ///@param admin The contract admin
     constructor(
         address admin
-    ) GovernanceTokenBase(admin) {}
+    ) GovernanceTokenBase(admin, "OBSI", "OBSI") {}
 }

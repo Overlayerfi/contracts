@@ -26,9 +26,13 @@ contract GovernanceTokenBase is Ownable2Step, ERC20Burnable, ERC20Permit {
 
     ///@notice The constructor
     ///@param admin The contract admin
+    ///@param name The token name
+    ///@param symbol The token symbol
     constructor(
-        address admin
-    ) Ownable(admin) ERC20("AOBSI", "AOBSI") ERC20Permit("AOBSI") {
+        address admin,
+        string memory name,
+        string memory symbol
+    ) Ownable(admin) ERC20(name, symbol) ERC20Permit(name) {
         if (admin == address(0)) revert ZeroAddressException();
     }
 
