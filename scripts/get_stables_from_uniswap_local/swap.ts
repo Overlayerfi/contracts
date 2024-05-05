@@ -1,12 +1,13 @@
 import { ethers } from "hardhat";
+import {Contract} from 'ethers';
 import { WETH_ABI } from "./WETH_abi";
 import { USDC_ADDRESS, USDT_ADDRESS } from "../addresses";
 import { USDC_ABI } from "./USDC_abi";
 import { USDT_ABI } from "./USDT_abi";
 
 const WETH_MAINNET_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-const WETH_AMOUNT_TO_WRAP = "1";
-const WETH_TO_SWAP = "0.5";
+const WETH_AMOUNT_TO_WRAP = "4";
+const WETH_TO_SWAP = ((+WETH_AMOUNT_TO_WRAP)/2).toFixed(2);
 const SWAP_CODES = [1, 2];
 
 async function deploy() {
@@ -25,8 +26,8 @@ async function deploy() {
 
   const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545/");
   const weth = new ethers.Contract(WETH_MAINNET_ADDRESS, WETH_ABI, provider);
-  await weth
-    .connect(deployer)
+  await (weth
+    .connect(deployer) as Contract)
     .deposit({ value: ethers.parseEther(WETH_AMOUNT_TO_WRAP) });
   console.log(
     deployer.address,
@@ -34,8 +35,8 @@ async function deploy() {
     ethers.formatEther(await weth.balanceOf(deployer.address))
   );
   console.log("Approving the swap contract...");
-  await weth
-    .connect(deployer)
+  await (weth
+    .connect(deployer) as Contract)
     .approve(await swapper.getAddress(), ethers.MaxUint256);
   console.log("Spender approved");
 
