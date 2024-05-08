@@ -14,7 +14,7 @@ interface ILiquidityInfo {
   weight: string;
   pid: string;
   reward: IToken;
-  apy: string;
+  apr: string;
   liquidityUsd: string;
   stakedAsset: string;
 }

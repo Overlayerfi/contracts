@@ -32,7 +32,7 @@ async function main() {
     const usdoAddr = await deployUSDO();
     const susdoAddr = await deployStakedUSDO(usdoAddr);
     await deployStakingRewardsDistributor(susdoAddr, usdoAddr, true);
-    const liquidityRewardAssetAddr = await deployLiquidityAirdropReward(
+    const liquidityAirdropRewardAssetAddr = await deployLiquidityAirdropReward(
       LIQUIDITY_REWARD_TOKEN_ADMIN
     );
     const liquidityAddr = await deployLiquidity(
@@ -43,7 +43,7 @@ async function main() {
       admin.address
     );
     const airdropPoolRewardContract = new ethers.Contract(
-      liquidityRewardAssetAddr,
+      liquidityAirdropRewardAssetAddr,
       LIQUIDITY_REWARD_ABI.abi,
       admin
     );
@@ -66,7 +66,7 @@ async function main() {
         rewardPerBlockEther: ethers.parseEther(POOL_REWARD_PER_BLOCK)
       },
       {
-        addr: liquidityRewardAssetAddr,
+        addr: liquidityAirdropRewardAssetAddr,
         rewardPerBlockEther: ethers.parseEther(POOL_AIRDROP_REWARD_PER_BLOCK)
       }
     ];
