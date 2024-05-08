@@ -23,7 +23,7 @@
 				"img": "",
 				"name": "OBSI"
 			},
-			"apy": "0.00",
+			"apr": "0.00",
 			"liquidityUsd": "0.00",
 			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47"
 		}
@@ -52,7 +52,7 @@
 				"img": "",
 				"name": "OBSI"
 			},
-			"apy": "0.00",
+			"apr": "0.00",
 			"liquidityUsd": "0.00",
 			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47"
 		}
@@ -75,7 +75,7 @@
 				"img": "",
 				"name": "OBSI"
 			},
-			"apy": "0.00",
+			"apr": "0.00",
 			"liquidityUsd": "0.00",
 			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47"
 		}
@@ -98,7 +98,7 @@
 				"img": "",
 				"name": "OBSI"
 			},
-			"apy": "0.00",
+			"apr": "0.00",
 			"liquidityUsd": "0.00",
 			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47"
 		}

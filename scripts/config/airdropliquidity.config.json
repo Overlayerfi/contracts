@@ -16,14 +16,14 @@
 			"singleStake": false,
 			"multiplier": "1",
 			"weight": "1",
-			"pid": "0",
+			"pid": "4",
 			"reward": {
 				"address": "0x00D15604415907AAE09e5454Ca299f2Ee93fA941",
 				"decimals": 18,
 				"img": "",
 				"name": "AOBSI"
 			},
-			"apy": "0.00",
+			"apr": "0.00",
 			"liquidityUsd": "0.00",
 			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47"
 		}
@@ -45,14 +45,14 @@
 			"singleStake": false,
 			"multiplier": "1",
 			"weight": "1",
-			"pid": "1",
+			"pid": "5",
 			"reward": {
 				"address": "0x00D15604415907AAE09e5454Ca299f2Ee93fA941",
 				"decimals": 18,
 				"img": "",
 				"name": "AOBSI"
 			},
-			"apy": "0.00",
+			"apr": "0.00",
 			"liquidityUsd": "0.00",
 			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47"
 		}
@@ -68,37 +68,14 @@
 			"singleStake": true,
 			"multiplier": "1",
 			"weight": "1",
-			"pid": "2",
+			"pid": "6",
 			"reward": {
 				"address": "0x00D15604415907AAE09e5454Ca299f2Ee93fA941",
 				"decimals": 18,
 				"img": "",
 				"name": "AOBSI"
 			},
-			"apy": "0.00",
-			"liquidityUsd": "0.00",
-			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47"
-		}
-	},
-	{
-		"info": {
-			"tokenA": {
-				"address": "0x9E7ef64F17E79366e70C1Fdc01E1A00323e1FCF8",
-				"decimals": 18,
-				"img": "",
-				"name": "sUSDO"
-			},
-			"singleStake": true,
-			"multiplier": "1",
-			"weight": "1",
-			"pid": "3",
-			"reward": {
-				"address": "0x00D15604415907AAE09e5454Ca299f2Ee93fA941",
-				"decimals": 18,
-				"img": "",
-				"name": "AOBSI"
-			},
-			"apy": "0.00",
+			"apr": "0.00",
 			"liquidityUsd": "0.00",
 			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47"
 		}
