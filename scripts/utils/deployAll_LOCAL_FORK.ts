@@ -52,13 +52,17 @@ async function main() {
       OBSI_ABI.abi,
       admin
     );
+    const airdropLiquidityAddr = await deployLiquidity(
+      LIQUIDITY_ADMIN,
+      REWARD_STARTING_BLOCK
+    );
     await (airdropPoolRewardContract.connect(admin) as Contract).setMinter(
-      liquidityAddr
+      airdropLiquidityAddr
     );
     await (governancePoolRewardContract.connect(admin) as Contract).setMinter(
       liquidityAddr
     );
-    console.log("LiquidityAirdropReward minter set to:", liquidityAddr);
+    console.log("airdropPoolRewardContract minter set to:", airdropLiquidityAddr);
     console.log("OBSI minter set to:", liquidityAddr);
     const rewards: { addr: string; rewardPerBlockEther: bigint }[] = [
       {
@@ -70,9 +74,10 @@ async function main() {
         rewardPerBlockEther: ethers.parseEther(POOL_AIRDROP_REWARD_PER_BLOCK)
       }
     ];
-    await addRewardLiquidity(liquidityAddr, rewards);
+    await addRewardLiquidity(liquidityAddr, [rewards[0]]);
+    await addRewardLiquidity(airdropLiquidityAddr, [rewards[1]]);
     await addPoolLiquidity(liquidityAddr, liquidityConfig, true);
-    await addPoolLiquidity(liquidityAddr, airdropLiquidityConfig, true);
+    await addPoolLiquidity(airdropLiquidityAddr, airdropLiquidityConfig, true);
   } catch (err) {
     console.error("Batch deployment failed ->", err);
   }

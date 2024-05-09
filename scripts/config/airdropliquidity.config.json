@@ -16,7 +16,7 @@
 			"singleStake": false,
 			"multiplier": "1",
 			"weight": "1",
-			"pid": "4",
+			"pid": "0",
 			"reward": {
 				"address": "0x00D15604415907AAE09e5454Ca299f2Ee93fA941",
 				"decimals": 18,
@@ -45,7 +45,7 @@
 			"singleStake": false,
 			"multiplier": "1",
 			"weight": "1",
-			"pid": "5",
+			"pid": "1",
 			"reward": {
 				"address": "0x00D15604415907AAE09e5454Ca299f2Ee93fA941",
 				"decimals": 18,
@@ -68,7 +68,7 @@
 			"singleStake": true,
 			"multiplier": "1",
 			"weight": "1",
-			"pid": "6",
+			"pid": "2",
 			"reward": {
 				"address": "0x00D15604415907AAE09e5454Ca299f2Ee93fA941",
 				"decimals": 18,
