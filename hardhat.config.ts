@@ -3,7 +3,7 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
-import { ETH_RPC, GOERLI_RPC } from "./rpc";
+import { ETH_RPC, GOERLI_RPC, PRIVATE_ETH_RPC_PREFIX } from './rpc';
 
 dotenv.config({ path: process.cwd() + "/process.env"});
 
@@ -48,7 +48,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: ETH_RPC,
+        url: PRIVATE_ETH_RPC_PREFIX + process.env.ALCHEMY_KEY!,
         enabled: true,
         blockNumber: 19709557,
       },
