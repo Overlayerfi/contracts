@@ -114,7 +114,7 @@ export async function setCooldownStaking(
 
   console.log("Setting cooldown to staking with account:", deployer.address);
 
-  const contract = new ethers.Contract(addr, STAKED_USDX_ABI.abi);
+  const contract = new ethers.Contract(addr, STAKED_USDX_ABI.abi, deployer);
   await (contract.connect(deployer) as Contract).setCooldownDuration(seconds);
 
   console.log("Operation passed");

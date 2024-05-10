@@ -24,8 +24,7 @@ async function deploy() {
   await swapper.waitForDeployment();
   console.log("Contract deployed at:", await swapper.getAddress());
 
-  const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545/");
-  const weth = new ethers.Contract(WETH_MAINNET_ADDRESS, WETH_ABI, provider);
+  const weth = new ethers.Contract(WETH_MAINNET_ADDRESS, WETH_ABI, deployer);
   await (weth
     .connect(deployer) as Contract)
     .deposit({ value: ethers.parseEther(WETH_AMOUNT_TO_WRAP) });

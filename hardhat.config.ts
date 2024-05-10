@@ -3,7 +3,7 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
-import { ETH_RPC, GOERLI_RPC, PRIVATE_ETH_RPC_PREFIX } from './rpc';
+import { ETH_RPC, GOERLI_RPC, OBSIDIA_BETA_RPC, PRIVATE_ETH_RPC_PREFIX } from './rpc';
 
 dotenv.config({ path: process.cwd() + "/process.env"});
 
@@ -53,6 +53,14 @@ const config: HardhatUserConfig = {
         blockNumber: 19709557,
       },
       accounts: testAccounts,
+    },
+    obsidia: {
+      url: OBSIDIA_BETA_RPC,
+      chainId: 0x7A69,
+      accounts: [process.env.ADMIN_WALLET_KEY!, process.env.TEAM_WALLET_KEY!],
+      gas: "auto",
+      gasPrice: "auto",
+      allowUnlimitedContractSize: true,
     },
     eth: {
       url: ETH_RPC,
