@@ -122,6 +122,13 @@ contract MintRedeemManager is
         emit Received(msg.sender, msg.value);
     }
 
+    function changeAssetDestination(
+        address assetsDestinationWallet
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (assetsDestinationWallet == address(0)) revert InvalidZeroAddress();
+        _assetsDestinationWallet = assetsDestinationWallet;
+    }
+
     /// @notice Sets the max mintPerBlock limit
     /// @param _maxMintPerBlock The new max value
     function setMaxMintPerBlock(
