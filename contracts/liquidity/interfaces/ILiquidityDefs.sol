@@ -43,7 +43,7 @@ interface ILiquidityDefs {
     error InvalidZeroAddress();
 
     error InvactiveReward();
-    
+
     error LiquidityNotActive();
 
     function deposit(uint256 _pid, uint256 _amount) external;

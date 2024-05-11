@@ -390,7 +390,11 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @param _to the reward receiver.
      * @param _amount the amount to be payed.
      */
-    function _payReward(IERC20 _rewardAsset, address _to, uint256 _amount) internal {
+    function _payReward(
+        IERC20 _rewardAsset,
+        address _to,
+        uint256 _amount
+    ) internal {
         IRewardAsset(address(_rewardAsset)).mint(_to, _amount);
     }
 
