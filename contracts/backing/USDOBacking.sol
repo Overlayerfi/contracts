@@ -11,7 +11,7 @@ import "./AaveHandler.sol";
  * @title USDOBacking
  * @notice This contract represent the backing allocation
  */
-contract USDOBacking is AaveHandler, USDOBackingDefs {
+contract USDOBacking is AaveHandler {
     using SafeERC20 for IERC20;
 
     ///@notice The constructor

@@ -17,13 +17,3 @@ interface AaveHandlerDefs {
 
     error InsufficientBalance();
 }
-
-//100
-// 110
-// diff 10
-
-//100
-// 110
-//60
-//110 - 105 = 5
-// diff 10
