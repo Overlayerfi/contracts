@@ -8,10 +8,7 @@ import "./GovernanceTokenBase.sol";
  * @notice This token represent the governance OBSI token.
  */
 contract OBSI is GovernanceTokenBase {
-
     ///@notice The constructor
     ///@param admin The contract admin
-    constructor(
-        address admin
-    ) GovernanceTokenBase(admin, "OBSI", "OBSI") {}
+    constructor(address admin) GovernanceTokenBase(admin, "OBSI", "OBSI") {}
 }
