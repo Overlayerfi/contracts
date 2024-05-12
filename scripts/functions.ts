@@ -6,7 +6,7 @@ import LIQUIDITY_ABI from "../artifacts/contracts/liquidity/Liquidity.sol/Liquid
 import { ILiquidity } from "./types";
 
 export async function deployUSDO(): Promise<string> {
-  const [deployer, team] = await ethers.getSigners();
+  const [deployer] = await ethers.getSigners();
 
   console.log("Deploying USDOM contract with signer:", deployer.address);
 
@@ -21,7 +21,7 @@ export async function deployUSDO(): Promise<string> {
       addr: USDT_ADDRESS,
       decimals: 6
     },
-    team.address,
+    ethers.parseEther("100000000"),
     ethers.parseEther("100000000"),
     ethers.parseEther("100000000")
     //{
@@ -31,7 +31,6 @@ export async function deployUSDO(): Promise<string> {
   await deployedContract.waitForDeployment();
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
-  console.log("Destination asset wallet:", team.address);
   return await deployedContract.getAddress();
 }
 

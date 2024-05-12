@@ -18,7 +18,6 @@ contract USDOM is ERC20Burnable, ERC20Permit, IUSDOMDefs, MintRedeemManager {
         address admin,
         MintRedeemManagerTypes.StableCoin memory usdc,
         MintRedeemManagerTypes.StableCoin memory usdt,
-        address newAssetDestinationWallet,
         uint256 maxMintPerBlock,
         uint256 maxRedeemPerBlock
     )
@@ -27,7 +26,6 @@ contract USDOM is ERC20Burnable, ERC20Permit, IUSDOMDefs, MintRedeemManager {
         MintRedeemManager(
             usdc,
             usdt,
-            newAssetDestinationWallet,
             admin,
             decimals(),
             maxMintPerBlock,
