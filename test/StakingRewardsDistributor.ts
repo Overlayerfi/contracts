@@ -24,7 +24,6 @@ describe("StakingRewardsDistributor", function () {
         addr: await usdt.getAddress(),
         decimals: await usdt.decimals()
       },
-      await admin.getAddress(),
       ethers.parseEther("100000000"),
       ethers.parseEther("100000000")
     );
@@ -181,12 +180,12 @@ describe("StakingRewardsDistributor", function () {
           ethers.parseUnits("50", await usdt.decimals()),
           ethers.parseEther("100")
         );
-      // usdo's USDT and USDC amount have been transfered to the destination address in the same transaction
-      expect(await usdc.balanceOf(await admin.getAddress())).to.equal(
-        ethers.parseUnits("60", await usdc.decimals())
+      // usdo's USDT and USDC are maintained inside the contract as defined by Obsidia protocol
+      expect(await usdc.balanceOf(await usdo.getAddress())).to.equal(
+        ethers.parseUnits("50", await usdc.decimals())
       );
-      expect(await usdt.balanceOf(await admin.getAddress())).to.equal(
-        ethers.parseUnits("60", await usdt.decimals())
+      expect(await usdt.balanceOf(usdo.getAddress())).to.equal(
+        ethers.parseUnits("50", await usdt.decimals())
       );
       expect(await stakedusdo.totalAssets()).to.equal(ethers.parseEther("100"));
     });

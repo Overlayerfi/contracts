@@ -62,7 +62,10 @@ async function main() {
     await (governancePoolRewardContract.connect(admin) as Contract).setMinter(
       liquidityAddr
     );
-    console.log("airdropPoolRewardContract minter set to:", airdropLiquidityAddr);
+    console.log(
+      "airdropPoolRewardContract minter set to:",
+      airdropLiquidityAddr
+    );
     console.log("OBSI minter set to:", liquidityAddr);
     const rewards: { addr: string; rewardPerBlockEther: bigint }[] = [
       {

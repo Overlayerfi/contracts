@@ -1,6 +1,7 @@
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
+import { equal } from "assert";
 
 describe("USDOM", function () {
   async function deployFixture() {
@@ -23,7 +24,6 @@ describe("USDOM", function () {
         addr: await usdt.getAddress(),
         decimals: await usdt.decimals()
       },
-      await admin.getAddress(),
       ethers.parseEther("100000000"),
       ethers.parseEther("100000000")
     );
@@ -75,6 +75,99 @@ describe("USDOM", function () {
       const { contract, admin } = await loadFixture(deployFixture);
       const adminAddress = await admin.getAddress();
       expect(await contract.owner()).to.equal(adminAddress);
+    });
+  });
+
+  describe("Collateral Manager", function () {
+    it("Should set first collateral manager", async function () {
+      const { contract, admin, alice } = await loadFixture(deployFixture);
+      const collateralManagerAddress = await admin.getAddress();
+      await contract.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("COLLATERAL_MANAGER_ROLE")),
+        collateralManagerAddress
+      );
+      expect(await contract.approvedCollateralSpender()).to.be.equal(
+        ethers.ZeroAddress
+      );
+      await contract.connect(admin).proposeNewCollateralSpender(alice.address);
+      expect(await contract.proposedSpender()).to.be.equal(alice.address);
+      await contract.connect(admin).acceptProposedCollateralSpender();
+      expect(await contract.approvedCollateralSpender()).to.be.equal(
+        alice.address
+      );
+    });
+
+    it("Should not propose spender if not allowed", async function () {
+      const { contract, admin, alice } = await loadFixture(deployFixture);
+      const collateralManagerAddress = await admin.getAddress();
+      await contract.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("COLLATERAL_MANAGER_ROLE")),
+        collateralManagerAddress
+      );
+      await expect(
+        contract.connect(alice).proposeNewCollateralSpender(alice.address)
+      ).to.be.eventually.rejected;
+    });
+
+    it("Should set next collateral manager", async function () {
+      const { contract, admin, alice } = await loadFixture(deployFixture);
+      const collateralManagerAddress = await admin.getAddress();
+      await contract.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("COLLATERAL_MANAGER_ROLE")),
+        collateralManagerAddress
+      );
+      expect(await contract.approvedCollateralSpender()).to.be.equal(
+        ethers.ZeroAddress
+      );
+      await contract.connect(admin).proposeNewCollateralSpender(alice.address);
+      expect(await contract.proposedSpender()).to.be.equal(alice.address);
+      await contract.connect(admin).acceptProposedCollateralSpender();
+      expect(await contract.approvedCollateralSpender()).to.be.equal(
+        alice.address
+      );
+
+      //change from alice spender to admin
+      await contract.connect(admin).proposeNewCollateralSpender(admin.address);
+      expect(await contract.proposedSpender()).to.be.equal(admin.address);
+      const oldTime = await time.latest();
+      expect(await contract.proposalTime()).to.be.equal(oldTime);
+
+      await time.increase(14 * 24 * 60 * 60);
+
+      await contract.connect(admin).acceptProposedCollateralSpender();
+      expect(await contract.approvedCollateralSpender()).to.be.equal(
+        admin.address
+      );
+    });
+
+    it("Should not set next collateral manager if time not respected", async function () {
+      const { contract, admin, alice } = await loadFixture(deployFixture);
+      const collateralManagerAddress = await admin.getAddress();
+      await contract.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("COLLATERAL_MANAGER_ROLE")),
+        collateralManagerAddress
+      );
+      expect(await contract.approvedCollateralSpender()).to.be.equal(
+        ethers.ZeroAddress
+      );
+      await contract.connect(admin).proposeNewCollateralSpender(alice.address);
+      expect(await contract.proposedSpender()).to.be.equal(alice.address);
+      await contract.connect(admin).acceptProposedCollateralSpender();
+      expect(await contract.approvedCollateralSpender()).to.be.equal(
+        alice.address
+      );
+
+      //change from alice spender to admin
+      await contract.connect(admin).proposeNewCollateralSpender(admin.address);
+      expect(await contract.proposedSpender()).to.be.equal(admin.address);
+      const oldTime = await time.latest();
+      expect(await contract.proposalTime()).to.be.equal(oldTime);
+
+      await time.increase(14 * 24 * 60 * 59);
+
+      await expect(
+        contract.connect(admin).acceptProposedCollateralSpender()
+      ).to.be.eventually.rejectedWith("IntervalNotRespected");
     });
   });
 
@@ -195,6 +288,7 @@ describe("USDOM", function () {
         collateral_usdc_amount: ethers.parseUnits("10", await usdc.decimals()),
         usdo_amount: ethers.parseEther("20")
       };
+      const contractAddr = await contract.getAddress();
       expect(await contract.balanceOf(alice.address)).to.equal(
         ethers.parseEther("0")
       );
@@ -202,10 +296,10 @@ describe("USDOM", function () {
       expect(await contract.balanceOf(alice.address)).to.equal(
         ethers.parseEther("20")
       );
-      expect(await usdt.balanceOf(admin.address)).to.equal(
+      expect(await usdt.balanceOf(contractAddr)).to.equal(
         ethers.parseUnits("10", await usdt.decimals())
       );
-      expect(await usdc.balanceOf(admin.address)).to.equal(
+      expect(await usdc.balanceOf(contractAddr)).to.equal(
         ethers.parseUnits("10", await usdc.decimals())
       );
     });
@@ -223,6 +317,7 @@ describe("USDOM", function () {
         collateral_usdc_amount: ethers.parseUnits("1", await usdc.decimals()),
         usdo_amount: ethers.parseEther("2")
       };
+      const contractAddr = await contract.getAddress();
       expect(await contract.balanceOf(alice.address)).to.equal(
         ethers.parseEther("0")
       );
@@ -230,10 +325,10 @@ describe("USDOM", function () {
       expect(await contract.balanceOf(alice.address)).to.equal(
         ethers.parseEther("2")
       );
-      expect(await usdt.balanceOf(admin.address)).to.equal(
+      expect(await usdt.balanceOf(contractAddr)).to.equal(
         ethers.parseUnits("1", await usdt.decimals())
       );
-      expect(await usdc.balanceOf(admin.address)).to.equal(
+      expect(await usdc.balanceOf(contractAddr)).to.equal(
         ethers.parseUnits("1", await usdc.decimals())
       );
     });
@@ -257,15 +352,16 @@ describe("USDOM", function () {
         ),
         usdo_amount: ethers.parseEther("1.9998")
       };
+      const contractAddr = await contract.getAddress();
       await expect(contract.connect(alice).mint(order)).to.not.be.eventually
         .rejected;
       expect(await contract.balanceOf(alice.address)).to.equal(
         ethers.parseEther((0.9999 * 2).toString())
       );
-      expect(await usdt.balanceOf(admin.address)).to.equal(
+      expect(await usdt.balanceOf(contractAddr)).to.equal(
         ethers.parseUnits("0.9999", await usdt.decimals())
       );
-      expect(await usdc.balanceOf(admin.address)).to.equal(
+      expect(await usdc.balanceOf(contractAddr)).to.equal(
         ethers.parseUnits("0.9999", await usdc.decimals())
       );
     });
@@ -349,24 +445,6 @@ describe("USDOM", function () {
       expect(await contract.balanceOf(alice.address)).to.equal(
         ethers.parseEther("20")
       );
-      expect(await usdt.balanceOf(admin.address)).to.equal(
-        ethers.parseUnits("10", await usdt.decimals())
-      );
-      expect(await usdc.balanceOf(admin.address)).to.equal(
-        ethers.parseUnits("10", await usdc.decimals())
-      );
-      await usdc
-        .connect(admin)
-        .transfer(
-          await contract.getAddress(),
-          ethers.parseUnits("10", await usdc.decimals())
-        );
-      await usdt
-        .connect(admin)
-        .transfer(
-          await contract.getAddress(),
-          ethers.parseUnits("10", await usdt.decimals())
-        );
       expect(await contract.connect(alice).redeem(order)).to.emit(
         contract,
         "Transfer"
@@ -374,10 +452,10 @@ describe("USDOM", function () {
       expect(await contract.balanceOf(alice.address)).to.equal(
         ethers.parseEther("0")
       );
-      expect(await usdt.balanceOf(admin.address)).to.equal(
+      expect(await usdt.balanceOf(await contract.getAddress())).to.equal(
         ethers.parseUnits("0", await usdt.decimals())
       );
-      expect(await usdc.balanceOf(admin.address)).to.equal(
+      expect(await usdc.balanceOf(await contract.getAddress())).to.equal(
         ethers.parseUnits("0", await usdc.decimals())
       );
       expect(await usdt.balanceOf(alice.address)).to.equal(
@@ -420,35 +498,9 @@ describe("USDOM", function () {
       expect(await contract.balanceOf(alice.address)).to.equal(
         ethers.parseEther("20")
       );
-      expect(await usdt.balanceOf(admin.address)).to.equal(
-        ethers.parseUnits("10", await usdt.decimals())
-      );
-      expect(await usdc.balanceOf(admin.address)).to.equal(
-        ethers.parseUnits("10", await usdc.decimals())
-      );
-      await usdc
-        .connect(admin)
-        .transfer(
-          await contract.getAddress(),
-          ethers.parseUnits("10", await usdc.decimals())
-        );
-      await usdt
-        .connect(admin)
-        .transfer(
-          await contract.getAddress(),
-          ethers.parseUnits("10", await usdt.decimals())
-        );
       await expect(
         contract.connect(alice).redeem(redeemOrder)
       ).to.be.eventually.rejectedWith("ERC20InsufficientBalance");
-    });
-  });
-
-  describe("Deployment", function () {
-    it("Should set the admin", async function () {
-      const { contract, admin } = await loadFixture(deployFixture);
-      const adminAddress = await admin.getAddress();
-      expect(await contract.owner()).to.equal(adminAddress);
     });
   });
 });
