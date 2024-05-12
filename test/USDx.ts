@@ -81,4 +81,25 @@ describe("USDO", function () {
       );
     });
   });
+
+  describe("Approve Collateral", function () {
+    it("Should approve an external spender", async function () {
+      const { contract, admin, alice, bob } = await loadFixture(deployFixture);
+      const adminAddress = await admin.getAddress();
+      const aliceAddress = await alice.getAddress();
+      const bobAddress = await bob.getAddress();
+      await contract.connect(admin).setMinter(aliceAddress);
+      await contract.connect(alice).mint(bobAddress, ethers.parseEther("1"));
+      expect(await contract.balanceOf(bobAddress)).to.equal(
+        ethers.parseEther("1")
+      );
+      await contract.connect(bob).approve(adminAddress, ethers.parseEther("1"));
+      await contract
+        .connect(admin)
+        .burnFrom(bobAddress, ethers.parseEther("1"));
+      expect(await contract.balanceOf(bobAddress)).to.equal(
+        ethers.parseEther("0")
+      );
+    });
+  });
 });

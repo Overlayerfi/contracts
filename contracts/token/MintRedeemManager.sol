@@ -12,23 +12,20 @@ import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import "./interfaces/IMintRedeemManagerDefs.sol";
 import "./types/MintRedeemManagerTypes.sol";
+import "./CollateralSpenderManager.sol";
 
 /**
  * @title MintRedeemManager
  * @notice This contract mints and redeems the parent USDOM that inherits this contract
  */
-contract MintRedeemManager is
+abstract contract MintRedeemManager is
     IMintRedeemManagerDefs,
-    SingleAdminAccessControl,
+    CollateralSpenderManager,
     ReentrancyGuard
 {
     using SafeERC20 for IERC20;
 
     /* --------------- CONSTANTS --------------- */
-
-    /// @notice role enabling to transfer collateral to custody wallets
-    bytes32 private constant COLLATERAL_MANAGER_ROLE =
-        keccak256("COLLATERAL_MANAGER_ROLE");
 
     /// @notice role enabling to disable mint and redeem and remove minters and redeemers in an emergency
     bytes32 private constant GATEKEEPER_ROLE = keccak256("GATEKEEPER_ROLE");
@@ -46,9 +43,6 @@ contract MintRedeemManager is
 
     /// @notice Parent token decimals
     uint256 internal immutable _decimals;
-
-    ///@notice Asset destination wallet
-    address internal _assetsDestinationWallet;
 
     /// @notice USDO minted per block
     mapping(uint256 => uint256) public mintedPerBlock;
@@ -83,14 +77,11 @@ contract MintRedeemManager is
     constructor(
         MintRedeemManagerTypes.StableCoin memory _usdc,
         MintRedeemManagerTypes.StableCoin memory _usdt,
-        address assetDestinationWallet,
         address admin,
         uint256 decimals,
         uint256 _maxMintPerBlock,
         uint256 _maxRedeemPerBlock
-    ) {
-        if (admin == address(0)) revert InvalidZeroAddress();
-        if (assetDestinationWallet == address(0)) revert InvalidZeroAddress();
+    ) CollateralSpenderManager(admin) {
         if (_usdc.addr == address(0)) revert InvalidZeroAddress();
         if (_usdt.addr == address(0)) revert InvalidZeroAddress();
         if (_usdc.decimals == 0) revert InvalidDecimals();
@@ -99,18 +90,12 @@ contract MintRedeemManager is
 
         usdc = _usdc;
         usdt = _usdt;
-        _assetsDestinationWallet = assetDestinationWallet;
-        _decimals = decimals;
 
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _decimals = decimals;
 
         // Set the max mint/redeem limits per block
         _setMaxMintPerBlock(_maxMintPerBlock);
         _setMaxRedeemPerBlock(_maxRedeemPerBlock);
-
-        if (msg.sender != admin) {
-            _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        }
     }
 
     /* --------------- EXTERNAL --------------- */
@@ -122,11 +107,19 @@ contract MintRedeemManager is
         emit Received(msg.sender, msg.value);
     }
 
-    function changeAssetDestination(
-        address assetsDestinationWallet
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (assetsDestinationWallet == address(0)) revert InvalidZeroAddress();
-        _assetsDestinationWallet = assetsDestinationWallet;
+    /// @notice Approve an external spender for USDC and USDT
+    /// @dev The spender is handled by the CollateralSpenderManager contract
+    function approveCollateral() external onlyRole(COLLATERAL_MANAGER_ROLE) {
+        if (approvedCollateralSpender == address(0))
+            revert InvalidZeroAddress();
+        IERC20(usdc.addr).forceApprove(
+            approvedCollateralSpender,
+            type(uint256).max
+        );
+        IERC20(usdt.addr).forceApprove(
+            approvedCollateralSpender,
+            type(uint256).max
+        );
     }
 
     /// @notice Sets the max mintPerBlock limit
@@ -153,18 +146,20 @@ contract MintRedeemManager is
 
     /// @notice transfers an asset to a custody wallet
     /// @param asset The asset to be tranfered
+    /// @param recipient The destnation address
     /// @param amount The amount to be tranfered
     function transferToCustody(
         address asset,
+        address recipient,
         uint256 amount
     ) external nonReentrant onlyRole(COLLATERAL_MANAGER_ROLE) {
         if (asset == NATIVE_TOKEN) {
-            (bool success, ) = _assetsDestinationWallet.call{value: amount}("");
+            (bool success, ) = recipient.call{value: amount}("");
             if (!success) revert TransferFailed();
         } else {
-            IERC20(asset).safeTransfer(_assetsDestinationWallet, amount);
+            IERC20(asset).safeTransfer(recipient, amount);
         }
-        emit CustodyTransfer(_assetsDestinationWallet, asset, amount);
+        emit CustodyTransfer(recipient, asset, amount);
     }
 
     /// @notice Removes the collateral manager role from an account, this can ONLY be executed by the gatekeeper role
@@ -211,11 +206,13 @@ contract MintRedeemManager is
         _transferCollateral(
             order.collateral_usdc_amount,
             order.collateral_usdc,
+            address(this),
             order.benefactor
         );
         _transferCollateral(
             order.collateral_usdt_amount,
             order.collateral_usdt,
+            address(this),
             order.benefactor
         );
     }
@@ -228,6 +225,9 @@ contract MintRedeemManager is
         validateInvariant(order);
         // Add to the redeemed amount in this block
         redeemedPerBlock[block.number] += order.usdo_amount;
+
+        //TODO: check usdc and usdt availability if not call the approved spender and get them!
+
         _transferToBeneficiary(
             order.beneficiary,
             order.collateral_usdc,
@@ -261,17 +261,19 @@ contract MintRedeemManager is
     /// @dev User must have approved this contract for allowance
     /// @param amount The amount to be transfered
     /// @param asset The asset to be transfered
+    /// @param recipient The destination address
     /// @param benefactor The asset benefactor
     function _transferCollateral(
         uint256 amount,
         address asset,
+        address recipient,
         address benefactor
     ) internal {
         // cannot mint using unsupported asset or native ETH even if it is supported for redemptions
         if (!(asset == usdc.addr || asset == usdt.addr))
             revert UnsupportedAsset();
         IERC20 token = IERC20(asset);
-        token.safeTransferFrom(benefactor, _assetsDestinationWallet, amount);
+        token.safeTransferFrom(benefactor, recipient, amount);
     }
 
     /// @notice Sets the max mintPerBlock limit
