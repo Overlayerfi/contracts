@@ -23,7 +23,6 @@ describe("AirdropOBSIReceipt", function () {
         addr: await usdt.getAddress(),
         decimals: await usdt.decimals()
       },
-      await admin.getAddress(),
       ethers.parseEther("100000000"),
       ethers.parseEther("100000000")
     );
