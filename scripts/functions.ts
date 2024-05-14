@@ -3,9 +3,15 @@ import { Contract } from "ethers";
 import { USDC_ADDRESS, USDT_ADDRESS } from "./addresses";
 import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
 import LIQUIDITY_ABI from "../artifacts/contracts/liquidity/Liquidity.sol/Liquidity.json";
+import USDO_ABI from "../artifacts/contracts/token/USDOM.sol/USDOM.json";
+import SUSDO_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
 import { ILiquidity } from "./types";
+import { USDC_ABI } from "./get_stables_from_uniswap_local/USDC_abi";
+import { USDT_ABI } from "./get_stables_from_uniswap_local/USDT_abi";
 
-export async function deployUSDO(): Promise<string> {
+export async function deployUSDO(
+  approveDeployerCollateral?: boolean
+): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
   console.log("Deploying USDOM contract with signer:", deployer.address);
@@ -30,6 +36,20 @@ export async function deployUSDO(): Promise<string> {
   await deployedContract.waitForDeployment();
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
+
+  if (approveDeployerCollateral) {
+    const usdc = new ethers.Contract(USDC_ADDRESS, USDC_ABI, deployer);
+    const usdt = new ethers.Contract(USDT_ADDRESS, USDT_ABI, deployer);
+    await (usdc.connect(deployer) as Contract).approve(
+      await deployedContract.getAddress(),
+      ethers.MaxUint256
+    );
+    await (usdt.connect(deployer) as Contract).approve(
+      await deployedContract.getAddress(),
+      ethers.MaxUint256
+    );
+  }
+
   return await deployedContract.getAddress();
 }
 
@@ -269,4 +289,79 @@ export async function addPoolLiquidity(
   }
 
   console.log("Pools added");
+}
+
+export async function grantRole(
+  addr: string,
+  abi: any,
+  role: string,
+  to: string
+) {
+  const [admin] = await ethers.getSigners();
+  const contract = new ethers.Contract(addr, abi, admin);
+  console.log("Granting role:", role, "with address:", admin.address);
+  await (contract.connect(admin) as Contract).grantRole(
+    ethers.keccak256(ethers.toUtf8Bytes(role)),
+    to
+  );
+
+  console.log("Role granted");
+}
+
+export async function proposeNewCollateralSpenderUSDO(
+  addr: string,
+  spender: string
+) {
+  const [admin] = await ethers.getSigners();
+  const contract = new ethers.Contract(addr, USDO_ABI.abi, admin);
+  console.log("Proposing new collateral spender:", spender);
+  await (contract.connect(admin) as Contract).proposeNewCollateralSpender(
+    spender
+  );
+  console.log("Spender proposed");
+}
+
+export async function mintUSDO(addr: string, order: any) {
+  const [admin] = await ethers.getSigners();
+  const contract = new ethers.Contract(addr, USDO_ABI.abi, admin);
+  console.log("Minting USDO with account:", admin.address);
+  await (contract.connect(admin) as Contract).mint(order);
+  console.log("USDO minted");
+}
+
+export async function depositStakedUSDO(
+  addr: string,
+  amount: string,
+  recipient: string
+) {
+  const [admin] = await ethers.getSigners();
+  const contract = new ethers.Contract(addr, SUSDO_ABI.abi, admin);
+  console.log(
+    "Depositing USDO into staking account with singer:",
+    admin.address
+  );
+  await (contract.connect(admin) as Contract).deposit(
+    ethers.parseEther(amount),
+    recipient
+  );
+  console.log("USDO staked");
+}
+
+export async function deployUSDOBacking(
+  admin: string,
+  usdo: string,
+  susdo: string
+): Promise<string> {
+  const [deployer] = await ethers.getSigners();
+
+  console.log("Deploying USDOBacking contract with signer:", deployer.address);
+
+  const USDOBacking = await ethers.getContractFactory("USDOBacking");
+  const usdobacking = await USDOBacking.deploy(admin, usdo, susdo, {
+    maxFeePerGas: 9702346660
+  });
+  await usdobacking.waitForDeployment();
+
+  console.log("Contract deployed at:", await usdobacking.getAddress());
+  return await usdobacking.getAddress();
 }
