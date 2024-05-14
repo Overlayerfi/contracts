@@ -1,5 +1,5 @@
 import { swap } from "./swap";
 
-swap("10", "5").catch((err) => {
+swap("100", "50").catch((err) => {
   console.error("Swap failed:", err);
 });
