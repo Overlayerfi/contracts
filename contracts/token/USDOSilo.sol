@@ -11,12 +11,12 @@ import "./interfaces/IUSDOSiloDefinitions.sol";
  * @notice The Silo allows to store USDO during the stake cooldown process.
  */
 contract USDOSilo is IUSDOSiloDefinitions {
-    address immutable _STAKING_VAULT;
-    IERC20 immutable _USDX;
+    address private immutable _STAKING_VAULT;
+    IERC20 private immutable _USDO;
 
     constructor(address stakingVault, address USDO) {
         _STAKING_VAULT = stakingVault;
-        _USDX = IERC20(USDO);
+        _USDO = IERC20(USDO);
     }
 
     modifier onlyStakingVault() {
@@ -25,6 +25,6 @@ contract USDOSilo is IUSDOSiloDefinitions {
     }
 
     function withdraw(address to, uint256 amount) external onlyStakingVault {
-        _USDX.transfer(to, amount);
+        _USDO.transfer(to, amount);
     }
 }

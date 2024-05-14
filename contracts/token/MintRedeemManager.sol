@@ -4,15 +4,16 @@ pragma solidity 0.8.20;
 /* solhint-disable private-vars-leading-underscore */
 /* solhint-disable var-name-mixedcase */
 
-import "../shared/SingleAdminAccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-import "./interfaces/IMintRedeemManagerDefs.sol";
-import "./types/MintRedeemManagerTypes.sol";
+import "../shared/SingleAdminAccessControl.sol";
 import "./CollateralSpenderManager.sol";
+import "./interfaces/IMintRedeemManagerDefs.sol";
+import "./interfaces/IUSDOBacking.sol";
+import "./types/MintRedeemManagerTypes.sol";
 
 /**
  * @title MintRedeemManager
@@ -34,12 +35,11 @@ abstract contract MintRedeemManager is
     address private constant NATIVE_TOKEN =
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    /* --------------- STATE VARIABLES --------------- */
+    /// @notice the minimum amount to trigger the backing collateral
+    /// @notice it has to be multiplied to the base (token decimal)
+    uint256 private constant BACKING_MIN_AMOUNT_TO_BE_MULTIPLIED_BY_BASE = 1000;
 
-    /// @notice Supported assets
-    /// @dev immutability inferred by non upgradable contract and no edit functions
-    MintRedeemManagerTypes.StableCoin public usdt;
-    MintRedeemManagerTypes.StableCoin public usdc;
+    /* --------------- STATE VARIABLES --------------- */
 
     /// @notice Parent token decimals
     uint256 internal immutable _decimals;
@@ -81,16 +81,8 @@ abstract contract MintRedeemManager is
         uint256 decimals,
         uint256 _maxMintPerBlock,
         uint256 _maxRedeemPerBlock
-    ) CollateralSpenderManager(admin) {
-        if (_usdc.addr == address(0)) revert InvalidZeroAddress();
-        if (_usdt.addr == address(0)) revert InvalidZeroAddress();
-        if (_usdc.decimals == 0) revert InvalidDecimals();
-        if (_usdt.decimals == 0) revert InvalidDecimals();
+    ) CollateralSpenderManager(admin, _usdc, _usdt) {
         if (decimals == 0) revert InvalidDecimals();
-
-        usdc = _usdc;
-        usdt = _usdt;
-
         _decimals = decimals;
 
         // Set the max mint/redeem limits per block
@@ -217,27 +209,100 @@ abstract contract MintRedeemManager is
         );
     }
 
+    /// @notice Supply funds to the active backing contract (aka approvedCollateralSpender)
+    /// @dev the approveCollateralSpender will colect the funds, as the only entity allowed to do so
+    function supplyToBacking() external nonReentrant {
+        uint256 usdcBal = IERC20(usdc.addr).balanceOf(address(this));
+        uint256 usdtBal = IERC20(usdt.addr).balanceOf(address(this));
+        uint256 minAmountUsdc = BACKING_MIN_AMOUNT_TO_BE_MULTIPLIED_BY_BASE *
+            (10 ** usdc.decimals);
+        uint256 minAmountUsdt = BACKING_MIN_AMOUNT_TO_BE_MULTIPLIED_BY_BASE *
+            (10 ** usdt.decimals);
+
+        if (!((usdcBal > minAmountUsdc) && (usdtBal > minAmountUsdt))) {
+            revert SupplyAmountNotReached();
+        }
+        //Get the integer division
+        uint256 usdcToMove = (usdcBal / minAmountUsdc) * minAmountUsdc;
+        uint256 usdtToMove = (usdtBal / minAmountUsdt) * minAmountUsdt;
+        IUSDOBacking(approvedCollateralSpender).supply(usdcToMove, usdtToMove);
+        emit SuppliedToBacking(msg.sender, usdcToMove, usdtToMove);
+    }
+
     /// @notice Redeem stablecoins for assets
     /// @param order struct containing order details and confirmation from server
     function redeemInternal(
         MintRedeemManagerTypes.Order calldata order
-    ) internal belowMaxRedeemPerBlock(order.usdo_amount) {
+    )
+        internal
+        belowMaxRedeemPerBlock(order.usdo_amount)
+        returns (uint256 amountToBurn, uint256 usdcBack, uint256 usdtBack)
+    {
+        amountToBurn = order.usdo_amount;
+
         validateInvariant(order);
         // Add to the redeemed amount in this block
         redeemedPerBlock[block.number] += order.usdo_amount;
 
-        //TODO: check usdc and usdt availability if not call the approved spender and get them!
+        (
+            uint256 checkedBurnAmount,
+            uint256 checkedUsdcBack,
+            uint256 checkedUsdtBack
+        ) = withdrawFromProtocol(order.usdo_amount);
 
         _transferToBeneficiary(
             order.beneficiary,
             order.collateral_usdc,
-            order.collateral_usdc_amount
+            checkedUsdcBack
         );
         _transferToBeneficiary(
             order.beneficiary,
             order.collateral_usdt,
-            order.collateral_usdt_amount
+            checkedUsdtBack
         );
+
+        amountToBurn = checkedBurnAmount;
+        usdcBack = checkedUsdcBack;
+        usdtBack = checkedUsdtBack;
+    }
+
+    /// @notice Redeem collateral from the protocol
+    /// @dev It will trigger the backing contract (aka approvedCollateralSpender) withdraw method if the collateral is not sufficient
+    /// @param amount The amount of USDO to be unmint
+    function withdrawFromProtocol(
+        uint256 amount
+    )
+        internal
+        returns (uint256 checkedBurnAmount, uint256 usdcBack, uint256 usdtBack)
+    {
+        if (amount == 0) {
+            return (0, 0, 0);
+        }
+        //Here does hold the inveriant that _decimals >= token.decimals
+        unchecked {
+            uint256 diffDecimalsUsdc = _decimals - usdc.decimals;
+            uint256 diffDecimalsUsdt = _decimals - usdt.decimals;
+            uint256 halfAmount = amount / 2;
+            uint256 needAmountUsdc = halfAmount / (10 ** diffDecimalsUsdc);
+            uint256 needAmountUsdt = halfAmount / (10 ** diffDecimalsUsdt);
+            uint256 usdcBal = IERC20(usdc.addr).balanceOf(address(this));
+            uint256 usdtBal = IERC20(usdt.addr).balanceOf(address(this));
+
+            if (needAmountUsdc > usdcBal || needAmountUsdt > usdtBal) {
+                uint256 amountFromBackingUsdc = needAmountUsdc - usdcBal;
+                uint256 amountFromBackingUsdt = needAmountUsdt - usdtBal;
+                IUSDOBacking(approvedCollateralSpender).withdraw(
+                    amountFromBackingUsdc,
+                    amountFromBackingUsdt
+                );
+            }
+
+            usdcBack = needAmountUsdc;
+            usdtBack = needAmountUsdt;
+            checkedBurnAmount =
+                (usdcBack * (10 ** diffDecimalsUsdc)) +
+                (usdtBack * (10 ** diffDecimalsUsdt));
+        }
     }
 
     /// @notice transfer supported asset to beneficiary address
