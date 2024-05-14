@@ -1,5 +1,5 @@
-import { deployUSDO } from "../functions";
+import { deploy_USDO } from "../functions";
 
-deployUSDO().catch((err) => {
+deploy_USDO().catch((err) => {
   console.error("Deployment failed -> " + err);
 });
