@@ -1,20 +1,20 @@
 import { ethers } from "hardhat";
 import { Contract } from "ethers";
 import {
-  deployUSDO,
-  deployStakedUSDO,
-  //deployStakingRewardsDistributor,
-  deployLiquidityAirdropReward,
-  deployLiquidity,
-  deployGovernanceToken,
-  addRewardLiquidity,
-  addPoolLiquidity,
-  setCooldownStaking,
+  deploy_USDO,
+  deploy_StakedUSDO,
+  //deploy_StakingRewardsDistributor,
+  deploy_LiquidityAirdropReward,
+  deploy_Liquidity,
+  deploy_OBSI,
+  Liquidity_addReward,
+  Liquidity_addPool,
+  StakedUSDO_setCooldownStaking,
   grantRole,
-  proposeNewCollateralSpenderUSDO,
-  deployUSDOBacking,
-  mintUSDO,
-  depositStakedUSDO
+  USDO_proposeNewCollateralSpender,
+  deploy_USDOBacking,
+  USDO_mint,
+  StakedUSDO_deposit
 } from "../functions";
 import LIQUIDITY_REWARD_ABI from "../../artifacts/contracts/token/LiquidityAirdropReward.sol/LiquidityAirdropReward.json";
 import OBSI_ABI from "../../artifacts/contracts/token/OBSI.sol/OBSI.json";
@@ -40,17 +40,17 @@ async function main() {
     );
     console.log("signer addr:", admin.address);
 
-    const usdoAddr = await deployUSDO(true);
-    const susdoAddr = await deployStakedUSDO(usdoAddr);
-    //await deployStakingRewardsDistributor(susdoAddr, usdoAddr, true);
-    const liquidityAirdropRewardAssetAddr = await deployLiquidityAirdropReward(
+    const usdoAddr = await deploy_USDO(true);
+    const susdoAddr = await deploy_StakedUSDO(usdoAddr);
+    //await deploy_StakingRewardsDistributor(susdoAddr, usdoAddr, true);
+    const liquidityAirdropRewardAssetAddr = await deploy_LiquidityAirdropReward(
       LIQUIDITY_REWARD_TOKEN_ADMIN
     );
-    const liquidityAddr = await deployLiquidity(
+    const liquidityAddr = await deploy_Liquidity(
       LIQUIDITY_ADMIN,
       REWARD_STARTING_BLOCK
     );
-    const governanceTokenAddr: string = await deployGovernanceToken(
+    const governanceTokenAddr: string = await deploy_OBSI(
       admin.address
     );
     const airdropPoolRewardContract = new ethers.Contract(
@@ -63,7 +63,7 @@ async function main() {
       OBSI_ABI.abi,
       admin
     );
-    const airdropLiquidityAddr = await deployLiquidity(
+    const airdropLiquidityAddr = await deploy_Liquidity(
       LIQUIDITY_ADMIN,
       REWARD_STARTING_BLOCK
     );
@@ -88,13 +88,13 @@ async function main() {
         rewardPerBlockEther: ethers.parseEther(POOL_AIRDROP_REWARD_PER_BLOCK)
       }
     ];
-    await addRewardLiquidity(liquidityAddr, [rewards[0]]);
-    await addRewardLiquidity(airdropLiquidityAddr, [rewards[1]]);
-    await addPoolLiquidity(liquidityAddr, liquidityConfig, true);
-    await addPoolLiquidity(airdropLiquidityAddr, airdropLiquidityConfig, true);
+    await Liquidity_addReward(liquidityAddr, [rewards[0]]);
+    await Liquidity_addReward(airdropLiquidityAddr, [rewards[1]]);
+    await Liquidity_addPool(liquidityAddr, liquidityConfig, true);
+    await Liquidity_addPool(airdropLiquidityAddr, airdropLiquidityConfig, true);
 
     await swap("100", "50");
-    await setCooldownStaking(susdoAddr, 60); // 1 minute
+    await StakedUSDO_setCooldownStaking(susdoAddr, 60); // 1 minute
 
     await grantRole(
       usdoAddr,
@@ -108,8 +108,8 @@ async function main() {
       from: admin.address,
       nonce: USDOBackingNonce
     });
-    await proposeNewCollateralSpenderUSDO(usdoAddr, futureAddress);
-    const usdobackingAddr = await deployUSDOBacking(
+    await USDO_proposeNewCollateralSpender(usdoAddr, futureAddress);
+    const usdobackingAddr = await deploy_USDOBacking(
       admin.address,
       usdoAddr,
       susdoAddr
@@ -130,13 +130,13 @@ async function main() {
       collateral_usdc_amount: ethers.parseUnits("0.5", 6),
       usdo_amount: ethers.parseEther("1")
     };
-    await mintUSDO(usdoAddr, order);
+    await USDO_mint(usdoAddr, order);
     const usdoContract = new ethers.Contract(usdoAddr, USDO_ABI.abi, admin);
     await (usdoContract.connect(admin) as Contract).approve(
       susdoAddr,
       ethers.MaxUint256
     );
-    await depositStakedUSDO(susdoAddr, "1", admin.address);
+    await StakedUSDO_deposit(susdoAddr, "1", admin.address);
   } catch (err) {
     console.error("Batch deployment failed ->", err);
   }
