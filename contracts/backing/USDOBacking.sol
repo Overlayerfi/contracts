@@ -1,20 +1,29 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable2Step.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./interfaces/USDOBackingDefs.sol";
-import "./AaveHandler.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IUSDOBackingDefs} from "./interfaces/IUSDOBackingDefs.sol";
+import {IUSDO} from "./interfaces/IUSDO.sol";
+import {AaveHandler} from "./AaveHandler.sol";
 
 /**
  * @title USDOBacking
- * @notice This contract represent the backing allocation
+ * @notice This contract represent the backing allocations manager
  */
-contract USDOBacking is AaveHandler {
+contract USDOBacking is AaveHandler, IUSDOBackingDefs {
     using SafeERC20 for IERC20;
 
+    //########################################## MODIFIERS ##########################################
+
+    modifier notProtocolAssets(address asset) {
+        if (asset == USDC || asset == USDT || asset == AUSDC || asset == AUSDT)
+            revert USDOBackingOperationNotAllowed();
+        _;
+    }
+
     ///@notice The constructor
+    ///@dev It accepts to be the USDO collateral spender
     ///@param admin The contract admin
     ///@param usdo The USDO contract
     ///@param susdo The sUSDO contract
@@ -22,28 +31,21 @@ contract USDOBacking is AaveHandler {
         address admin,
         address usdo,
         address susdo
-    ) AaveHandler(admin, usdo, susdo) {}
-
-    ///@notice Approve an external contract to call ERC20 transferFrom()
-    ///@param asset The asset to approve
-    ///@param spender The spender address
-    ///@param amount The spender amount
-    function approveTransfer(
-        IERC20 asset,
-        address spender,
-        uint256 amount
-    ) external onlyOwner {
-        if (address(asset) == address(0)) revert ZeroAddressException();
-        if (spender == address(0)) revert ZeroAddressException();
-        asset.forceApprove(spender, amount);
+    ) AaveHandler(admin, usdo, susdo) {
+        IUSDO(usdo).acceptProposedCollateralSpender();
+        emit USDOSpenderAccepted();
     }
+
+    //########################################## EXTERNAL FUNCTIONS ##########################################
 
     ///@notice Recover asset from the contract
     ///@param asset The asset to approve
     ///@param amount The spender amount
-    function recoverAsset(IERC20 asset, uint256 amount) external onlyOwner {
-        //TODO: reject collection of core tokens: USDC, USDT, aUSDC, aUSDT
-        if (address(asset) == address(0)) revert ZeroAddressException();
-        asset.safeTransfer(owner(), amount);
+    function recoverAsset(
+        address asset,
+        uint256 amount
+    ) external onlyOwner notProtocolAssets(asset) {
+        if (asset == address(0)) revert USDOBackingZeroAddressException();
+        IERC20(asset).safeTransfer(owner(), amount);
     }
 }

@@ -23,7 +23,7 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
 
     mapping(address => UserCooldown) public cooldowns;
 
-    USDOSilo public immutable silo;
+    USDOSilo public immutable SILO;
 
     uint24 public constant MAX_COOLDOWN_DURATION = 90 days;
 
@@ -52,7 +52,7 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
         address _owner,
         uint256 vestingPeriod
     ) StakedUSDO(_asset, initialRewarder, _owner, vestingPeriod) {
-        silo = new USDOSilo(address(this), address(_asset));
+        SILO = new USDOSilo(address(this), address(_asset));
         cooldownDuration = MAX_COOLDOWN_DURATION;
     }
 
@@ -93,7 +93,7 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
             userCooldown.cooldownEnd = 0;
             userCooldown.underlyingAmount = 0;
 
-            silo.withdraw(receiver, assets);
+            SILO.withdraw(receiver, assets);
         } else {
             revert InvalidCooldown();
         }
@@ -113,7 +113,7 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
             cooldownDuration;
         cooldowns[msg.sender].underlyingAmount += uint152(assets);
 
-        _withdraw(msg.sender, address(silo), msg.sender, assets, shares);
+        _withdraw(msg.sender, address(SILO), msg.sender, assets, shares);
     }
 
     /// @notice redeem shares into assets and starts a cooldown to claim the converted underlying asset
@@ -130,7 +130,7 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
             cooldownDuration;
         cooldowns[msg.sender].underlyingAmount += uint152(assets);
 
-        _withdraw(msg.sender, address(silo), msg.sender, assets, shares);
+        _withdraw(msg.sender, address(SILO), msg.sender, assets, shares);
     }
 
     /// @notice Set cooldown duration. If cooldown duration is set to zero, the StakedUSDOFront behavior changes to follow ERC4626 standard and disables

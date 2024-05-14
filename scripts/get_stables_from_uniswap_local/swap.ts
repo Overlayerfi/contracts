@@ -1,16 +1,13 @@
 import { ethers } from "hardhat";
 import { Contract } from "ethers";
 import { WETH_ABI } from "./WETH_abi";
-import { USDC_ADDRESS, USDT_ADDRESS } from "../addresses";
+import { USDC_ADDRESS, USDT_ADDRESS, WETH_MAINNET_ADDRESS } from "../addresses";
 import { USDC_ABI } from "./USDC_abi";
 import { USDT_ABI } from "./USDT_abi";
 
-const WETH_MAINNET_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-const WETH_AMOUNT_TO_WRAP = "4";
-const WETH_TO_SWAP = (+WETH_AMOUNT_TO_WRAP / 2).toFixed(2);
 const SWAP_CODES = [1, 2];
 
-async function deploy() {
+export async function swap(wethAmountToWrap: string, wethAmountToSwap: string) {
   const [deployer] = await ethers.getSigners();
   console.log(
     "Deploying UniswapV3SingleHopSwap contract with signer:",
@@ -20,13 +17,14 @@ async function deploy() {
   const swapContract = await ethers.getContractFactory(
     "UniswapV3SingleHopSwap"
   );
-  const swapper = await swapContract.deploy();
+  const swapper = await swapContract.deploy({ maxFeePerGas: 9702346660 });
   await swapper.waitForDeployment();
   console.log("Contract deployed at:", await swapper.getAddress());
 
   const weth = new ethers.Contract(WETH_MAINNET_ADDRESS, WETH_ABI, deployer);
   await (weth.connect(deployer) as Contract).deposit({
-    value: ethers.parseEther(WETH_AMOUNT_TO_WRAP)
+    value: ethers.parseEther(wethAmountToWrap),
+    maxFeePerGas: 9702346660
   });
   console.log(
     deployer.address,
@@ -44,9 +42,10 @@ async function deploy() {
     await swapper
       .connect(deployer)
       .swapExactInputSingleHop(
-        ethers.parseUnits(WETH_TO_SWAP, 18),
+        ethers.parseUnits(wethAmountToSwap, 18),
         1,
-        SWAP_CODES[i]
+        SWAP_CODES[i],
+        { maxFeePerGas: 9702346660 }
       );
   }
 
@@ -63,7 +62,3 @@ async function deploy() {
     ethers.formatUnits(await usdtContract.balanceOf(deployer.address), 6)
   );
 }
-
-deploy().catch((err) => {
-  console.error("Swap failed:", err);
-});
