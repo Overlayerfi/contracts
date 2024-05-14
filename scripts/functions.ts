@@ -344,7 +344,7 @@ export async function StakedUSDO_deposit(
     ethers.parseEther(amount),
     recipient
   );
-  console.log("USDO staked, sUSDO balance:", ethers.parseEther(await contract.balanceOf(admin.address)));
+  console.log("USDO staked, sUSDO balance:", ethers.formatEther(await contract.balanceOf(admin.address)));
 }
 
 export async function deploy_USDOBacking(
