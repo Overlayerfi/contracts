@@ -9,7 +9,7 @@ import { ILiquidity } from "./types";
 import { USDC_ABI } from "./get_stables_from_uniswap_local/USDC_abi";
 import { USDT_ABI } from "./get_stables_from_uniswap_local/USDT_abi";
 
-export async function deployUSDO(
+export async function deploy_USDO(
   approveDeployerCollateral?: boolean
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
@@ -53,7 +53,7 @@ export async function deployUSDO(
   return await deployedContract.getAddress();
 }
 
-export async function deployStakedUSDO(usdo: string): Promise<string> {
+export async function deploy_StakedUSDO(usdo: string): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
   console.log("Deploying StakedUSDO contract with signer:", deployer.address);
@@ -74,7 +74,7 @@ export async function deployStakedUSDO(usdo: string): Promise<string> {
   return await deployedContract.getAddress();
 }
 
-export async function deployAirdropOBSIReceipt(usdo: string): Promise<void> {
+export async function deploy_AirdropOBSIReceipt(usdo: string): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
   console.log(
@@ -91,7 +91,7 @@ export async function deployAirdropOBSIReceipt(usdo: string): Promise<void> {
   console.log("Contract deployed at:", await deployedContract.getAddress());
 }
 
-export async function deployLiquidityAirdropReward(
+export async function deploy_LiquidityAirdropReward(
   admin: string
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
@@ -117,7 +117,7 @@ export async function deployLiquidityAirdropReward(
   return await deployedContract.getAddress();
 }
 
-export async function setCooldownStaking(
+export async function StakedUSDO_setCooldownStaking(
   addr: string,
   seconds: number
 ): Promise<void> {
@@ -131,7 +131,7 @@ export async function setCooldownStaking(
   console.log("Operation passed");
 }
 
-export async function deployStakingRewardsDistributor(
+export async function deploy_StakingRewardsDistributor(
   stakedUsdx: string,
   usdo: string,
   grantRewarderRole: boolean
@@ -179,7 +179,7 @@ export async function deployStakingRewardsDistributor(
   }
 }
 
-export async function deployLiquidity(
+export async function deploy_Liquidity(
   admin: string,
   startingBlock: number
 ): Promise<string> {
@@ -200,7 +200,7 @@ export async function deployLiquidity(
   return await deployedContract.getAddress();
 }
 
-export async function deployGovernanceToken(admin: string): Promise<string> {
+export async function deploy_OBSI(admin: string): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
   if (!ethers.isAddress(admin)) {
@@ -218,7 +218,7 @@ export async function deployGovernanceToken(admin: string): Promise<string> {
   return await deployedContract.getAddress();
 }
 
-export async function addRewardLiquidity(
+export async function Liquidity_addReward(
   addr: string,
   rewards: { addr: string; rewardPerBlockEther: bigint }[]
 ): Promise<void> {
@@ -249,7 +249,7 @@ export async function addRewardLiquidity(
   console.log("Rewards added");
 }
 
-export async function addPoolLiquidity(
+export async function Liquidity_addPool(
   addr: string,
   pools: ILiquidity[],
   update: boolean
@@ -308,7 +308,7 @@ export async function grantRole(
   console.log("Role granted");
 }
 
-export async function proposeNewCollateralSpenderUSDO(
+export async function USDO_proposeNewCollateralSpender(
   addr: string,
   spender: string
 ) {
@@ -321,7 +321,7 @@ export async function proposeNewCollateralSpenderUSDO(
   console.log("Spender proposed");
 }
 
-export async function mintUSDO(addr: string, order: any) {
+export async function USDO_mint(addr: string, order: any) {
   const [admin] = await ethers.getSigners();
   const contract = new ethers.Contract(addr, USDO_ABI.abi, admin);
   console.log("Minting USDO with account:", admin.address);
@@ -329,7 +329,7 @@ export async function mintUSDO(addr: string, order: any) {
   console.log("USDO minted");
 }
 
-export async function depositStakedUSDO(
+export async function StakedUSDO_deposit(
   addr: string,
   amount: string,
   recipient: string
@@ -344,10 +344,10 @@ export async function depositStakedUSDO(
     ethers.parseEther(amount),
     recipient
   );
-  console.log("USDO staked");
+  console.log("USDO staked, sUSDO balance:", ethers.parseEther(await contract.balanceOf(admin.address)));
 }
 
-export async function deployUSDOBacking(
+export async function deploy_USDOBacking(
   admin: string,
   usdo: string,
   susdo: string
