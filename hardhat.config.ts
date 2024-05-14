@@ -3,6 +3,7 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
+import "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { ETH_RPC, GOERLI_RPC, OBSIDIA_BETA_RPC, PRIVATE_ETH_RPC_PREFIX } from './rpc';
 
 dotenv.config({ path: process.cwd() + "/process.env"});
@@ -10,7 +11,7 @@ dotenv.config({ path: process.cwd() + "/process.env"});
 const testAccounts = [
   {
     privateKey: process.env.ADMIN_WALLET_KEY!,
-    balance: "10000000000000000000",
+    balance: "10000000000000000000000000",
   },
   {
     privateKey: process.env.TEAM_WALLET_KEY!,

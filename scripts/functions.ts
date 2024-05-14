@@ -23,10 +23,9 @@ export async function deployUSDO(): Promise<string> {
     },
     ethers.parseEther("100000000"),
     ethers.parseEther("100000000"),
-    ethers.parseEther("100000000")
-    //{
-    //  maxFeePerGas: 6702346660 * 10
-    //}
+    {
+      maxFeePerGas: 6702346660 * 10
+    }
   );
   await deployedContract.waitForDeployment();
 
@@ -44,10 +43,10 @@ export async function deployStakedUSDO(usdo: string): Promise<string> {
     usdo,
     deployer.address,
     deployer.address,
-    0
-    //{
-    //  maxFeePerGas: 6702346660 * 10
-    //}
+    0,
+    {
+      maxFeePerGas: 6702346660 * 10
+    }
   );
   await deployedContract.waitForDeployment();
 
@@ -64,13 +63,9 @@ export async function deployAirdropOBSIReceipt(usdo: string): Promise<void> {
   );
 
   const ContractSource = await ethers.getContractFactory("AirdropOBSIReceipt");
-  const deployedContract = await ContractSource.deploy(
-    usdo,
-    deployer.address
-    //{
-    //  maxFeePerGas: 6702346660 * 10
-    //}
-  );
+  const deployedContract = await ContractSource.deploy(usdo, deployer.address, {
+    maxFeePerGas: 6702346660 * 10
+  });
   await deployedContract.waitForDeployment();
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
@@ -93,12 +88,9 @@ export async function deployLiquidityAirdropReward(
   const ContractSource = await ethers.getContractFactory(
     "LiquidityAirdropReward"
   );
-  const deployedContract = await ContractSource.deploy(
-    admin
-    //{
-    //  maxFeePerGas: 6702346660 * 10
-    //}
-  );
+  const deployedContract = await ContractSource.deploy(admin, {
+    maxFeePerGas: 6702346660 * 10
+  });
   await deployedContract.waitForDeployment();
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
@@ -142,10 +134,10 @@ export async function deployStakingRewardsDistributor(
     USDC_ADDRESS,
     USDT_ADDRESS,
     deployer.address,
-    deployer.address
-    //{
-    //  maxFeePerGas: 6702346660 * 10
-    //}
+    deployer.address,
+    {
+      maxFeePerGas: 6702346660 * 10
+    }
   );
   await deployedContract.waitForDeployment();
 

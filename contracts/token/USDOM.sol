@@ -62,11 +62,13 @@ contract USDOM is ERC20Burnable, ERC20Permit, IUSDOMDefs, MintRedeemManager {
     function redeem(
         MintRedeemManagerTypes.Order calldata order
     ) external nonReentrant {
-        redeemInternal(order);
+        (uint256 toBurn, uint256 usdcBack, uint256 usdtBack) = redeemInternal(
+            order
+        );
         if (msg.sender == order.benefactor) {
-            _burn(msg.sender, order.usdo_amount);
+            _burn(msg.sender, toBurn);
         } else {
-            burnFrom(order.benefactor, order.usdo_amount);
+            burnFrom(order.benefactor, toBurn);
         }
         emit Redeem(
             msg.sender,
@@ -74,9 +76,9 @@ contract USDOM is ERC20Burnable, ERC20Permit, IUSDOMDefs, MintRedeemManager {
             order.beneficiary,
             order.collateral_usdc,
             order.collateral_usdt,
-            order.collateral_usdc_amount,
-            order.collateral_usdt_amount,
-            order.usdo_amount
+            usdcBack,
+            usdtBack,
+            toBurn
         );
     }
 }
