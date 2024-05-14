@@ -1,7 +1,6 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { MinEthersFactory } from "../typechain-types/common";
 
 describe("OBSI", function () {
   async function deployFixture() {
