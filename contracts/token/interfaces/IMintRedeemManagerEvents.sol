@@ -2,6 +2,7 @@
 pragma solidity 0.8.20;
 
 /* solhint-disable var-name-mixedcase  */
+/* solhint-disable func-param-name-mixedcase  */
 
 interface IMintRedeemManagerEvents {
     /// @notice Event emitted when contract receives ETH
@@ -48,5 +49,12 @@ interface IMintRedeemManagerEvents {
     event MaxRedeemPerBlockChanged(
         uint256 oldMaxRedeemPerBlock,
         uint256 newMaxRedeemPerBlock
+    );
+
+    /// @notice Event emitted when collateral has been supplied to the backing contract
+    event SuppliedToBacking(
+        address indexed supplier,
+        uint256 amountUsdc,
+        uint256 amountUsdt
     );
 }
