@@ -407,7 +407,7 @@ describe("USDOBacking", function () {
     });
   });
 
-  describe("Coumpound", function () {
+  describe("Coumpound (Integration test)", function () {
     it("Should mint new USDO and split between recipients", async function () {
       const {
         usdc,

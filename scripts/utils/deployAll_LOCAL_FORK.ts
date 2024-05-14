@@ -50,9 +50,7 @@ async function main() {
       LIQUIDITY_ADMIN,
       REWARD_STARTING_BLOCK
     );
-    const governanceTokenAddr: string = await deploy_OBSI(
-      admin.address
-    );
+    const governanceTokenAddr: string = await deploy_OBSI(admin.address);
     const airdropPoolRewardContract = new ethers.Contract(
       liquidityAirdropRewardAssetAddr,
       LIQUIDITY_REWARD_ABI.abi,
