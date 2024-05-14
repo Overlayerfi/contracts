@@ -1,5 +1,5 @@
-import { deployLiquidity } from "../functions";
+import { deploy_Liquidity } from "../functions";
 
-deployLiquidity("", 0).catch((error) => {
+deploy_Liquidity("", 0).catch((error) => {
   console.error("Deployment failed ->", error);
 });

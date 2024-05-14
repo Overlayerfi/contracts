@@ -1,6 +1,6 @@
-import { deployLiquidityAirdropReward } from "../functions";
+import { deploy_LiquidityAirdropReward } from "../functions";
 
-deployLiquidityAirdropReward(
+deploy_LiquidityAirdropReward(
   "0x72872f101327902fC805637Cccd9A3542ed31e47"
 ).catch((err) => {
   console.error("Deployment failed -> " + err);
