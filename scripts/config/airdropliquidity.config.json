@@ -25,13 +25,14 @@
 			},
 			"apr": "0.00",
 			"liquidityUsd": "0.00",
-			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47"
+			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47",
+			"stakedAssetSource": "Uniswap"
 		}
 	},
 	{
 		"info": {
 			"tokenA": {
-				"address": "0x9E7ef64F17E79366e70C1Fdc01E1A00323e1FCF8",
+				"address": "0xeEeC6A1A9D9ec3Ab5223987c1a57476Ca871c8a0",
 				"decimals": 18,
 				"img": "",
 				"name": "sUSDO"
@@ -54,7 +55,8 @@
 			},
 			"apr": "0.00",
 			"liquidityUsd": "0.00",
-			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47"
+			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47",
+			"stakedAssetSource": "Uniswap"
 		}
 	},
 	{
@@ -77,7 +79,8 @@
 			},
 			"apr": "0.00",
 			"liquidityUsd": "0.00",
-			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47"
+			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47",
+			"stakedAssetSource": "Obsidia"
 		}
 	}
 ]
