@@ -180,29 +180,21 @@ abstract contract AaveHandler is
     ) external onlyProtocol nonReentrant {
         if (amountUsdc > 0) {
             IERC20(USDC).safeTransferFrom(USDO, address(this), amountUsdc);
-            try
-                IPool(AAVE).supply(
-                    USDC,
-                    amountUsdc,
-                    address(this),
-                    AAVE_REFERRAL_CODE
-                )
-            {} catch (bytes memory err) {
-                emit AaveActionFailed("Supply USDC", err);
-            }
+            IPool(AAVE).supply(
+                USDC,
+                amountUsdc,
+                address(this),
+                AAVE_REFERRAL_CODE
+            );
         }
         if (amountUsdt > 0) {
             IERC20(USDT).safeTransferFrom(USDO, address(this), amountUsdt);
-            try
-                IPool(AAVE).supply(
-                    USDT,
-                    amountUsdt,
-                    address(this),
-                    AAVE_REFERRAL_CODE
-                )
-            {} catch (bytes memory err) {
-                emit AaveActionFailed("Supply USDT", err);
-            }
+            IPool(AAVE).supply(
+                USDT,
+                amountUsdt,
+                address(this),
+                AAVE_REFERRAL_CODE
+            );
         }
         unchecked {
             totalSuppliedUSDC += amountUsdc;
@@ -228,18 +220,10 @@ abstract contract AaveHandler is
         if (IERC20(AUSDT).balanceOf(address(this)) < amountUsdt)
             revert AaveHandlerInsufficientBalance();
         if (amountUsdc > 0) {
-            try IPool(AAVE).withdraw(USDC, amountUsdc, recipient) {} catch (
-                bytes memory err
-            ) {
-                emit AaveActionFailed("Withdraw USDC", err);
-            }
+            IPool(AAVE).withdraw(USDC, amountUsdc, recipient);
         }
         if (amountUsdt > 0) {
-            try IPool(AAVE).withdraw(USDT, amountUsdt, recipient) {} catch (
-                bytes memory err
-            ) {
-                emit AaveActionFailed("Withdraw USDT", err);
-            }
+            IPool(AAVE).withdraw(USDT, amountUsdt, recipient);
         }
         if (amountUsdc > totalSuppliedUSDC) {
             totalSuppliedUSDC = 0;
