@@ -90,16 +90,7 @@ describe("USDOM", function () {
       const { usdo, admin, usdt, usdc } = await loadFixture(deployFixture);
       await usdo.connect(admin).pause();
       expect(await usdo.paused()).to.equal(true);
-      const order = {
-        benefactor: admin.address,
-        beneficiary: admin.address,
-        collateral_usdt: await usdt.getAddress(),
-        collateral_usdc: await usdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits("10", await usdt.decimals()),
-        collateral_usdc_amount: ethers.parseUnits("10", await usdc.decimals()),
-        usdo_amount: ethers.parseEther("20")
-      };
-      await expect(usdo.connect(admin).mint(order)).to.be
+      await expect(usdo.connect(admin).supplyToBacking()).to.be
         .eventually.rejected;
     });
 

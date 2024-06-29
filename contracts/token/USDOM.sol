@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
 import "./MintRedeemManager.sol";
 import "./interfaces/IUSDOMDefs.sol";
 import "./types/MintRedeemManagerTypes.sol";
@@ -14,7 +13,7 @@ import "./types/MintRedeemManagerTypes.sol";
  * @title USDOM
  * @notice USDOM The starting point...
  */
-contract USDOM is ERC20Burnable, ERC20Permit, IUSDOMDefs, MintRedeemManager, Pausable {
+contract USDOM is ERC20Burnable, ERC20Permit, IUSDOMDefs, MintRedeemManager {
     constructor(
         address admin,
         MintRedeemManagerTypes.StableCoin memory usdc,
@@ -44,7 +43,7 @@ contract USDOM is ERC20Burnable, ERC20Permit, IUSDOMDefs, MintRedeemManager, Pau
     /// @param order A struct containing the mint order
     function mint(
         MintRedeemManagerTypes.Order calldata order
-    ) external nonReentrant whenNotPaused {
+    ) external nonReentrant {
         mintInternal(order);
         _mint(order.beneficiary, order.usdo_amount);
         emit Mint(
@@ -83,15 +82,5 @@ contract USDOM is ERC20Burnable, ERC20Permit, IUSDOMDefs, MintRedeemManager, Pau
             usdtBack,
             toBurn
         );
-    }
-
-    /// @notice Pause the contract
-    function pause() external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        _pause();
-    }
-
-    /// @notice Unpause the contract
-    function unpause() external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        _unpause();
     }
 }
