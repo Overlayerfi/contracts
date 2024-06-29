@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
 import "../shared/SingleAdminAccessControl.sol";
 import "./CollateralSpenderManager.sol";
@@ -22,7 +23,8 @@ import "./types/MintRedeemManagerTypes.sol";
 abstract contract MintRedeemManager is
     IMintRedeemManagerDefs,
     CollateralSpenderManager,
-    ReentrancyGuard
+    ReentrancyGuard,
+    Pausable
 {
     using SafeERC20 for IERC20;
 
@@ -136,24 +138,6 @@ abstract contract MintRedeemManager is
         _setMaxRedeemPerBlock(0);
     }
 
-    /// @notice transfers an asset to a custody wallet
-    /// @param asset The asset to be tranfered
-    /// @param recipient The destnation address
-    /// @param amount The amount to be tranfered
-    function transferToCustody(
-        address asset,
-        address recipient,
-        uint256 amount
-    ) external nonReentrant onlyRole(COLLATERAL_MANAGER_ROLE) {
-        if (asset == NATIVE_TOKEN) {
-            (bool success, ) = recipient.call{value: amount}("");
-            if (!success) revert TransferFailed();
-        } else {
-            IERC20(asset).safeTransfer(recipient, amount);
-        }
-        emit CustodyTransfer(recipient, asset, amount);
-    }
-
     /// @notice Removes the collateral manager role from an account, this can ONLY be executed by the gatekeeper role
     /// @param collateralManager The address to remove the collateralManager role from
     function removeCollateralManagerRole(
@@ -211,7 +195,7 @@ abstract contract MintRedeemManager is
 
     /// @notice Supply funds to the active backing contract (aka approvedCollateralSpender)
     /// @dev the approveCollateralSpender will colect the funds, as the only entity allowed to do so
-    function supplyToBacking() external nonReentrant {
+    function supplyToBacking() external nonReentrant whenNotPaused {
         uint256 usdcBal = IERC20(usdc.addr).balanceOf(address(this));
         uint256 usdtBal = IERC20(usdt.addr).balanceOf(address(this));
         uint256 minAmountUsdc = BACKING_MIN_AMOUNT_TO_BE_MULTIPLIED_BY_BASE *
@@ -355,5 +339,17 @@ abstract contract MintRedeemManager is
         uint256 oldMaxRedeemPerBlock = maxRedeemPerBlock;
         maxRedeemPerBlock = _maxRedeemPerBlock;
         emit MaxRedeemPerBlockChanged(oldMaxRedeemPerBlock, maxRedeemPerBlock);
+    }
+
+    /// @notice Pause the contract
+    /// @dev This call is used only to lock the supplyToBacking public call
+    function pause() external nonReentrant onlyRole(GATEKEEPER_ROLE) {
+        _pause();
+    }
+
+    /// @notice Unpause the contract
+    /// @dev This call is used only to unlock the supplyToBacking public call
+    function unpause() external nonReentrant onlyRole(GATEKEEPER_ROLE) {
+        _unpause();
     }
 }
