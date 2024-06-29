@@ -88,6 +88,10 @@ describe("USDOM", function () {
   describe("Deployment", function () {
     it("Should pause", async function () {
       const { usdo, admin, usdt, usdc } = await loadFixture(deployFixture);
+      await usdo.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("GATEKEEPER_ROLE")),
+        admin.address
+      );
       await usdo.connect(admin).pause();
       expect(await usdo.paused()).to.equal(true);
       await expect(usdo.connect(admin).supplyToBacking()).to.be
@@ -96,6 +100,10 @@ describe("USDOM", function () {
 
     it("Should unpause", async function () {
       const { usdo, admin } = await loadFixture(deployFixture);
+      await usdo.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("GATEKEEPER_ROLE")),
+        admin.address
+      );
       await usdo.connect(admin).pause();
       expect(await usdo.paused()).to.equal(true);
       await usdo.connect(admin).unpause();
@@ -291,17 +299,16 @@ describe("USDOM", function () {
       );
     });
 
-    it("Should stop mint and redeem", async function () {
+    it("Should stop mint", async function () {
       const { usdo, admin, gatekeeper } = await loadFixture(deployFixture);
       await usdo.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("GATEKEEPER_ROLE")),
         await gatekeeper.getAddress()
       );
-      await expect(usdo.connect(admin).disableMintRedeem()).to.be.eventually
+      await expect(usdo.connect(admin).disableMint()).to.be.eventually
         .rejected;
-      await usdo.connect(gatekeeper).disableMintRedeem();
+      await usdo.connect(gatekeeper).disableMint();
       expect(await usdo.maxMintPerBlock()).to.equal(ethers.parseEther("0"));
-      expect(await usdo.maxRedeemPerBlock()).to.equal(ethers.parseEther("0"));
     });
   });
 
