@@ -191,6 +191,17 @@ describe("USDOBacking", function () {
     });
   });
 
+  describe("AAVE change", function() {
+    it("Should change AAVE contract", async function () {
+      const { usdobacking, admin } = await loadFixture(deployFixture);
+      expect(await usdobacking.AAVE()).to.be.equal("0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2");
+      await usdobacking.proposeNewAave(admin.address);
+      await time.increase(10 * 24 * 60 * 60);
+      await usdobacking.connect(admin).acceptProposedAave();
+      expect(await usdobacking.AAVE()).to.be.equal(admin.address);
+    });
+  });
+
   describe("Supply", function () {
     it("Should supply to backing", async function () {
       const { usdc, usdt, usdo, ausdc, ausdt, usdobacking, admin, alice, bob } =

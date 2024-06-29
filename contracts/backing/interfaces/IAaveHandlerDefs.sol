@@ -15,6 +15,8 @@ interface IAaveHandlerDefs {
 
     error AaveHandlerInsufficientBalance();
 
+    error AaveIntervalNotRespected();
+
     event AaveActionFailed(string message, bytes reason);
 
     event AaveWithdraw(uint256 usdc, uint256 usdt);
