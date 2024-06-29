@@ -288,11 +288,11 @@ describe("StakedUSDOFront", function () {
       );
       await expect(
         stakedusdo.connect(alice).unstake(alice.address)
-      ).to.be.eventually.rejectedWith("StakedUSDOInvalidCooldown");
+      ).to.be.eventually.rejectedWith("IStakedUSDOCooldownInvalidCooldown");
       await time.increase(172759);
       await expect(
         stakedusdo.connect(alice).unstake(alice.address)
-      ).to.be.eventually.rejectedWith("StakedUSDOInvalidCooldown");
+      ).to.be.eventually.rejectedWith("IStakedUSDOCooldownInvalidCooldown");
     });
 
     it("Should unstake after cooldown", async function () {
