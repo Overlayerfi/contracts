@@ -135,7 +135,6 @@ describe("USDOBacking", function () {
         await usdobacking.getAddress()
       );
 
-    //stake initial amount to avoid donation attack on staking contract
     const order = {
       benefactor: admin.address,
       beneficiary: admin.address,
@@ -157,6 +156,8 @@ describe("USDOBacking", function () {
     await usdo
       .connect(admin)
       .approve(await susdo.getAddress(), ethers.MaxUint256);
+
+    //stake initial amount to avoid donation attack on staking contract
     await susdo.connect(admin).deposit(ethers.parseEther("1"), admin.address);
 
     if (futureAddress !== (await usdobacking.getAddress())) {

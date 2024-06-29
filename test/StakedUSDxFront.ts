@@ -93,6 +93,31 @@ describe("StakedUSDOFront", function () {
 
     await stakedusdo.connect(admin).setCooldownDuration(172800); // 2 days
 
+    const order = {
+      benefactor: admin.address,
+      beneficiary: admin.address,
+      collateral_usdt: await usdt.getAddress(),
+      collateral_usdc: await usdc.getAddress(),
+      collateral_usdt_amount: ethers.parseUnits("0.5", await usdt.decimals()),
+      collateral_usdc_amount: ethers.parseUnits("0.5", await usdc.decimals()),
+      usdo_amount: ethers.parseEther("1")
+    };
+    await (usdc.connect(admin)).approve(
+      await usdo.getAddress(),
+      ethers.MaxUint256
+    );
+    await (usdt.connect(admin)).approve(
+      await usdo.getAddress(),
+      ethers.MaxUint256
+    );
+    await usdo.connect(admin).mint(order);
+    await usdo
+      .connect(admin)
+      .approve(await stakedusdo.getAddress(), ethers.MaxUint256);
+
+    //stake initial amount to avoid donation attack on staking contract
+    await stakedusdo.connect(admin).deposit(ethers.parseEther("1"), admin.address);
+
     await usdo
       .connect(alice)
       .approve(await stakedusdo.getAddress(), ethers.MaxUint256);
@@ -151,8 +176,8 @@ describe("StakedUSDOFront", function () {
       const { stakedusdo, admin, alice, bob } = await loadFixture(
         deployFixture
       );
-      expect(await stakedusdo.totalAssets()).to.equal(0);
-      expect(await stakedusdo.totalSupply()).to.equal(0);
+      expect(await stakedusdo.totalAssets()).to.equal(ethers.parseEther("1"));
+      expect(await stakedusdo.totalSupply()).to.equal(ethers.parseEther("1"));
       await expect(
         await stakedusdo
           .connect(alice)
@@ -163,8 +188,8 @@ describe("StakedUSDOFront", function () {
           .connect(bob)
           .deposit(ethers.parseEther("5"), bob.address)
       ).to.emit(stakedusdo, "Deposit");
-      expect(await stakedusdo.totalAssets()).to.equal(ethers.parseEther("15"));
-      expect(await stakedusdo.totalSupply()).to.equal(ethers.parseEther("15"));
+      expect(await stakedusdo.totalAssets()).to.equal(ethers.parseEther("16"));
+      expect(await stakedusdo.totalSupply()).to.equal(ethers.parseEther("16"));
       expect(await stakedusdo.balanceOf(alice.address)).to.equal(
         ethers.parseEther("10")
       );
@@ -172,7 +197,7 @@ describe("StakedUSDOFront", function () {
         ethers.parseEther("5")
       );
       expect(await stakedusdo.balanceOf(admin.address)).to.equal(
-        ethers.parseEther("0")
+        ethers.parseEther("1")
       );
 
       expect(await stakedusdo.previewRedeem(ethers.parseEther("1"))).to.equal(
@@ -227,8 +252,8 @@ describe("StakedUSDOFront", function () {
       await usdo
         .connect(admin)
         .transfer(await stakedusdo.getAddress(), ethers.parseEther("15"));
-      expect(await stakedusdo.totalAssets()).to.equal(ethers.parseEther("30"));
-      expect(await stakedusdo.totalSupply()).to.equal(ethers.parseEther("15"));
+      expect(await stakedusdo.totalAssets()).to.equal(ethers.parseEther("31"));
+      expect(await stakedusdo.totalSupply()).to.equal(ethers.parseEther("16"));
 
       expect(
         await stakedusdo.previewRedeem(ethers.parseEther("1"))
@@ -246,7 +271,7 @@ describe("StakedUSDOFront", function () {
 
       expect(
         await stakedusdo.previewRedeem(ethers.parseEther("1"))
-      ).to.be.greaterThan(ethers.parseEther("3.9"));
+      ).to.be.greaterThan(ethers.parseEther("3.8"));
       expect(
         await stakedusdo.previewRedeem(ethers.parseEther("1"))
       ).to.be.lessThan(ethers.parseEther("4.0"));
@@ -319,13 +344,56 @@ describe("StakedUSDOFront", function () {
       const afterBobBal = ethers.formatEther(await usdo.balanceOf(bob));
       expect(
         Number.parseFloat(afterAliceBal) - Number.parseFloat(beforeAliceBal)
-      ).to.be.greaterThan(19.9);
+      ).to.be.greaterThan(19.0);
       expect(
         Number.parseFloat(afterAliceBal) - Number.parseFloat(beforeAliceBal)
       ).to.be.lessThan(20.1);
       expect(
         Number.parseFloat(afterBobBal) - Number.parseFloat(beforeBobBal)
-      ).to.be.greaterThan(9.9);
+      ).to.be.greaterThan(9.0);
+      expect(
+        Number.parseFloat(afterBobBal) - Number.parseFloat(beforeBobBal)
+      ).to.be.lessThan(10.1);
+    });
+  });
+
+  describe("ERC4626 flow", function() {
+    it("Should unstake immediately", async function () {
+      const { stakedusdo, admin, usdo, alice, bob } = await loadFixture(
+        deployFixture
+      );
+      
+      //disable cool down
+      await stakedusdo.connect(admin).setCooldownDuration(0);
+      
+      await stakedusdo
+        .connect(alice)
+        .deposit(ethers.parseEther("10"), alice.address);
+      await stakedusdo
+        .connect(bob)
+        .deposit(ethers.parseEther("5"), bob.address);
+      await usdo
+        .connect(admin)
+        .transfer(await stakedusdo.getAddress(), ethers.parseEther("15"));
+      
+      expect(await stakedusdo.balanceOf(alice.address)).to.equal(ethers.parseEther("10"));
+      expect(await stakedusdo.balanceOf(bob.address)).to.equal(ethers.parseEther("5"));
+
+      const beforeAliceBal = ethers.formatEther(await usdo.balanceOf(alice));
+      const beforeBobBal = ethers.formatEther(await usdo.balanceOf(bob));
+      await stakedusdo.connect(alice).redeem(ethers.parseEther("10"), alice.address, alice.address);
+      await stakedusdo.connect(bob).redeem(ethers.parseEther("5"), bob.address, bob.address);
+      const afterAliceBal = ethers.formatEther(await usdo.balanceOf(alice));
+      const afterBobBal = ethers.formatEther(await usdo.balanceOf(bob));
+      expect(
+        Number.parseFloat(afterAliceBal) - Number.parseFloat(beforeAliceBal)
+      ).to.be.greaterThan(19.3);
+      expect(
+        Number.parseFloat(afterAliceBal) - Number.parseFloat(beforeAliceBal)
+      ).to.be.lessThan(20.1);
+      expect(
+        Number.parseFloat(afterBobBal) - Number.parseFloat(beforeBobBal)
+      ).to.be.greaterThan(9.3);
       expect(
         Number.parseFloat(afterBobBal) - Number.parseFloat(beforeBobBal)
       ).to.be.lessThan(10.1);
