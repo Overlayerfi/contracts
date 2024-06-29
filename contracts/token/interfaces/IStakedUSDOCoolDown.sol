@@ -12,7 +12,10 @@ struct UserCooldown {
 interface IStakedUSDOCooldown is IStakedUSDO {
     // Events //
     /// @notice Event emitted when cooldown duration updates
-    event IStakedUSDOCooldownDurationUpdated(uint24 previousDuration, uint24 newDuration);
+    event IStakedUSDOCooldownDurationUpdated(
+        uint24 previousDuration,
+        uint24 newDuration
+    );
 
     // Errors //
     /// @notice Error emitted when the shares amount to redeem is greater than the shares balance of the owner

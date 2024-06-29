@@ -56,7 +56,7 @@ describe("USDOBacking", function () {
         decimals: await usdt.decimals()
       },
       ethers.parseEther("100000000"),
-      ethers.parseEther("100000000"),
+      ethers.parseEther("100000000")
       //{ maxFeePerGas: 9702346660 }
     );
 
@@ -123,7 +123,7 @@ describe("USDOBacking", function () {
       admin.address,
       admin.address,
       await usdo.getAddress(),
-      await susdo.getAddress(),
+      await susdo.getAddress()
       //{ maxFeePerGas: 9702346660 }
     );
 
@@ -193,30 +193,39 @@ describe("USDOBacking", function () {
     });
   });
 
-  describe("AAVE change", function() {
+  describe("AAVE change", function () {
     it("Should change AAVE contract", async function () {
       const { usdobacking, admin } = await loadFixture(deployFixture);
-      expect(await usdobacking.AAVE()).to.be.equal("0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2");
+      expect(await usdobacking.AAVE()).to.be.equal(
+        "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"
+      );
       await usdobacking.proposeNewAave(admin.address);
       await time.increase(10 * 24 * 60 * 60);
-      expect(await usdobacking.connect(admin).acceptProposedAave()).to.emit(usdobacking, "AaveNewAaave");
+      expect(await usdobacking.connect(admin).acceptProposedAave()).to.emit(
+        usdobacking,
+        "AaveNewAaave"
+      );
       expect(await usdobacking.AAVE()).to.be.equal(admin.address);
     });
   });
 
-  describe("Team allocation change", function() {
+  describe("Team allocation change", function () {
     it("Should change team allocation points", async function () {
       const { usdobacking, admin } = await loadFixture(deployFixture);
       await usdobacking.proposeNewTeamAllocation(10);
       await time.increase(10 * 24 * 60 * 60);
-      expect(await usdobacking.connect(admin).acceptProposedTeamAllocation()).to.emit(usdobacking, "AaveNewTeamAllocation");
+      expect(
+        await usdobacking.connect(admin).acceptProposedTeamAllocation()
+      ).to.emit(usdobacking, "AaveNewTeamAllocation");
     });
   });
 
-  describe("Treasury change", function() {
+  describe("Treasury change", function () {
     it("Should change team treasury address", async function () {
       const { usdobacking, admin, alice } = await loadFixture(deployFixture);
-      expect(await usdobacking.connect(admin).updateTreasury(alice.address)).to.emit(usdobacking, "AaveNewTreasury");
+      expect(
+        await usdobacking.connect(admin).updateTreasury(alice.address)
+      ).to.emit(usdobacking, "AaveNewTreasury");
     });
   });
 
@@ -561,15 +570,11 @@ describe("USDOBacking", function () {
       expect(await usdobacking.totalSuppliedUSDT()).to.be.equal(
         ethers.parseUnits("2000", await usdt.decimals())
       );
-      expect(await usdc.balanceOf(await usdo.getAddress())).to.be.equal(
-        500000
-      );
-      expect(await usdt.balanceOf(await usdo.getAddress())).to.be.equal(
-        500000
-      );
+      expect(await usdc.balanceOf(await usdo.getAddress())).to.be.equal(500000);
+      expect(await usdt.balanceOf(await usdo.getAddress())).to.be.equal(500000);
 
       await time.increase(12 * 30 * 24 * 60 * 60); //12 months
-      
+
       let usdcBal = await ausdc.balanceOf(await usdobacking.getAddress());
       let usdtBal = await ausdt.balanceOf(await usdobacking.getAddress());
       const big_usdcBal = new Big(usdcBal);

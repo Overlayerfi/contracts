@@ -104,7 +104,8 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
     function cooldownAssets(
         uint256 assets
     ) external ensureCooldownOn returns (uint256 shares) {
-        if (assets > maxWithdraw(msg.sender)) revert IStakedUSDOCooldownExcessiveWithdrawAmount();
+        if (assets > maxWithdraw(msg.sender))
+            revert IStakedUSDOCooldownExcessiveWithdrawAmount();
 
         shares = previewWithdraw(assets);
 
@@ -121,7 +122,8 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
     function cooldownShares(
         uint256 shares
     ) external ensureCooldownOn returns (uint256 assets) {
-        if (shares > maxRedeem(msg.sender)) revert IStakedUSDOCooldownExcessiveRedeemAmount();
+        if (shares > maxRedeem(msg.sender))
+            revert IStakedUSDOCooldownExcessiveRedeemAmount();
 
         assets = previewRedeem(shares);
 
@@ -146,6 +148,9 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
 
         uint24 previousDuration = cooldownDuration;
         cooldownDuration = duration;
-        emit IStakedUSDOCooldownDurationUpdated(previousDuration, cooldownDuration);
+        emit IStakedUSDOCooldownDurationUpdated(
+            previousDuration,
+            cooldownDuration
+        );
     }
 }
