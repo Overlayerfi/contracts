@@ -85,6 +85,33 @@ describe("USDOM", function () {
     });
   });
 
+  describe("Deployment", function () {
+    it("Should pause", async function () {
+      const { usdo, admin, usdt, usdc } = await loadFixture(deployFixture);
+      await usdo.connect(admin).pause();
+      expect(await usdo.paused()).to.equal(true);
+      const order = {
+        benefactor: admin.address,
+        beneficiary: admin.address,
+        collateral_usdt: await usdt.getAddress(),
+        collateral_usdc: await usdc.getAddress(),
+        collateral_usdt_amount: ethers.parseUnits("10", await usdt.decimals()),
+        collateral_usdc_amount: ethers.parseUnits("10", await usdc.decimals()),
+        usdo_amount: ethers.parseEther("20")
+      };
+      await expect(usdo.connect(admin).mint(order)).to.be
+        .eventually.rejected;
+    });
+
+    it("Should unpause", async function () {
+      const { usdo, admin } = await loadFixture(deployFixture);
+      await usdo.connect(admin).pause();
+      expect(await usdo.paused()).to.equal(true);
+      await usdo.connect(admin).unpause();
+      expect(await usdo.paused()).to.equal(false);
+    });
+  });
+
   describe("Collateral Manager", function () {
     it("Should set first collateral manager", async function () {
       const { usdo, admin, alice } = await loadFixture(deployFixture);
