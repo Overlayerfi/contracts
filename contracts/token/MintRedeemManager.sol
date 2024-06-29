@@ -337,7 +337,7 @@ abstract contract MintRedeemManager is
     function _setMaxRedeemPerBlock(uint256 _maxRedeemPerBlock) internal {
         if (_maxRedeemPerBlock == 0) {
             revert InvalidMaxRedeemAmount();
-        } 
+        }
         uint256 oldMaxRedeemPerBlock = maxRedeemPerBlock;
         maxRedeemPerBlock = _maxRedeemPerBlock;
         emit MaxRedeemPerBlockChanged(oldMaxRedeemPerBlock, maxRedeemPerBlock);

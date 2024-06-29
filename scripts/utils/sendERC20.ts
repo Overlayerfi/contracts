@@ -1,11 +1,19 @@
 import { ethers } from "hardhat";
-import {Contract} from "ethers";
+import { Contract } from "ethers";
 import { USDC_ABI } from "../get_stables_from_uniswap_local/USDC_abi";
 
-export async function transfer(token: string, decimals: number, dest: string, amount: string): Promise<void> {
+export async function transfer(
+  token: string,
+  decimals: number,
+  dest: string,
+  amount: string
+): Promise<void> {
   const [admin] = await ethers.getSigners();
   const contract = new ethers.Contract(token, USDC_ABI, admin);
-  await (contract.connect(admin) as Contract).transfer(dest, ethers.parseUnits(amount, decimals));
+  await (contract.connect(admin) as Contract).transfer(
+    dest,
+    ethers.parseUnits(amount, decimals)
+  );
 }
 
 transfer("", 6, "", "10")
