@@ -31,13 +31,13 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
 
     /// @notice ensure cooldownDuration is zero
     modifier ensureCooldownOff() {
-        if (cooldownDuration != 0) revert OperationNotAllowed();
+        if (cooldownDuration != 0) revert StakedUSDOOperationNotAllowed();
         _;
     }
 
     /// @notice ensure cooldownDuration is gt 0
     modifier ensureCooldownOn() {
-        if (cooldownDuration == 0) revert OperationNotAllowed();
+        if (cooldownDuration == 0) revert StakedUSDOOperationNotAllowed();
         _;
     }
 

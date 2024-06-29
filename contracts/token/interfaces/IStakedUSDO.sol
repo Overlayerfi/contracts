@@ -15,19 +15,19 @@ interface IStakedUSDO {
 
     // Errors //
     /// @notice Error emitted shares or assets equal zero.
-    error InvalidAmount();
+    error StakedUSDOInvalidAmount();
     /// @notice Error emitted when owner attempts to rescue USDO tokens.
-    error InvalidToken();
+    error StakedUSDOInvalidToken();
     /// @notice Error emitted when a small non-zero share amount remains, which risks donations attack
-    error MinSharesViolation();
+    error StakedUSDOMinSharesViolation();
     /// @notice Error emitted when owner is not allowed to perform an operation
-    error OperationNotAllowed();
+    error StakedUSDOOperationNotAllowed();
     /// @notice Error emitted when there is still unvested amount
-    error StillVesting();
+    error StakedUSDOStillVesting();
     /// @notice Error emitted when owner or blacklist manager attempts to blacklist owner
-    error CantBlacklistOwner();
+    error StakedUSDOCantBlacklistOwner();
     /// @notice Error emitted when the zero address is given
-    error InvalidZeroAddress();
+    error StakedUSDOInvalidZeroAddress();
 
     function transferInRewards(uint256 amount) external;
 

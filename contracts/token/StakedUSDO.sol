@@ -53,13 +53,13 @@ abstract contract StakedUSDO is
 
     /// @notice ensure input amount nonzero
     modifier notZero(uint256 amount) {
-        if (amount == 0) revert InvalidAmount();
+        if (amount == 0) revert StakedUSDOInvalidAmount();
         _;
     }
 
     /// @notice ensures blacklist target is not owner
     modifier notOwner(address target) {
-        if (target == owner()) revert CantBlacklistOwner();
+        if (target == owner()) revert StakedUSDOCantBlacklistOwner();
         _;
     }
 
@@ -84,7 +84,7 @@ abstract contract StakedUSDO is
             _initialRewarder == address(0) ||
             address(_asset) == address(0)
         ) {
-            revert InvalidZeroAddress();
+            revert StakedUSDOInvalidZeroAddress();
         }
 
         _grantRole(REWARDER_ROLE, _initialRewarder);
@@ -153,7 +153,7 @@ abstract contract StakedUSDO is
         uint256 amount,
         address to
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (address(token) == asset()) revert InvalidToken();
+        if (address(token) == asset()) revert StakedUSDOInvalidToken();
         IERC20(token).safeTransfer(to, amount);
     }
 
@@ -166,7 +166,7 @@ abstract contract StakedUSDO is
         address from,
         address to
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (to == address(0)) revert InvalidZeroAddress();
+        if (to == address(0)) revert StakedUSDOInvalidZeroAddress();
         if (
             hasRole(FULL_RESTRICTED_STAKER_ROLE, from) &&
             !hasRole(FULL_RESTRICTED_STAKER_ROLE, to)
@@ -178,7 +178,7 @@ abstract contract StakedUSDO is
 
             emit LockedAmountRedistributed(from, to, amountToDistribute);
         } else {
-            revert OperationNotAllowed();
+            revert StakedUSDOOperationNotAllowed();
         }
     }
 
@@ -220,7 +220,7 @@ abstract contract StakedUSDO is
     function _checkMinShares() internal view {
         uint256 _totalSupply = totalSupply();
         if (_totalSupply > 0 && _totalSupply < MIN_SHARES)
-            revert MinSharesViolation();
+            revert StakedUSDOMinSharesViolation();
     }
 
     /**
@@ -240,13 +240,13 @@ abstract contract StakedUSDO is
             hasRole(SOFT_RESTRICTED_STAKER_ROLE, caller) ||
             hasRole(SOFT_RESTRICTED_STAKER_ROLE, receiver)
         ) {
-            revert OperationNotAllowed();
+            revert StakedUSDOOperationNotAllowed();
         }
         if (
             hasRole(FULL_RESTRICTED_STAKER_ROLE, caller) ||
             hasRole(FULL_RESTRICTED_STAKER_ROLE, receiver)
         ) {
-            revert OperationNotAllowed();
+            revert StakedUSDOOperationNotAllowed();
         }
         super._deposit(caller, receiver, assets, shares);
         _checkMinShares();
@@ -272,7 +272,7 @@ abstract contract StakedUSDO is
             hasRole(FULL_RESTRICTED_STAKER_ROLE, receiver) ||
             hasRole(FULL_RESTRICTED_STAKER_ROLE, _owner)
         ) {
-            revert OperationNotAllowed();
+            revert StakedUSDOOperationNotAllowed();
         }
 
         super._withdraw(caller, receiver, _owner, assets, shares);
@@ -280,7 +280,7 @@ abstract contract StakedUSDO is
     }
 
     function _updateVestingAmount(uint256 newVestingAmount) internal {
-        if (getUnvestedAmount() > 0) revert StillVesting();
+        if (getUnvestedAmount() > 0) revert StakedUSDOStillVesting();
 
         vestingAmount = newVestingAmount;
         lastDistributionTimestamp = block.timestamp;
@@ -295,10 +295,10 @@ abstract contract StakedUSDO is
         uint256 value
     ) internal virtual override {
         if (hasRole(FULL_RESTRICTED_STAKER_ROLE, from) && to != address(0)) {
-            revert OperationNotAllowed();
+            revert StakedUSDOOperationNotAllowed();
         }
         if (hasRole(FULL_RESTRICTED_STAKER_ROLE, to)) {
-            revert OperationNotAllowed();
+            revert StakedUSDOOperationNotAllowed();
         }
         super._update(from, to, value);
     }
@@ -307,6 +307,6 @@ abstract contract StakedUSDO is
      * @dev Remove renounce role access from AccessControl, to prevent users to resign roles.
      */
     function renounceRole(bytes32, address) public virtual override {
-        revert OperationNotAllowed();
+        revert StakedUSDOOperationNotAllowed();
     }
 }
