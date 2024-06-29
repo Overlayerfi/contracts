@@ -10,7 +10,7 @@ import "./USDOSilo.sol";
 /**
  * @title StakedUSDOFront
  * @notice The StakedUSDOFront contract allows users to
- * stake USDO tokens and earn a portion of protocol yield
+ * stake USDO tokens and earn a portion of protocol yield. This is the public entrypoint
  * @dev If cooldown duration is set to
  * zero, the StakedUSDOFront behavior changes to follow ERC4626 standard and
  * disables cooldownShares and cooldownAssets methods. If cooldown duration is
@@ -95,7 +95,7 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
 
             SILO.withdraw(receiver, assets);
         } else {
-            revert InvalidCooldown();
+            revert StakedUSDOInvalidCooldown();
         }
     }
 
@@ -104,7 +104,7 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
     function cooldownAssets(
         uint256 assets
     ) external ensureCooldownOn returns (uint256 shares) {
-        if (assets > maxWithdraw(msg.sender)) revert ExcessiveWithdrawAmount();
+        if (assets > maxWithdraw(msg.sender)) revert StakedUSDOExcessiveWithdrawAmount();
 
         shares = previewWithdraw(assets);
 
@@ -121,7 +121,7 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
     function cooldownShares(
         uint256 shares
     ) external ensureCooldownOn returns (uint256 assets) {
-        if (shares > maxRedeem(msg.sender)) revert ExcessiveRedeemAmount();
+        if (shares > maxRedeem(msg.sender)) revert StakedUSDOExcessiveRedeemAmount();
 
         assets = previewRedeem(shares);
 
@@ -141,11 +141,11 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
         uint24 duration
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (duration > MAX_COOLDOWN_DURATION) {
-            revert InvalidCooldown();
+            revert StakedUSDOInvalidCooldown();
         }
 
         uint24 previousDuration = cooldownDuration;
         cooldownDuration = duration;
-        emit CooldownDurationUpdated(previousDuration, cooldownDuration);
+        emit StakedUSDOCooldownDurationUpdated(previousDuration, cooldownDuration);
     }
 }

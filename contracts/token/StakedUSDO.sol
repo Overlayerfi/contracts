@@ -12,7 +12,6 @@ import "./interfaces/IStakedUSDO.sol";
 
 /**
  * @title StakedUSDO
- * @notice The StakedUSDO contract allows users to stake USDO tokens and earn a portion of yield
  * @dev This contract is intended to be inherited in order to define custom vesting aka cooldowns policies
  */
 abstract contract StakedUSDO is

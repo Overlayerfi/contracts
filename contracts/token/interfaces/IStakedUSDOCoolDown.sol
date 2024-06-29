@@ -12,15 +12,15 @@ struct UserCooldown {
 interface IStakedUSDOCooldown is IStakedUSDO {
     // Events //
     /// @notice Event emitted when cooldown duration updates
-    event CooldownDurationUpdated(uint24 previousDuration, uint24 newDuration);
+    event StakedUSDOCooldownDurationUpdated(uint24 previousDuration, uint24 newDuration);
 
     // Errors //
     /// @notice Error emitted when the shares amount to redeem is greater than the shares balance of the owner
-    error ExcessiveRedeemAmount();
+    error StakedUSDOExcessiveRedeemAmount();
     /// @notice Error emitted when the shares amount to withdraw is greater than the shares balance of the owner
-    error ExcessiveWithdrawAmount();
+    error StakedUSDOExcessiveWithdrawAmount();
     /// @notice Error emitted when cooldown value is invalid
-    error InvalidCooldown();
+    error StakedUSDOInvalidCooldown();
 
     function cooldownAssets(uint256 assets) external returns (uint256 shares);
 
