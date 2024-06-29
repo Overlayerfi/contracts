@@ -23,7 +23,9 @@ interface IAaveHandlerDefs {
 
     event AaveSupply(uint256 usdc, uint256 usdt);
 
-    event NewAave(address addr);
+    event AaveNewAave(address addr);
 
-    event NewTeamAllocation(uint8 amount);
+    event AaveNewTeamAllocation(uint8 amount);
+
+    event AaveNewTreasury(address addr);
 }

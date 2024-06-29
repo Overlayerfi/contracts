@@ -39,6 +39,7 @@ async function main() {
       "0x10fc45741bfE5D527c1b83Fe0BD70fC96D7ec30F"
     );
     console.log("signer addr:", admin.address);
+    const treasuryAddr = "0x10fc45741bfE5D527c1b83Fe0BD70fC96D7ec30F";
 
     const usdoAddr = await deploy_USDO(true);
     const susdoAddr = await deploy_StakedUSDO(usdoAddr);
@@ -109,6 +110,7 @@ async function main() {
     await USDO_proposeNewCollateralSpender(usdoAddr, futureAddress);
     const usdobackingAddr = await deploy_USDOBacking(
       admin.address,
+      treasuryAddr,
       usdoAddr,
       susdoAddr
     );

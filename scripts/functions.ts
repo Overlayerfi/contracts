@@ -352,6 +352,7 @@ export async function StakedUSDO_deposit(
 
 export async function deploy_USDOBacking(
   admin: string,
+  treasury: string,
   usdo: string,
   susdo: string
 ): Promise<string> {
@@ -360,7 +361,7 @@ export async function deploy_USDOBacking(
   console.log("Deploying USDOBacking contract with signer:", deployer.address);
 
   const USDOBacking = await ethers.getContractFactory("USDOBacking");
-  const usdobacking = await USDOBacking.deploy(admin, usdo, susdo, {
+  const usdobacking = await USDOBacking.deploy(admin, treasury, usdo, susdo, {
     maxFeePerGas: 9702346660
   });
   await usdobacking.waitForDeployment();
