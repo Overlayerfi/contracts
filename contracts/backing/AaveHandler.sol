@@ -27,7 +27,7 @@ abstract contract AaveHandler is
     //########################################## CONSTANT ##########################################
 
     ///@notice AAVE protocl Pool.sol contract address
-    address public constant AAVE = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
+    address public AAVE = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     ///@notice USDC eth mainnet contract address
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     ///@notice USDT eth mainnet contract address
@@ -42,6 +42,8 @@ abstract contract AaveHandler is
     uint8 private constant TEAM_ALLOCATION = 20;
     ///@notice usdo reward allocation percentage
     uint8 private constant USDO_MINT_AMOUNT = 80;
+    /// @notice the time interval needed to changed the AAVE contract
+    uint256 public constant PROPOSAL_TIME_INTERVAL = 10 days;
 
     //########################################## IMMUTABLE ##########################################
 
@@ -56,6 +58,10 @@ abstract contract AaveHandler is
     uint256 public totalSuppliedUSDC;
     ///@notice Amount of total supplied USDT
     uint256 public totalSuppliedUSDT;
+    /// @notice the proposed new spender
+    address public proposedAave;
+    /// @notice the last proposal time
+    uint256 public proposalTime;
 
     //########################################## MODIFIERS ##########################################
 
@@ -120,6 +126,14 @@ abstract contract AaveHandler is
         withdrawInternal(amountUsdc, amountUsdt, msg.sender);
     }
 
+    ///@notice Renounce contract ownership
+    ///@dev Reverts by design
+    function renounceOwnership() public view override onlyOwner {
+        revert AaveHandlerCantRenounceOwnership();
+    }
+
+    //########################################## EXTERNAL FUNCTIONS ##########################################
+
     ///@notice Compound funds from-to AAVE protocol
     ///@dev This method assumes that USDC and USDT decimals are less or equal 18
     function compound() external nonReentrant {
@@ -130,7 +144,7 @@ abstract contract AaveHandler is
         if (diffUSDC == 0 || diffUSDT == 0) {
             return;
         }
-        //hardcoded USDC and USDT decimals offset as immutables, these multipliers represent the amount up to 18 decimlas
+        //hardcoded USDC and USDT decimals offset as immutables, these multipliers represent the amount up to 18 decimals (usdo decimals)
         uint256 usdcMultiplier = 10 ** 12;
         uint256 usdtMultiplier = 10 ** 12;
         uint256 minAmountBetween = Math.min(
@@ -163,14 +177,6 @@ abstract contract AaveHandler is
         IERC20(USDO).safeTransfer(owner(), minAmountBetween - amountToStaking);
     }
 
-    ///@notice Renounce contract ownership
-    ///@dev Reverts by design
-    function renounceOwnership() public view override onlyOwner {
-        revert AaveHandlerCantRenounceOwnership();
-    }
-
-    //########################################## EXTERNAL FUNCTIONS ##########################################
-
     ///@notice Supply funds to AAVE protocol
     ///@param amountUsdc The amount to supply intended as USDC
     ///@param amountUsdt The amount to supply intended as USDT
@@ -202,6 +208,34 @@ abstract contract AaveHandler is
         }
 
         emit AaveSupply(amountUsdc, amountUsdt);
+    }
+
+    /// @notice Propose a new AAVE contract
+    /// @dev Can not be zero address
+    /// @param aave The new AAVE address
+    function proposeNewAave(
+        address aave
+    ) external onlyOwner {
+        if (aave == address(0))
+            revert AaveHandlerZeroAddressException();
+        proposedAave = aave;
+        proposalTime = block.timestamp;
+    }
+
+    /// @notice Accept the proposed AAVE contract
+    function acceptProposedAave() external onlyOwner {
+        if (
+            AAVE != address(0) &&
+            proposalTime + PROPOSAL_TIME_INTERVAL > block.timestamp
+        ) {
+            revert AaveIntervalNotRespected();
+        }
+        //remove allowance of old spender
+        if (AAVE != address(0)) {
+            approveAave(0);
+        }
+        AAVE = proposedAave;
+        approveAave(type(uint256).max);
     }
 
     //########################################## INTERNAL FUNCTIONS ##########################################
