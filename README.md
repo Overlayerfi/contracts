@@ -22,7 +22,7 @@ npm run compile
 npm run unit
 ```
 Unit tests must be run on a forked version of Ethereum mainnet (see next point).
-Sometimes the private rpc will (which the next point is based on) has issue with `maxFeePerGas` limits. For now running the suite another time should solve the issue.
+Sometimes the private rpc (which the next point is based on) will have issue with `maxFeePerGas` limits. For now running the suite another time should solve the issue.
 
 ## Run test node
 ```
