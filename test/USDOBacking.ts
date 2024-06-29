@@ -57,7 +57,7 @@ describe("USDOBacking", function () {
       },
       ethers.parseEther("100000000"),
       ethers.parseEther("100000000"),
-      { maxFeePerGas: 9702346660 }
+      //{ maxFeePerGas: 9702346660 }
     );
 
     //send some usdc and usdt to users
@@ -124,7 +124,7 @@ describe("USDOBacking", function () {
       admin.address,
       await usdo.getAddress(),
       await susdo.getAddress(),
-      { maxFeePerGas: 9702346660 }
+      //{ maxFeePerGas: 9702346660 }
     );
 
     // Grant rewarder role

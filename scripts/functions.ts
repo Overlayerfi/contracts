@@ -29,9 +29,9 @@ export async function deploy_USDO(
     },
     ethers.parseEther("100000000"),
     ethers.parseEther("100000000"),
-    {
-      maxFeePerGas: 6702346660 * 10
-    }
+    //{
+    //  maxFeePerGas: 6702346660 * 10
+    //}
   );
   await deployedContract.waitForDeployment();
 
@@ -64,9 +64,9 @@ export async function deploy_StakedUSDO(usdo: string): Promise<string> {
     deployer.address,
     deployer.address,
     0,
-    {
-      maxFeePerGas: 6702346660 * 10
-    }
+    //{
+    //  maxFeePerGas: 6702346660 * 10
+    //}
   );
   await deployedContract.waitForDeployment();
 
@@ -155,9 +155,9 @@ export async function deploy_StakingRewardsDistributor(
     USDT_ADDRESS,
     deployer.address,
     deployer.address,
-    {
-      maxFeePerGas: 6702346660 * 10
-    }
+    //{
+    //  maxFeePerGas: 6702346660 * 10
+    //}
   );
   await deployedContract.waitForDeployment();
 
