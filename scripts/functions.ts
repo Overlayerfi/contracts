@@ -28,7 +28,7 @@ export async function deploy_USDO(
       decimals: 6
     },
     ethers.parseEther("100000000"),
-    ethers.parseEther("100000000"),
+    ethers.parseEther("100000000")
     //{
     //  maxFeePerGas: 6702346660 * 10
     //}
@@ -63,7 +63,7 @@ export async function deploy_StakedUSDO(usdo: string): Promise<string> {
     usdo,
     deployer.address,
     deployer.address,
-    0,
+    0
     //{
     //  maxFeePerGas: 6702346660 * 10
     //}
@@ -129,54 +129,6 @@ export async function StakedUSDO_setCooldownStaking(
   await (contract.connect(deployer) as Contract).setCooldownDuration(seconds);
 
   console.log("Operation passed");
-}
-
-export async function deploy_StakingRewardsDistributor(
-  stakedUsdx: string,
-  usdo: string,
-  grantRewarderRole: boolean
-): Promise<void> {
-  const [deployer] = await ethers.getSigners();
-
-  console.log(
-    "Deploying StakingRewardsDistributor contract with signer:",
-    deployer.address
-  );
-  console.log("USDO:", usdo);
-  console.log("StakedUSDO:", stakedUsdx);
-
-  const ContractSource = await ethers.getContractFactory(
-    "StakingRewardsDistributor"
-  );
-  const deployedContract = await ContractSource.deploy(
-    stakedUsdx,
-    usdo,
-    USDC_ADDRESS,
-    USDT_ADDRESS,
-    deployer.address,
-    deployer.address,
-    //{
-    //  maxFeePerGas: 6702346660 * 10
-    //}
-  );
-  await deployedContract.waitForDeployment();
-
-  console.log("Contract deployed at:", await deployedContract.getAddress());
-
-  if (grantRewarderRole) {
-    const stakedUsdxContract = new ethers.Contract(
-      stakedUsdx,
-      STAKED_USDX_ABI.abi
-    );
-    await (stakedUsdxContract.connect(deployer) as Contract).grantRole(
-      ethers.keccak256(ethers.toUtf8Bytes("REWARDER_ROLE")),
-      await deployedContract.getAddress()
-    );
-    console.log(
-      "Rewarder role attributed to:",
-      await deployedContract.getAddress()
-    );
-  }
 }
 
 export async function deploy_Liquidity(

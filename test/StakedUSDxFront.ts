@@ -102,21 +102,21 @@ describe("StakedUSDOFront", function () {
       collateral_usdc_amount: ethers.parseUnits("0.5", await usdc.decimals()),
       usdo_amount: ethers.parseEther("1")
     };
-    await (usdc.connect(admin)).approve(
-      await usdo.getAddress(),
-      ethers.MaxUint256
-    );
-    await (usdt.connect(admin)).approve(
-      await usdo.getAddress(),
-      ethers.MaxUint256
-    );
+    await usdc
+      .connect(admin)
+      .approve(await usdo.getAddress(), ethers.MaxUint256);
+    await usdt
+      .connect(admin)
+      .approve(await usdo.getAddress(), ethers.MaxUint256);
     await usdo.connect(admin).mint(order);
     await usdo
       .connect(admin)
       .approve(await stakedusdo.getAddress(), ethers.MaxUint256);
 
     //stake initial amount to avoid donation attack on staking contract
-    await stakedusdo.connect(admin).deposit(ethers.parseEther("1"), admin.address);
+    await stakedusdo
+      .connect(admin)
+      .deposit(ethers.parseEther("1"), admin.address);
 
     await usdo
       .connect(alice)
@@ -357,15 +357,15 @@ describe("StakedUSDOFront", function () {
     });
   });
 
-  describe("ERC4626 flow", function() {
+  describe("ERC4626 flow", function () {
     it("Should unstake immediately", async function () {
       const { stakedusdo, admin, usdo, alice, bob } = await loadFixture(
         deployFixture
       );
-      
+
       //disable cool down
       await stakedusdo.connect(admin).setCooldownDuration(0);
-      
+
       await stakedusdo
         .connect(alice)
         .deposit(ethers.parseEther("10"), alice.address);
@@ -375,14 +375,22 @@ describe("StakedUSDOFront", function () {
       await usdo
         .connect(admin)
         .transfer(await stakedusdo.getAddress(), ethers.parseEther("15"));
-      
-      expect(await stakedusdo.balanceOf(alice.address)).to.equal(ethers.parseEther("10"));
-      expect(await stakedusdo.balanceOf(bob.address)).to.equal(ethers.parseEther("5"));
+
+      expect(await stakedusdo.balanceOf(alice.address)).to.equal(
+        ethers.parseEther("10")
+      );
+      expect(await stakedusdo.balanceOf(bob.address)).to.equal(
+        ethers.parseEther("5")
+      );
 
       const beforeAliceBal = ethers.formatEther(await usdo.balanceOf(alice));
       const beforeBobBal = ethers.formatEther(await usdo.balanceOf(bob));
-      await stakedusdo.connect(alice).redeem(ethers.parseEther("10"), alice.address, alice.address);
-      await stakedusdo.connect(bob).redeem(ethers.parseEther("5"), bob.address, bob.address);
+      await stakedusdo
+        .connect(alice)
+        .redeem(ethers.parseEther("10"), alice.address, alice.address);
+      await stakedusdo
+        .connect(bob)
+        .redeem(ethers.parseEther("5"), bob.address, bob.address);
       const afterAliceBal = ethers.formatEther(await usdo.balanceOf(alice));
       const afterBobBal = ethers.formatEther(await usdo.balanceOf(bob));
       expect(

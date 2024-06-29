@@ -94,8 +94,8 @@ describe("USDOM", function () {
       );
       await usdo.connect(admin).pause();
       expect(await usdo.paused()).to.equal(true);
-      await expect(usdo.connect(admin).supplyToBacking()).to.be
-        .eventually.rejected;
+      await expect(usdo.connect(admin).supplyToBacking()).to.be.eventually
+        .rejected;
     });
 
     it("Should unpause", async function () {
@@ -305,8 +305,7 @@ describe("USDOM", function () {
         ethers.keccak256(ethers.toUtf8Bytes("GATEKEEPER_ROLE")),
         await gatekeeper.getAddress()
       );
-      await expect(usdo.connect(admin).disableMint()).to.be.eventually
-        .rejected;
+      await expect(usdo.connect(admin).disableMint()).to.be.eventually.rejected;
       await usdo.connect(gatekeeper).disableMint();
       expect(await usdo.maxMintPerBlock()).to.equal(ethers.parseEther("0"));
     });

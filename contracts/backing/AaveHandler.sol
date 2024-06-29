@@ -86,7 +86,12 @@ abstract contract AaveHandler is
     ///@param treasury The protocol treasury
     ///@param usdo The USDO contract
     ///@param usdo The sUSDO contract
-    constructor(address admin, address treasury, address usdo, address susdo) Ownable(admin) {
+    constructor(
+        address admin,
+        address treasury,
+        address usdo,
+        address susdo
+    ) Ownable(admin) {
         if (admin == address(0)) revert AaveHandlerZeroAddressException();
         if (treasury == address(0)) revert AaveHandlerZeroAddressException();
         if (usdo == address(0)) revert AaveHandlerZeroAddressException();
@@ -170,8 +175,12 @@ abstract contract AaveHandler is
         }
 
         //amount to inject back to protocol
-        uint256 usdcBack = amountUsdc < totalSuppliedUSDC ? amountUsdc : totalSuppliedUSDC;
-        uint256 usdtBack = amountUsdt < totalSuppliedUSDT ? amountUsdt : totalSuppliedUSDT;
+        uint256 usdcBack = amountUsdc < totalSuppliedUSDC
+            ? amountUsdc
+            : totalSuppliedUSDC;
+        uint256 usdtBack = amountUsdt < totalSuppliedUSDT
+            ? amountUsdt
+            : totalSuppliedUSDT;
 
         //the amount to inject back to the protocol is represented by total totalSuppliedUSDC/T
         IERC20(USDC).safeTransfer(USDO, usdcBack);
@@ -272,11 +281,8 @@ abstract contract AaveHandler is
     ///@notice Propose a new AAVE contract
     ///@dev Can not be zero address
     ///@param aave The new AAVE address
-    function proposeNewAave(
-        address aave
-    ) external onlyOwner {
-        if (aave == address(0))
-            revert AaveHandlerZeroAddressException();
+    function proposeNewAave(address aave) external onlyOwner {
+        if (aave == address(0)) revert AaveHandlerZeroAddressException();
         proposedAave = aave;
         aaveProposalTime = block.timestamp;
     }
@@ -287,7 +293,8 @@ abstract contract AaveHandler is
     function proposeNewTeamAllocation(
         uint8 _proposedTeamAllocation
     ) external onlyOwner {
-        if (_proposedTeamAllocation > 100) revert AaveHandlerOperationNotAllowed();
+        if (_proposedTeamAllocation > 100)
+            revert AaveHandlerOperationNotAllowed();
         proposedTeamAllocation = _proposedTeamAllocation;
         teamAllocationProposalTime = block.timestamp;
     }
@@ -313,7 +320,8 @@ abstract contract AaveHandler is
     ///@notice Accept the proposed team allocation
     function acceptProposedTeamAllocation() external onlyOwner {
         if (
-            teamAllocationProposalTime + PROPOSAL_TIME_INTERVAL > block.timestamp
+            teamAllocationProposalTime + PROPOSAL_TIME_INTERVAL >
+            block.timestamp
         ) {
             revert AaveIntervalNotRespected();
         }
