@@ -50,6 +50,8 @@ abstract contract AaveHandler is
 
     ///@notice AAVE protocl Pool.sol contract address
     address public AAVE = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
+    ///@notice Protocol treasury
+    address public TREASURY;
     ///@notice Amount of total supplied USDC
     uint256 public totalSuppliedUSDC;
     ///@notice Amount of total supplied USDT
@@ -81,13 +83,16 @@ abstract contract AaveHandler is
 
     ///@notice The constructor
     ///@param admin The contract admin
+    ///@param treasury The protocol treasury
     ///@param usdo The USDO contract
     ///@param usdo The sUSDO contract
-    constructor(address admin, address usdo, address susdo) Ownable(admin) {
+    constructor(address admin, address treasury, address usdo, address susdo) Ownable(admin) {
         if (admin == address(0)) revert AaveHandlerZeroAddressException();
+        if (treasury == address(0)) revert AaveHandlerZeroAddressException();
         if (usdo == address(0)) revert AaveHandlerZeroAddressException();
         if (susdo == address(0)) revert AaveHandlerZeroAddressException();
         if (usdo == susdo) revert AaveHandlerSameAddressException();
+        TREASURY = treasury;
         USDO = usdo;
         sUSDO = susdo;
 
@@ -264,9 +269,9 @@ abstract contract AaveHandler is
         emit AaveSupply(amountUsdc, amountUsdt);
     }
 
-    /// @notice Propose a new AAVE contract
-    /// @dev Can not be zero address
-    /// @param aave The new AAVE address
+    ///@notice Propose a new AAVE contract
+    ///@dev Can not be zero address
+    ///@param aave The new AAVE address
     function proposeNewAave(
         address aave
     ) external onlyOwner {
@@ -276,9 +281,9 @@ abstract contract AaveHandler is
         aaveProposalTime = block.timestamp;
     }
 
-    /// @notice Propose a new AAVE contract
-    /// @dev Can not be zero address
-    /// @param _proposedTeamAllocation The new proposed team allocation
+    ///@notice Propose a new AAVE contract
+    ///@dev Can not be zero address
+    ///@param _proposedTeamAllocation The new proposed team allocation
     function proposeNewTeamAllocation(
         uint8 _proposedTeamAllocation
     ) external onlyOwner {
@@ -287,7 +292,7 @@ abstract contract AaveHandler is
         teamAllocationProposalTime = block.timestamp;
     }
 
-    /// @notice Accept the proposed AAVE contract
+    ///@notice Accept the proposed AAVE contract
     function acceptProposedAave() external onlyOwner {
         if (
             AAVE != address(0) &&
@@ -302,10 +307,10 @@ abstract contract AaveHandler is
         AAVE = proposedAave;
         approveAave(type(uint256).max);
 
-        emit NewAave(AAVE);
+        emit AaveNewAave(AAVE);
     }
 
-    /// @notice Accept the proposed team allocation
+    ///@notice Accept the proposed team allocation
     function acceptProposedTeamAllocation() external onlyOwner {
         if (
             teamAllocationProposalTime + PROPOSAL_TIME_INTERVAL > block.timestamp
@@ -315,7 +320,16 @@ abstract contract AaveHandler is
         TEAM_ALLOCATION = proposedTeamAllocation;
         USDO_MINT_AMOUNT = 100 - TEAM_ALLOCATION;
 
-        emit NewTeamAllocation(TEAM_ALLOCATION);
+        emit AaveNewTeamAllocation(TEAM_ALLOCATION);
+    }
+
+    ///@notice Update protocol treasurty
+    ///@dev Does not harm protocol users
+    ///@param treasury The new treasury address
+    function updateTreasury(address treasury) external onlyOwner {
+        if (treasury == address(0)) revert AaveHandlerZeroAddressException();
+        TREASURY = treasury;
+        emit AaveNewTreasury(treasury);
     }
 
     //########################################## INTERNAL FUNCTIONS ##########################################
