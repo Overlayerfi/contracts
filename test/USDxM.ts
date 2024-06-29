@@ -178,7 +178,7 @@ describe("USDOM", function () {
       const oldTime = await time.latest();
       expect(await usdo.proposalTime()).to.be.equal(oldTime);
 
-      await time.increase(14 * 24 * 60 * 60);
+      await time.increase(10 * 24 * 60 * 60);
 
       await usdo.connect(admin).acceptProposedCollateralSpender();
       expect(await usdo.approvedCollateralSpender()).to.be.equal(admin.address);
@@ -205,7 +205,7 @@ describe("USDOM", function () {
       const oldTime = await time.latest();
       expect(await usdo.proposalTime()).to.be.equal(oldTime);
 
-      await time.increase(14 * 24 * 60 * 59);
+      await time.increase(10 * 24 * 60 * 59);
 
       await expect(
         usdo.connect(admin).acceptProposedCollateralSpender()

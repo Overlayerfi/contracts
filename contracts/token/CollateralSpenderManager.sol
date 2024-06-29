@@ -25,7 +25,7 @@ abstract contract CollateralSpenderManager is Collateral {
         keccak256("COLLATERAL_MANAGER_ROLE");
 
     /// @notice the time interval needed to changed a spender address
-    uint256 public constant PROPOSAL_TIME_INTERVAL = 14 days;
+    uint256 public constant PROPOSAL_TIME_INTERVAL = 10 days;
 
     /// @notice the unique approved collateral spender
     address public approvedCollateralSpender;
@@ -71,7 +71,7 @@ abstract contract CollateralSpenderManager is Collateral {
             IERC20(usdt.addr).forceApprove(approvedCollateralSpender, 0);
         }
         approvedCollateralSpender = proposedSpender;
-        //add allowance of old spender
+        //add allowance for new spender
         IERC20(usdc.addr).forceApprove(
             approvedCollateralSpender,
             type(uint256).max
