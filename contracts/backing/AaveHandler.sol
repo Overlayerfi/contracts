@@ -26,8 +26,6 @@ abstract contract AaveHandler is
 
     //########################################## CONSTANT ##########################################
 
-    ///@notice AAVE protocl Pool.sol contract address
-    address public AAVE = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     ///@notice USDC eth mainnet contract address
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     ///@notice USDT eth mainnet contract address
@@ -38,10 +36,6 @@ abstract contract AaveHandler is
     address public constant AUSDT = 0x23878914EFE38d27C4D67Ab83ed1b93A74D4086a;
     ///@notice AAVE referral code
     uint16 private constant AAVE_REFERRAL_CODE = 0;
-    ///@notice team reward allocation percentage
-    uint8 private constant TEAM_ALLOCATION = 20;
-    ///@notice usdo reward allocation percentage
-    uint8 private constant USDO_MINT_AMOUNT = 80;
     /// @notice the time interval needed to changed the AAVE contract
     uint256 public constant PROPOSAL_TIME_INTERVAL = 10 days;
 
@@ -54,14 +48,27 @@ abstract contract AaveHandler is
 
     //########################################## PUBLIC STORAGE ##########################################
 
+    ///@notice AAVE protocl Pool.sol contract address
+    address public AAVE = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     ///@notice Amount of total supplied USDC
     uint256 public totalSuppliedUSDC;
     ///@notice Amount of total supplied USDT
     uint256 public totalSuppliedUSDT;
     /// @notice the proposed new spender
     address public proposedAave;
-    /// @notice the last proposal time
-    uint256 public proposalTime;
+    /// @notice the last aave proposal time
+    uint256 public aaveProposalTime;
+    /// @notice the last team allocation proposal time
+    uint256 public teamAllocationProposalTime;
+    /// @notice the proposed team allocation percentage
+    uint8 public proposedTeamAllocation;
+
+    //########################################## PRIVATE STORAGE ##########################################
+
+    ///@notice team reward allocation percentage
+    uint8 private TEAM_ALLOCATION = 20;
+    ///@notice usdo reward allocation percentage
+    uint8 private USDO_MINT_AMOUNT = 80;
 
     //########################################## MODIFIERS ##########################################
 
@@ -266,14 +273,25 @@ abstract contract AaveHandler is
         if (aave == address(0))
             revert AaveHandlerZeroAddressException();
         proposedAave = aave;
-        proposalTime = block.timestamp;
+        aaveProposalTime = block.timestamp;
+    }
+
+    /// @notice Propose a new AAVE contract
+    /// @dev Can not be zero address
+    /// @param _proposedTeamAllocation The new proposed team allocation
+    function proposeNewTeamAllocation(
+        uint8 _proposedTeamAllocation
+    ) external onlyOwner {
+        if (_proposedTeamAllocation > 100) revert AaveHandlerOperationNotAllowed();
+        proposedTeamAllocation = _proposedTeamAllocation;
+        teamAllocationProposalTime = block.timestamp;
     }
 
     /// @notice Accept the proposed AAVE contract
     function acceptProposedAave() external onlyOwner {
         if (
             AAVE != address(0) &&
-            proposalTime + PROPOSAL_TIME_INTERVAL > block.timestamp
+            aaveProposalTime + PROPOSAL_TIME_INTERVAL > block.timestamp
         ) {
             revert AaveIntervalNotRespected();
         }
@@ -283,6 +301,21 @@ abstract contract AaveHandler is
         }
         AAVE = proposedAave;
         approveAave(type(uint256).max);
+
+        emit NewAave(AAVE);
+    }
+
+    /// @notice Accept the proposed team allocation
+    function acceptProposedTeamAllocation() external onlyOwner {
+        if (
+            teamAllocationProposalTime + PROPOSAL_TIME_INTERVAL > block.timestamp
+        ) {
+            revert AaveIntervalNotRespected();
+        }
+        TEAM_ALLOCATION = proposedTeamAllocation;
+        USDO_MINT_AMOUNT = 100 - TEAM_ALLOCATION;
+
+        emit NewTeamAllocation(TEAM_ALLOCATION);
     }
 
     //########################################## INTERNAL FUNCTIONS ##########################################
