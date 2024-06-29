@@ -116,7 +116,7 @@ abstract contract AaveHandler is
         IERC20(USDT).forceApprove(USDO, amount);
     }
 
-    ///@notice Withraw funds to AAVE protocol, the public interface for allowed callers
+    ///@notice Withraw funds from AAVE protocol, the public interface for allowed callers
     ///@param amountUsdc The amount to withdraw intended as USDC
     ///@param amountUsdt The amount to withdraw intended as USDCT
     function withdraw(
@@ -134,8 +134,55 @@ abstract contract AaveHandler is
 
     //########################################## EXTERNAL FUNCTIONS ##########################################
 
+    ///@notice Withraw funds from AAVE protocol
+    ///@dev Use with caution, it will forward all the user funds to the protocol token (funds are safu)
+    ///@dev It requires equal amounts in input
+    ///@param amountUsdc The amount to withdraw intended as USDC
+    ///@param amountUsdt The amount to withdraw intended as USDCT
+    function adminWithdraw(
+        uint256 amountUsdc,
+        uint256 amountUsdt
+    ) public onlyOwner {
+        if (amountUsdc != amountUsdt) {
+            revert AaveHandlerOperationNotAllowed();
+        }
+        if (IERC20(AUSDC).balanceOf(address(this)) < amountUsdc)
+            revert AaveHandlerInsufficientBalance();
+        if (IERC20(AUSDT).balanceOf(address(this)) < amountUsdt)
+            revert AaveHandlerInsufficientBalance();
+        if (amountUsdc > 0) {
+            IPool(AAVE).withdraw(USDC, amountUsdc, address(this));
+        }
+        if (amountUsdt > 0) {
+            IPool(AAVE).withdraw(USDT, amountUsdt, address(this));
+        }
+
+        //amount to inject back to protocol
+        uint256 usdcBack = amountUsdc < totalSuppliedUSDC ? amountUsdc : totalSuppliedUSDC;
+        uint256 usdtBack = amountUsdt < totalSuppliedUSDT ? amountUsdt : totalSuppliedUSDT;
+
+        //the amount to inject back to the protocol is represented by total totalSuppliedUSDC/T
+        IERC20(USDC).safeTransfer(USDO, usdcBack);
+        IERC20(USDT).safeTransfer(USDO, usdtBack);
+        if (amountUsdc > totalSuppliedUSDC) {
+            uint256 usdcDiff = amountUsdc - totalSuppliedUSDC;
+            if (usdcDiff > 0) {
+                IERC20(USDC).safeTransfer(owner(), usdcDiff);
+            }
+        }
+        if (amountUsdt > totalSuppliedUSDT) {
+            uint256 usdtDiff = amountUsdt - totalSuppliedUSDT;
+            if (usdtDiff > 0) {
+                IERC20(USDT).safeTransfer(owner(), usdtDiff);
+            }
+        }
+        totalSuppliedUSDC -= usdcBack;
+        totalSuppliedUSDT -= usdtBack;
+    }
+
     ///@notice Compound funds from-to AAVE protocol
     ///@dev This method assumes that USDC and USDT decimals are less or equal 18
+    ///@dev We track the user deposited funds with totalSuppliedUSDC/T and leverage the dynamic balance of AAVE aToken in order to compute the gains
     function compound() external nonReentrant {
         uint256 diffUSDC = IERC20(AUSDC).balanceOf(address(this)) -
             totalSuppliedUSDC;
