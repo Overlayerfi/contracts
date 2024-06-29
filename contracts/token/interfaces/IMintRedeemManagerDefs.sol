@@ -17,4 +17,5 @@ interface IMintRedeemManagerDefs is IMintRedeemManagerEvents {
     error MaxMintPerBlockExceeded();
     error MaxRedeemPerBlockExceeded();
     error SupplyAmountNotReached();
+    error InvalidMaxRedeemAmount();
 }

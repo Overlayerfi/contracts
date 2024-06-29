@@ -133,9 +133,8 @@ abstract contract MintRedeemManager is
     }
 
     /// @notice Disables the mint and redeem
-    function disableMintRedeem() external onlyRole(GATEKEEPER_ROLE) {
+    function disableMint() external onlyRole(GATEKEEPER_ROLE) {
         _setMaxMintPerBlock(0);
-        _setMaxRedeemPerBlock(0);
     }
 
     /// @notice Removes the collateral manager role from an account, this can ONLY be executed by the gatekeeper role
@@ -336,6 +335,9 @@ abstract contract MintRedeemManager is
     /// @notice Sets the max redeemPerBlock limit
     /// @param _maxRedeemPerBlock The new max value
     function _setMaxRedeemPerBlock(uint256 _maxRedeemPerBlock) internal {
+        if (_maxRedeemPerBlock == 0) {
+            revert InvalidMaxRedeemAmount();
+        } 
         uint256 oldMaxRedeemPerBlock = maxRedeemPerBlock;
         maxRedeemPerBlock = _maxRedeemPerBlock;
         emit MaxRedeemPerBlockChanged(oldMaxRedeemPerBlock, maxRedeemPerBlock);
