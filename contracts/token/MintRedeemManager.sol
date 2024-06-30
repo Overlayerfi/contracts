@@ -4,10 +4,7 @@ pragma solidity 0.8.20;
 /* solhint-disable private-vars-leading-underscore */
 /* solhint-disable var-name-mixedcase */
 
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 
 import "../shared/SingleAdminAccessControl.sol";
@@ -18,12 +15,11 @@ import "./types/MintRedeemManagerTypes.sol";
 
 /**
  * @title MintRedeemManager
- * @notice This contract mints and redeems the parent USDOM that inherits this contract
+ * @notice This contract mints and redeems the parent USDO that inherits this contract
  */
 abstract contract MintRedeemManager is
     IMintRedeemManagerDefs,
     CollateralSpenderManager,
-    ReentrancyGuard,
     Pausable
 {
     using SafeERC20 for IERC20;
@@ -62,7 +58,7 @@ abstract contract MintRedeemManager is
     /// @param mintAmount The USDO amount to be minted
     modifier belowMaxMintPerBlock(uint256 mintAmount) {
         if (mintedPerBlock[block.number] + mintAmount > maxMintPerBlock)
-            revert MaxMintPerBlockExceeded();
+            revert MintRedeemManagerMaxMintPerBlockExceeded();
         _;
     }
 
@@ -70,7 +66,7 @@ abstract contract MintRedeemManager is
     /// @param redeemAmount The USDO amount to be redeemed
     modifier belowMaxRedeemPerBlock(uint256 redeemAmount) {
         if (redeemedPerBlock[block.number] + redeemAmount > maxRedeemPerBlock)
-            revert MaxRedeemPerBlockExceeded();
+            revert MintRedeemManagerMaxRedeemPerBlockExceeded();
         _;
     }
 
@@ -84,7 +80,7 @@ abstract contract MintRedeemManager is
         uint256 _maxMintPerBlock,
         uint256 _maxRedeemPerBlock
     ) CollateralSpenderManager(admin, _usdc, _usdt) {
-        if (decimals == 0) revert InvalidDecimals();
+        if (decimals == 0) revert MintRedeemManagerInvalidDecimals();
         _decimals = decimals;
 
         // Set the max mint/redeem limits per block
@@ -105,7 +101,7 @@ abstract contract MintRedeemManager is
     /// @dev The spender is handled by the CollateralSpenderManager contract
     function approveCollateral() external onlyRole(COLLATERAL_MANAGER_ROLE) {
         if (approvedCollateralSpender == address(0))
-            revert InvalidZeroAddress();
+            revert MintRedeemManagerInvalidZeroAddress();
         IERC20(usdc.addr).forceApprove(
             approvedCollateralSpender,
             type(uint256).max
@@ -160,17 +156,18 @@ abstract contract MintRedeemManager is
         uint256 usdt_amount_normalized = order.collateral_usdt_amount *
             (10 ** usdtDecimalsDiff);
         if (usdc_amount_normalized != usdt_amount_normalized) {
-            revert DifferentAssetsAmounts();
+            revert MintRedeemManagerDifferentAssetsAmounts();
         }
         // Their sum must be equal to USDO amount
         if (
             usdc_amount_normalized + usdt_amount_normalized != order.usdo_amount
         ) {
-            revert InvalidAssetAmounts();
+            revert MintRedeemManagerInvalidAssetAmounts();
         }
     }
 
     /// @notice Mint stablecoins from assets
+    /// @dev Order benefactor is not used as we constraint it to be the msg.sender at higher level
     /// @param order A struct containing the mint order
     function mintInternal(
         MintRedeemManagerTypes.Order calldata order
@@ -181,14 +178,12 @@ abstract contract MintRedeemManager is
         _transferCollateral(
             order.collateral_usdc_amount,
             order.collateral_usdc,
-            address(this),
-            order.benefactor
+            address(this)
         );
         _transferCollateral(
             order.collateral_usdt_amount,
             order.collateral_usdt,
-            address(this),
-            order.benefactor
+            address(this)
         );
     }
 
@@ -203,7 +198,7 @@ abstract contract MintRedeemManager is
             (10 ** usdt.decimals);
 
         if (!((usdcBal > minAmountUsdc) && (usdtBal > minAmountUsdt))) {
-            revert SupplyAmountNotReached();
+            revert MintRedeemManagerSupplyAmountNotReached();
         }
         //Get the integer division
         uint256 usdcToMove = (usdcBal / minAmountUsdc) * minAmountUsdc;
@@ -221,8 +216,6 @@ abstract contract MintRedeemManager is
         belowMaxRedeemPerBlock(order.usdo_amount)
         returns (uint256 amountToBurn, uint256 usdcBack, uint256 usdtBack)
     {
-        amountToBurn = order.usdo_amount;
-
         validateInvariant(order);
         // Add to the redeemed amount in this block
         redeemedPerBlock[block.number] += order.usdo_amount;
@@ -299,7 +292,7 @@ abstract contract MintRedeemManager is
         uint256 amount
     ) internal {
         if (!(asset == usdc.addr || asset == usdt.addr)) {
-            revert UnsupportedAsset();
+            revert MintRedeemManagerUnsupportedAsset();
         } else {
             IERC20(asset).safeTransfer(beneficiary, amount);
         }
@@ -310,18 +303,16 @@ abstract contract MintRedeemManager is
     /// @param amount The amount to be transfered
     /// @param asset The asset to be transfered
     /// @param recipient The destination address
-    /// @param benefactor The asset benefactor
     function _transferCollateral(
         uint256 amount,
         address asset,
-        address recipient,
-        address benefactor
+        address recipient
     ) internal {
         // cannot mint using unsupported asset or native ETH even if it is supported for redemptions
         if (!(asset == usdc.addr || asset == usdt.addr))
-            revert UnsupportedAsset();
+            revert MintRedeemManagerUnsupportedAsset();
         IERC20 token = IERC20(asset);
-        token.safeTransferFrom(benefactor, recipient, amount);
+        token.safeTransferFrom(msg.sender, recipient, amount);
     }
 
     /// @notice Sets the max mintPerBlock limit
@@ -336,7 +327,7 @@ abstract contract MintRedeemManager is
     /// @param _maxRedeemPerBlock The new max value
     function _setMaxRedeemPerBlock(uint256 _maxRedeemPerBlock) internal {
         if (_maxRedeemPerBlock == 0) {
-            revert InvalidMaxRedeemAmount();
+            revert MintRedeemManagerInvalidMaxRedeemAmount();
         }
         uint256 oldMaxRedeemPerBlock = maxRedeemPerBlock;
         maxRedeemPerBlock = _maxRedeemPerBlock;

@@ -39,5 +39,25 @@ This will spawn a forked Ethereum mainnet from block `19709557`
 npm run exec-[network: local/obsidia/eth...] YOUR_SCRIPT
 ```
 
+## Run `solhint`
+```
+solhint contracts/**/*.sol
+```
+
+## `slither`
+Static code analyzer can be installed by following [slither guide](https://github.com/crytic/slither).
+From repository root:
+```
+slither --include-paths contracts/ .
+```
+
+Note: Currently `high` and `medium` severities for `Liquidity.sol` are ignored as we plan to deprecate that contract.
+
+## Run `prettier`
+```
+npm run prettier-ts
+npm run prettier-sol
+```
+
 ## Internal beta RPC
 Obsidia has an internal RPC with a copy of Ethereum mainnet starting from block `19709557`

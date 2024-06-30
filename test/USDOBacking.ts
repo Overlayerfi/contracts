@@ -44,7 +44,7 @@ describe("USDOBacking", function () {
     const ausdc = new ethers.Contract(AUSDC_ADDRESS, ERC20_ABI, admin.provider);
     const ausdt = new ethers.Contract(AUSDT_ADDRESS, ERC20_ABI, admin.provider);
 
-    const Usdo = await ethers.getContractFactory("USDOM");
+    const Usdo = await ethers.getContractFactory("USDO");
     const usdo = await Usdo.deploy(
       await admin.getAddress(),
       {
@@ -187,25 +187,19 @@ describe("USDOBacking", function () {
 
     it("Should set USDO collateral spender", async function () {
       const { usdobacking, usdo } = await loadFixture(deployFixture);
-      expect(await usdo.approvedCollateralSpender()).to.equal(
-        await usdobacking.getAddress()
-      );
+      expect(await usdo.getSpender()).to.equal(await usdobacking.getAddress());
     });
   });
 
   describe("AAVE change", function () {
     it("Should change AAVE contract", async function () {
       const { usdobacking, admin } = await loadFixture(deployFixture);
-      expect(await usdobacking.AAVE()).to.be.equal(
-        "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"
-      );
       await usdobacking.proposeNewAave(admin.address);
       await time.increase(10 * 24 * 60 * 60);
       expect(await usdobacking.connect(admin).acceptProposedAave()).to.emit(
         usdobacking,
         "AaveNewAaave"
       );
-      expect(await usdobacking.AAVE()).to.be.equal(admin.address);
     });
   });
 

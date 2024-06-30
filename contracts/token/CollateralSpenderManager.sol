@@ -2,14 +2,14 @@
 pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./Collateral.sol";
-import "hardhat/console.sol";
 
 /**
  * @title CollateralSpenderManager
  * @notice This contract handles the collateral spender for USDO
  */
-abstract contract CollateralSpenderManager is Collateral {
+abstract contract CollateralSpenderManager is Collateral, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     error CollateralSpenderManagerInvalidAdminAddress();
@@ -28,7 +28,7 @@ abstract contract CollateralSpenderManager is Collateral {
     uint256 public constant PROPOSAL_TIME_INTERVAL = 10 days;
 
     /// @notice the unique approved collateral spender
-    address public approvedCollateralSpender;
+    address internal approvedCollateralSpender;
 
     /// @notice the proposed new spender
     address public proposedSpender;
@@ -41,6 +41,12 @@ abstract contract CollateralSpenderManager is Collateral {
         MintRedeemManagerTypes.StableCoin memory _usdc,
         MintRedeemManagerTypes.StableCoin memory _usdt
     ) Collateral(admin, _usdc, _usdt) {}
+
+    /// @notice View the spender
+    /// @return The active spender
+    function getSpender() public view returns (address) {
+        return approvedCollateralSpender;
+    }
 
     /// @notice Propose a new spender
     /// @dev Can not be zero address
@@ -55,7 +61,7 @@ abstract contract CollateralSpenderManager is Collateral {
 
     /// @notice The proposed spender accepts to be the spender
     /// @dev If it is the initial spender, the PROPOSAL_TIME_INTERVAL is not respected
-    function acceptProposedCollateralSpender() external {
+    function acceptProposedCollateralSpender() external nonReentrant {
         if (msg.sender != proposedSpender) {
             revert CollateralSpenderManagerOperatioNotAllowed();
         }
@@ -65,12 +71,13 @@ abstract contract CollateralSpenderManager is Collateral {
         ) {
             revert CollateralSpenderManagerIntervalNotRespected();
         }
-        //remove allowance of old spender
-        if (approvedCollateralSpender != address(0)) {
-            IERC20(usdc.addr).forceApprove(approvedCollateralSpender, 0);
-            IERC20(usdt.addr).forceApprove(approvedCollateralSpender, 0);
-        }
+        address oldSpender = approvedCollateralSpender;
         approvedCollateralSpender = proposedSpender;
+        //remove allowance of old spender
+        if (oldSpender != address(0)) {
+            IERC20(usdc.addr).forceApprove(oldSpender, 0);
+            IERC20(usdt.addr).forceApprove(oldSpender, 0);
+        }
         //add allowance for new spender
         IERC20(usdc.addr).forceApprove(
             approvedCollateralSpender,

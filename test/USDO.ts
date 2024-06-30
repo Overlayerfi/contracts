@@ -2,7 +2,7 @@ import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 
-describe("USDOM", function () {
+describe("USDO", function () {
   async function deployFixture() {
     const [admin, gatekeeper, alice, bob] = await ethers.getSigners();
 
@@ -12,7 +12,7 @@ describe("USDOM", function () {
     const Usdt = await ethers.getContractFactory("SixDecimalsUsd");
     const usdt = await Usdt.deploy(1000, "USDT", "USDT");
 
-    const Contract = await ethers.getContractFactory("USDOM");
+    const Contract = await ethers.getContractFactory("USDO");
     const usdo = await Contract.deploy(
       await admin.getAddress(),
       {
@@ -119,13 +119,11 @@ describe("USDOM", function () {
         ethers.keccak256(ethers.toUtf8Bytes("COLLATERAL_MANAGER_ROLE")),
         collateralManagerAddress
       );
-      expect(await usdo.approvedCollateralSpender()).to.be.equal(
-        ethers.ZeroAddress
-      );
+      expect(await usdo.getSpender()).to.be.equal(ethers.ZeroAddress);
       await usdo.connect(admin).proposeNewCollateralSpender(alice.address);
       expect(await usdo.proposedSpender()).to.be.equal(alice.address);
       await usdo.connect(alice).acceptProposedCollateralSpender();
-      expect(await usdo.approvedCollateralSpender()).to.be.equal(alice.address);
+      expect(await usdo.getSpender()).to.be.equal(alice.address);
     });
 
     it("Should reject acceptance if not the proposed spender", async function () {
@@ -135,9 +133,7 @@ describe("USDOM", function () {
         ethers.keccak256(ethers.toUtf8Bytes("COLLATERAL_MANAGER_ROLE")),
         collateralManagerAddress
       );
-      expect(await usdo.approvedCollateralSpender()).to.be.equal(
-        ethers.ZeroAddress
-      );
+      expect(await usdo.getSpender()).to.be.equal(ethers.ZeroAddress);
       await usdo.connect(admin).proposeNewCollateralSpender(alice.address);
       expect(await usdo.proposedSpender()).to.be.equal(alice.address);
       await expect(usdo.connect(admin).acceptProposedCollateralSpender()).to.be
@@ -163,13 +159,11 @@ describe("USDOM", function () {
         ethers.keccak256(ethers.toUtf8Bytes("COLLATERAL_MANAGER_ROLE")),
         collateralManagerAddress
       );
-      expect(await usdo.approvedCollateralSpender()).to.be.equal(
-        ethers.ZeroAddress
-      );
+      expect(await usdo.getSpender()).to.be.equal(ethers.ZeroAddress);
       await usdo.connect(admin).proposeNewCollateralSpender(alice.address);
       expect(await usdo.proposedSpender()).to.be.equal(alice.address);
       await usdo.connect(alice).acceptProposedCollateralSpender();
-      expect(await usdo.approvedCollateralSpender()).to.be.equal(alice.address);
+      expect(await usdo.getSpender()).to.be.equal(alice.address);
 
       //change from alice spender to admin
       await usdo.connect(admin).proposeNewCollateralSpender(admin.address);
@@ -180,7 +174,7 @@ describe("USDOM", function () {
       await time.increase(10 * 24 * 60 * 60);
 
       await usdo.connect(admin).acceptProposedCollateralSpender();
-      expect(await usdo.approvedCollateralSpender()).to.be.equal(admin.address);
+      expect(await usdo.getSpender()).to.be.equal(admin.address);
     });
 
     it("Should not set next collateral manager if time not respected", async function () {
@@ -190,13 +184,11 @@ describe("USDOM", function () {
         ethers.keccak256(ethers.toUtf8Bytes("COLLATERAL_MANAGER_ROLE")),
         collateralManagerAddress
       );
-      expect(await usdo.approvedCollateralSpender()).to.be.equal(
-        ethers.ZeroAddress
-      );
+      expect(await usdo.getSpender()).to.be.equal(ethers.ZeroAddress);
       await usdo.connect(admin).proposeNewCollateralSpender(alice.address);
       expect(await usdo.proposedSpender()).to.be.equal(alice.address);
       await usdo.connect(alice).acceptProposedCollateralSpender();
-      expect(await usdo.approvedCollateralSpender()).to.be.equal(alice.address);
+      expect(await usdo.getSpender()).to.be.equal(alice.address);
 
       //change from alice spender to admin
       await usdo.connect(admin).proposeNewCollateralSpender(admin.address);
@@ -339,6 +331,24 @@ describe("USDOM", function () {
       expect(await usdc.balanceOf(contractAddr)).to.equal(
         ethers.parseUnits("110", await usdc.decimals())
       );
+    });
+
+    it("Should not mint oh behalf of external benefactors", async function () {
+      const { usdc, usdt, usdo, admin, bob, alice } = await loadFixture(
+        deployFixture
+      );
+      const order = {
+        benefactor: bob.address,
+        beneficiary: alice.address,
+        collateral_usdt: await usdt.getAddress(),
+        collateral_usdc: await usdc.getAddress(),
+        collateral_usdt_amount: ethers.parseUnits("10", await usdt.decimals()),
+        collateral_usdc_amount: ethers.parseUnits("10", await usdc.decimals()),
+        usdo_amount: ethers.parseEther("20")
+      };
+      await expect(
+        usdo.connect(alice).mint(order)
+      ).to.be.eventually.rejectedWith("InvalidBenefactor");
     });
 
     it("Should mint small amount", async function () {
@@ -503,6 +513,34 @@ describe("USDOM", function () {
       expect(await usdc.balanceOf(alice.address)).to.equal(
         ethers.parseUnits("50", await usdc.decimals())
       );
+    });
+
+    it("Should not redeem not owned tokens", async function () {
+      const { usdc, usdt, usdo, admin, alice, bob } = await loadFixture(
+        deployFixture
+      );
+      const order = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral_usdt: await usdt.getAddress(),
+        collateral_usdc: await usdc.getAddress(),
+        collateral_usdt_amount: ethers.parseUnits("10", await usdt.decimals()),
+        collateral_usdc_amount: ethers.parseUnits("10", await usdc.decimals()),
+        usdo_amount: ethers.parseEther("20")
+      };
+      const redeemOrder = {
+        benefactor: alice.address,
+        beneficiary: bob.address,
+        collateral_usdt: await usdt.getAddress(),
+        collateral_usdc: await usdc.getAddress(),
+        collateral_usdt_amount: ethers.parseUnits("10", await usdt.decimals()),
+        collateral_usdc_amount: ethers.parseUnits("10", await usdc.decimals()),
+        usdo_amount: ethers.parseEther("20")
+      };
+      await usdo.connect(alice).mint(order);
+      await expect(
+        usdo.connect(bob).redeem(redeemOrder)
+      ).to.be.eventually.rejectedWith("ERC20InsufficientAllowance");
     });
 
     it("Should not redeem on low USDO balance", async function () {

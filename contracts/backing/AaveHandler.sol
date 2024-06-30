@@ -115,20 +115,20 @@ abstract contract AaveHandler is
 
     ///@notice Approve aave spending
     ///@param amount The amount to allow aave as spender
-    function approveAave(uint256 amount) public onlyOwner {
+    function approveAave(uint256 amount) public onlyOwner nonReentrant {
         IERC20(USDC).forceApprove(AAVE, amount);
         IERC20(USDT).forceApprove(AAVE, amount);
     }
 
     ///@notice Approve Staked USDO spending
     ///@param amount The amount to allow sUSDO as spender
-    function approveStakingUSDO(uint256 amount) public onlyOwner {
+    function approveStakingUSDO(uint256 amount) public onlyOwner nonReentrant {
         IERC20(USDO).forceApprove(sUSDO, amount);
     }
 
     ///@notice Approve USDO spending
     ///@param amount The amount to allow USDO as spender
-    function approveUSDO(uint256 amount) public onlyOwner {
+    function approveUSDO(uint256 amount) public onlyOwner nonReentrant {
         IERC20(USDC).forceApprove(USDO, amount);
         IERC20(USDT).forceApprove(USDO, amount);
     }
@@ -159,20 +159,33 @@ abstract contract AaveHandler is
     function adminWithdraw(
         uint256 amountUsdc,
         uint256 amountUsdt
-    ) public onlyOwner {
-        if (amountUsdc != amountUsdt) {
-            revert AaveHandlerOperationNotAllowed();
-        }
+    ) external onlyOwner nonReentrant {
         if (IERC20(AUSDC).balanceOf(address(this)) < amountUsdc)
             revert AaveHandlerInsufficientBalance();
         if (IERC20(AUSDT).balanceOf(address(this)) < amountUsdt)
             revert AaveHandlerInsufficientBalance();
+        uint256 usdcReceived = 0;
+        uint256 usdtReceived = 0;
         if (amountUsdc > 0) {
-            IPool(AAVE).withdraw(USDC, amountUsdc, address(this));
+            usdcReceived = IPool(AAVE).withdraw(
+                USDC,
+                amountUsdc,
+                address(this)
+            );
         }
         if (amountUsdt > 0) {
-            IPool(AAVE).withdraw(USDT, amountUsdt, address(this));
+            usdtReceived = IPool(AAVE).withdraw(
+                USDT,
+                amountUsdt,
+                address(this)
+            );
         }
+        if ((amountUsdc != usdcReceived) || (amountUsdt != usdtReceived)) {
+            revert AaveHandlerAaveWithrawFailed();
+        }
+
+        uint256 oldUsdcSupplied = totalSuppliedUSDC;
+        uint256 oldUsdtSupplied = totalSuppliedUSDT;
 
         //amount to inject back to protocol
         uint256 usdcBack = amountUsdc < totalSuppliedUSDC
@@ -182,23 +195,24 @@ abstract contract AaveHandler is
             ? amountUsdt
             : totalSuppliedUSDT;
 
+        totalSuppliedUSDC -= usdcBack;
+        totalSuppliedUSDT -= usdtBack;
+
         //the amount to inject back to the protocol is represented by total totalSuppliedUSDC/T
         IERC20(USDC).safeTransfer(USDO, usdcBack);
         IERC20(USDT).safeTransfer(USDO, usdtBack);
-        if (amountUsdc > totalSuppliedUSDC) {
-            uint256 usdcDiff = amountUsdc - totalSuppliedUSDC;
+        if (amountUsdc > oldUsdcSupplied) {
+            uint256 usdcDiff = amountUsdc - oldUsdcSupplied;
             if (usdcDiff > 0) {
                 IERC20(USDC).safeTransfer(owner(), usdcDiff);
             }
         }
-        if (amountUsdt > totalSuppliedUSDT) {
-            uint256 usdtDiff = amountUsdt - totalSuppliedUSDT;
+        if (amountUsdt > oldUsdtSupplied) {
+            uint256 usdtDiff = amountUsdt - oldUsdtSupplied;
             if (usdtDiff > 0) {
                 IERC20(USDT).safeTransfer(owner(), usdtDiff);
             }
         }
-        totalSuppliedUSDC -= usdcBack;
-        totalSuppliedUSDT -= usdtBack;
     }
 
     ///@notice Compound funds from-to AAVE protocol
@@ -253,7 +267,11 @@ abstract contract AaveHandler is
         uint256 amountUsdt
     ) external onlyProtocol nonReentrant {
         if (amountUsdc > 0) {
-            IERC20(USDC).safeTransferFrom(USDO, address(this), amountUsdc);
+            IERC20(USDC).safeTransferFrom(
+                msg.sender,
+                address(this),
+                amountUsdc
+            );
             IPool(AAVE).supply(
                 USDC,
                 amountUsdc,
@@ -262,7 +280,11 @@ abstract contract AaveHandler is
             );
         }
         if (amountUsdt > 0) {
-            IERC20(USDT).safeTransferFrom(USDO, address(this), amountUsdt);
+            IERC20(USDT).safeTransferFrom(
+                msg.sender,
+                address(this),
+                amountUsdt
+            );
             IPool(AAVE).supply(
                 USDT,
                 amountUsdt,
@@ -281,7 +303,7 @@ abstract contract AaveHandler is
     ///@notice Propose a new AAVE contract
     ///@dev Can not be zero address
     ///@param aave The new AAVE address
-    function proposeNewAave(address aave) external onlyOwner {
+    function proposeNewAave(address aave) external onlyOwner nonReentrant {
         if (aave == address(0)) revert AaveHandlerZeroAddressException();
         proposedAave = aave;
         aaveProposalTime = block.timestamp;
@@ -300,19 +322,22 @@ abstract contract AaveHandler is
     }
 
     ///@notice Accept the proposed AAVE contract
-    function acceptProposedAave() external onlyOwner {
+    function acceptProposedAave() external onlyOwner nonReentrant {
         if (
             AAVE != address(0) &&
             aaveProposalTime + PROPOSAL_TIME_INTERVAL > block.timestamp
         ) {
             revert AaveIntervalNotRespected();
         }
-        //remove allowance of old spender
-        if (AAVE != address(0)) {
-            approveAave(0);
-        }
+        address oldAave = AAVE;
         AAVE = proposedAave;
-        approveAave(type(uint256).max);
+        //remove allowance of old spender
+        if (oldAave != address(0)) {
+            IERC20(USDC).forceApprove(oldAave, 0);
+            IERC20(USDT).forceApprove(oldAave, 0);
+        }
+        IERC20(USDC).forceApprove(AAVE, type(uint256).max);
+        IERC20(USDT).forceApprove(AAVE, type(uint256).max);
 
         emit AaveNewAave(AAVE);
     }
@@ -355,12 +380,19 @@ abstract contract AaveHandler is
             revert AaveHandlerInsufficientBalance();
         if (IERC20(AUSDT).balanceOf(address(this)) < amountUsdt)
             revert AaveHandlerInsufficientBalance();
+        uint256 usdcReceived = 0;
+        uint256 usdtReceived = 0;
         if (amountUsdc > 0) {
-            IPool(AAVE).withdraw(USDC, amountUsdc, recipient);
+            usdcReceived = IPool(AAVE).withdraw(USDC, amountUsdc, recipient);
         }
         if (amountUsdt > 0) {
-            IPool(AAVE).withdraw(USDT, amountUsdt, recipient);
+            usdtReceived = IPool(AAVE).withdraw(USDT, amountUsdt, recipient);
         }
+
+        if ((amountUsdc != usdcReceived) || (amountUsdt != usdtReceived)) {
+            revert AaveHandlerAaveWithrawFailed();
+        }
+
         if (amountUsdc > totalSuppliedUSDC) {
             totalSuppliedUSDC = 0;
         } else {

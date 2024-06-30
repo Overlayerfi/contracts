@@ -54,7 +54,7 @@ contract GovernanceTokenBase is Ownable2Step, ERC20Burnable, ERC20Permit {
     ///@param to The recipient address
     ///@param amount The amount to be minted
     function mint(address to, uint256 amount) external {
-        if (minter[msg.sender] != true) revert OnlyMinter();
+        if (!minter[msg.sender]) revert OnlyMinter();
         _mint(to, amount);
     }
 
