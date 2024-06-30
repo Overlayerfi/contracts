@@ -12,7 +12,7 @@ describe("StakedUSDOFront", function () {
     const Usdt = await ethers.getContractFactory("FixedSupplyERC20");
     const usdt = await Usdt.deploy(1000, "USDT", "USDT");
 
-    const USDO = await ethers.getContractFactory("USDOM");
+    const USDO = await ethers.getContractFactory("USDO");
     const usdo = await USDO.deploy(
       await admin.getAddress(),
       {

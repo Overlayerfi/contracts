@@ -13,6 +13,8 @@ interface IAaveHandlerDefs {
 
     error AaveHandlerOperationNotAllowed();
 
+    error AaveHandlerAaveWithrawFailed();
+
     error AaveHandlerInsufficientBalance();
 
     error AaveIntervalNotRespected();

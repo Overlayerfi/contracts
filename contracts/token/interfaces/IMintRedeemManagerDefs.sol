@@ -6,16 +6,14 @@ pragma solidity 0.8.20;
 import "./IMintRedeemManagerEvents.sol";
 
 interface IMintRedeemManagerDefs is IMintRedeemManagerEvents {
-    error InvalidZeroAddress();
-    error InvalidDecimals();
-    error InvalidAssetAddress();
-    error InvalidAssetAmounts();
-    error DifferentAssetsAmounts();
-    error UnsupportedAsset();
-    error NoAssetsProvided();
-    error TransferFailed();
-    error MaxMintPerBlockExceeded();
-    error MaxRedeemPerBlockExceeded();
-    error SupplyAmountNotReached();
-    error InvalidMaxRedeemAmount();
+    error MintRedeemManagerInvalidZeroAddress();
+    error MintRedeemManagerInvalidDecimals();
+    error MintRedeemManagerInvalidAssetAmounts();
+    error MintRedeemManagerDifferentAssetsAmounts();
+    error MintRedeemManagerUnsupportedAsset();
+    error MintRedeemManagerMaxMintPerBlockExceeded();
+    error MintRedeemManagerMaxRedeemPerBlockExceeded();
+    error MintRedeemManagerSupplyAmountNotReached();
+    error MintRedeemManagerInvalidMaxRedeemAmount();
+    error MintRedeemManagerInvalidBenefactor();
 }

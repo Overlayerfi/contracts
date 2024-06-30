@@ -2,18 +2,17 @@
 pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "./MintRedeemManager.sol";
-import "./interfaces/IUSDOMDefs.sol";
+import "./interfaces/IUSDODefs.sol";
 import "./types/MintRedeemManagerTypes.sol";
 
 /**
- * @title USDOM
- * @notice USDOM The starting point...
+ * @title USDO
+ * @notice USDO The starting point...
  */
-contract USDOM is ERC20Burnable, ERC20Permit, IUSDOMDefs, MintRedeemManager {
+contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
     constructor(
         address admin,
         MintRedeemManagerTypes.StableCoin memory usdc,
@@ -32,9 +31,9 @@ contract USDOM is ERC20Burnable, ERC20Permit, IUSDOMDefs, MintRedeemManager {
             maxRedeemPerBlock
         )
     {
-        if (admin == address(0)) revert ZeroAddressException();
+        if (admin == address(0)) revert USDOZeroAddressException();
         if (decimals() < usdc.decimals || decimals() < usdt.decimals) {
-            revert InvalidDecimals();
+            revert USDOInvalidDecimals();
         }
     }
 
@@ -44,6 +43,8 @@ contract USDOM is ERC20Burnable, ERC20Permit, IUSDOMDefs, MintRedeemManager {
     function mint(
         MintRedeemManagerTypes.Order calldata order
     ) external nonReentrant {
+        if (order.benefactor != msg.sender)
+            revert MintRedeemManagerInvalidBenefactor();
         mintInternal(order);
         _mint(order.beneficiary, order.usdo_amount);
         emit Mint(
