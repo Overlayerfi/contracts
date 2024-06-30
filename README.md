@@ -4,7 +4,7 @@ Yield generating USDC/T backed stable coin.
 
 ## Overview
 ![Protocol enter](./obsidia-contract-flow/Slide1.png)
-![Protocol exit](./obsidia-contract-flow/Slide1.png)
+![Protocol exit](./obsidia-contract-flow/Slide2.png)
 
 ## Node version required
 ```
