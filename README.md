@@ -3,8 +3,8 @@
 Yield generating USDC/T backed stable coin.
 
 ## Overview
-![Protocol enter](./obsidia-contract-flow/Slide1.png)
-![Protocol exit](./obsidia-contract-flow/Slide2.png)
+![Protocol enter](./ova-contract-flow/Slide1.png)
+![Protocol exit](./ova-contract-flow/Slide2.png)
 
 ## Node version required
 ```
@@ -36,7 +36,7 @@ This will spawn a forked Ethereum mainnet from block `19709557`
 
 ## Run script/deployment
 ```
-npm run exec-[network: local/obsidia/eth...] YOUR_SCRIPT
+npm run exec-[network: local/ova/eth...] YOUR_SCRIPT
 ```
 
 ## Run `solhint`
@@ -60,4 +60,4 @@ npm run prettier-sol
 ```
 
 ## Internal beta RPC
-Obsidia has an internal RPC with a copy of Ethereum mainnet starting from block `19709557`
+Ova has an internal RPC with a copy of Ethereum mainnet starting from block `19709557`

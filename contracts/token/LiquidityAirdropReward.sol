@@ -5,12 +5,12 @@ import "./GovernanceTokenBase.sol";
 
 /**
  * @title LiquidityAirdropReward
- * @notice This token represent the airdrop token to receive the governance OBSI token.
+ * @notice This token represent the airdrop token to receive the governance OVAG token.
  */
 contract LiquidityAirdropReward is GovernanceTokenBase {
     ///@notice The constructor
     ///@param admin The contract admin
-    constructor(address admin) GovernanceTokenBase(admin, "AOBSI", "AOBSI") {}
+    constructor(address admin) GovernanceTokenBase(admin, "AOVA", "AOVA") {}
 
     /// @notice Token not transferable
     function _update(
