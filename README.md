@@ -3,8 +3,8 @@
 Yield generating USDC/T backed stable coin.
 
 ## Overview
-![Protocol enter](./ova-contract-flow/Slide1.png)
-![Protocol exit](./ova-contract-flow/Slide2.png)
+![Protocol enter](./ova-contract-flow/Slide1.JPG)
+![Protocol exit](./ova-contract-flow/Slide2.JPG)
 
 ## Node version required
 ```
