@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.20;
 
-interface IAirdropOBSIReceipt {
+interface IAirdropOVAReceipt {
     // Events //
     /// @notice Event emitted when the rewards are received
     event RewardsReceived(uint256 amount);

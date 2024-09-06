@@ -21,7 +21,7 @@
 				"address": "0xC040135dFad78636013ADb0d437DaA123B6A8f74",
 				"decimals": 18,
 				"img": "",
-				"name": "OBSI"
+				"name": "OVA"
 			},
 			"apr": "0.00",
 			"liquidityUsd": "0.00",
@@ -51,7 +51,7 @@
 				"address": "0xC040135dFad78636013ADb0d437DaA123B6A8f74",
 				"decimals": 18,
 				"img": "",
-				"name": "OBSI"
+				"name": "OVA"
 			},
 			"apr": "0.00",
 			"liquidityUsd": "0.00",
@@ -75,12 +75,12 @@
 				"address": "0xC040135dFad78636013ADb0d437DaA123B6A8f74",
 				"decimals": 18,
 				"img": "",
-				"name": "OBSI"
+				"name": "OVA"
 			},
 			"apr": "0.00",
 			"liquidityUsd": "0.00",
 			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47",
-			"stakedAssetSource": "Obsidia"
+			"stakedAssetSource": "Ova"
 		}
 	},
 	{
@@ -99,12 +99,12 @@
 				"address": "0xC040135dFad78636013ADb0d437DaA123B6A8f74",
 				"decimals": 18,
 				"img": "",
-				"name": "OBSI"
+				"name": "OVA"
 			},
 			"apr": "0.00",
 			"liquidityUsd": "0.00",
 			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47",
-			"stakedAssetSource": "Obsidia"
+			"stakedAssetSource": "Ova"
 		}
 	}
 ]
