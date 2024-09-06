@@ -21,7 +21,7 @@
 				"address": "0x00D15604415907AAE09e5454Ca299f2Ee93fA941",
 				"decimals": 18,
 				"img": "",
-				"name": "AOBSI"
+				"name": "AOVA"
 			},
 			"apr": "0.00",
 			"liquidityUsd": "0.00",
@@ -51,7 +51,7 @@
 				"address": "0x00D15604415907AAE09e5454Ca299f2Ee93fA941",
 				"decimals": 18,
 				"img": "",
-				"name": "AOBSI"
+				"name": "AOVA"
 			},
 			"apr": "0.00",
 			"liquidityUsd": "0.00",
@@ -75,12 +75,12 @@
 				"address": "0x00D15604415907AAE09e5454Ca299f2Ee93fA941",
 				"decimals": 18,
 				"img": "",
-				"name": "AOBSI"
+				"name": "AOVA"
 			},
 			"apr": "0.00",
 			"liquidityUsd": "0.00",
 			"stakedAsset": "0x72872f101327902fC805637Cccd9A3542ed31e47",
-			"stakedAssetSource": "Obsidia"
+			"stakedAssetSource": "Ova"
 		}
 	}
 ]

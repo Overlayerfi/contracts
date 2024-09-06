@@ -6,7 +6,7 @@ import {
   //deploy_StakingRewardsDistributor,
   deploy_LiquidityAirdropReward,
   deploy_Liquidity,
-  deploy_OBSI,
+  deploy_OVA,
   Liquidity_addReward,
   Liquidity_addPool,
   StakedUSDO_setCooldownStaking,
@@ -17,7 +17,7 @@ import {
   StakedUSDO_deposit
 } from "../functions";
 import LIQUIDITY_REWARD_ABI from "../../artifacts/contracts/token/LiquidityAirdropReward.sol/LiquidityAirdropReward.json";
-import OBSI_ABI from "../../artifacts/contracts/token/OBSI.sol/OBSI.json";
+import OVA_ABI from "../../artifacts/contracts/token/OVA.sol/OVA.json";
 import USDO_ABI from "../../artifacts/contracts/token/USDOM.sol/USDOM.json";
 import SUSDO_ABI from "../../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
 import liquidityConfig from "../../scripts/config/liquidity.config.json";
@@ -51,7 +51,7 @@ async function main() {
       LIQUIDITY_ADMIN,
       REWARD_STARTING_BLOCK
     );
-    const governanceTokenAddr: string = await deploy_OBSI(admin.address);
+    const governanceTokenAddr: string = await deploy_OVA(admin.address);
     const airdropPoolRewardContract = new ethers.Contract(
       liquidityAirdropRewardAssetAddr,
       LIQUIDITY_REWARD_ABI.abi,
@@ -59,7 +59,7 @@ async function main() {
     );
     const governancePoolRewardContract = new ethers.Contract(
       governanceTokenAddr,
-      OBSI_ABI.abi,
+      OVA_ABI.abi,
       admin
     );
     const airdropLiquidityAddr = await deploy_Liquidity(
@@ -76,7 +76,7 @@ async function main() {
       "airdropPoolRewardContract minter set to:",
       airdropLiquidityAddr
     );
-    console.log("OBSI minter set to:", liquidityAddr);
+    console.log("OVA minter set to:", liquidityAddr);
     const rewards: { addr: string; rewardPerBlockEther: bigint }[] = [
       {
         addr: governanceTokenAddr,

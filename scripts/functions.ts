@@ -74,15 +74,15 @@ export async function deploy_StakedUSDO(usdo: string): Promise<string> {
   return await deployedContract.getAddress();
 }
 
-export async function deploy_AirdropOBSIReceipt(usdo: string): Promise<void> {
+export async function deploy_AirdropOVAReceipt(usdo: string): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
   console.log(
-    "Deploying AirdropOBSIReceipt contract with signer:",
+    "Deploying AirdropOVAReceipt contract with signer:",
     deployer.address
   );
 
-  const ContractSource = await ethers.getContractFactory("AirdropOBSIReceipt");
+  const ContractSource = await ethers.getContractFactory("AirdropOVAReceipt");
   const deployedContract = await ContractSource.deploy(usdo, deployer.address, {
     maxFeePerGas: 6702346660 * 10
   });
@@ -152,16 +152,16 @@ export async function deploy_Liquidity(
   return await deployedContract.getAddress();
 }
 
-export async function deploy_OBSI(admin: string): Promise<string> {
+export async function deploy_OVA(admin: string): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
   if (!ethers.isAddress(admin)) {
     throw new Error("admin is not ad address");
   }
 
-  console.log("Deploying OBSI contract with signer:", deployer.address);
+  console.log("Deploying OVA contract with signer:", deployer.address);
 
-  const ContractSource = await ethers.getContractFactory("OBSI");
+  const ContractSource = await ethers.getContractFactory("OVA");
   const deployedContract = await ContractSource.deploy(admin);
 
   await deployedContract.waitForDeployment();

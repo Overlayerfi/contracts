@@ -4,7 +4,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { ETH_RPC, GOERLI_RPC, OBSIDIA_BETA_RPC, PRIVATE_ETH_RPC_PREFIX } from './rpc';
+import { ETH_RPC, GOERLI_RPC, OVA_BETA_RPC, PRIVATE_ETH_RPC_PREFIX } from './rpc';
 
 dotenv.config({ path: process.cwd() + "/process.env"});
 
@@ -55,8 +55,8 @@ const config: HardhatUserConfig = {
       },
       accounts: testAccounts,
     },
-    obsidia: {
-      url: OBSIDIA_BETA_RPC,
+    ova: {
+      url: OVA_BETA_RPC,
       chainId: 0x7A69,
       accounts: [process.env.ADMIN_WALLET_KEY!, process.env.TEAM_WALLET_KEY!],
       gas: "auto",
