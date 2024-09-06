@@ -2,12 +2,12 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 
-describe("OBSI", function () {
+describe("OVA", function () {
   async function deployFixture() {
     const [admin, minter, bob] = await ethers.getSigners();
 
-    const OBSI = await ethers.getContractFactory("OBSI");
-    const liquidityAirdropReward = await OBSI.deploy(admin.address);
+    const OVA = await ethers.getContractFactory("OVA");
+    const liquidityAirdropReward = await OVA.deploy(admin.address);
 
     await liquidityAirdropReward.waitForDeployment();
     await liquidityAirdropReward.connect(admin).setMinter(minter.address);
