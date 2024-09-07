@@ -37,6 +37,12 @@ describe("USDOBacking", function () {
 
     const [admin, gatekeeper, alice, bob] = await ethers.getSigners();
 
+    const block = await admin.provider.getBlock('latest');
+    const baseFee = block.baseFeePerGas;
+    const defaultTransactionOptions = {
+      maxFeePerGas: baseFee * BigInt(10)
+    };
+
     const stableAmount = 10000;
 
     const usdc = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, admin.provider);
@@ -56,8 +62,8 @@ describe("USDOBacking", function () {
         decimals: await usdt.decimals()
       },
       ethers.parseEther("100000000"),
-      ethers.parseEther("100000000")
-      //{ maxFeePerGas: 9702346660 }
+      ethers.parseEther("100000000"),
+      defaultTransactionOptions
     );
 
     //send some usdc and usdt to users
