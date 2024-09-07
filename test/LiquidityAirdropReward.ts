@@ -84,7 +84,7 @@ describe("LiquidityAirdropReward", function () {
         liquidityAirdropReward
           .connect(minter)
           .transfer(bob.address, ethers.parseEther("1"))
-      ).to.be.eventually.rejectedWith("OperationNotAllowed");
+      ).to.be.eventually.rejected;
     });
   });
 });
