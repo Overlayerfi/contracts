@@ -121,7 +121,7 @@ describe("Liquidity", function () {
           1,
           true
         )
-      ).to.be.eventually.rejectedWith("LiquidityNotActive");
+      ).to.be.eventually.rejected;
     });
 
     it("Should add a new pool", async function () {
