@@ -6,11 +6,17 @@ describe("USDO", function () {
   async function deployFixture() {
     const [admin, gatekeeper, alice, bob] = await ethers.getSigners();
 
+    const block = await admin.provider.getBlock('latest');
+    const baseFee = block.baseFeePerGas;
+    const defaultTransactionOptions = {
+      maxFeePerGas: baseFee * BigInt(10)
+    };
+
     const Usdc = await ethers.getContractFactory("SixDecimalsUsd");
-    const usdc = await Usdc.deploy(1000, "USDC", "USDC");
+    const usdc = await Usdc.deploy(1000, "USDC", "USDC", defaultTransactionOptions);
 
     const Usdt = await ethers.getContractFactory("SixDecimalsUsd");
-    const usdt = await Usdt.deploy(1000, "USDT", "USDT");
+    const usdt = await Usdt.deploy(1000, "USDT", "USDT", defaultTransactionOptions);
 
     const Contract = await ethers.getContractFactory("USDO");
     const usdo = await Contract.deploy(
@@ -24,7 +30,8 @@ describe("USDO", function () {
         decimals: await usdt.decimals()
       },
       ethers.parseEther("100000000"),
-      ethers.parseEther("100000000")
+      ethers.parseEther("100000000"),
+      defaultTransactionOptions
     );
 
     //send some usdc and usdt to users

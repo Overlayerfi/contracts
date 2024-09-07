@@ -6,11 +6,18 @@ describe("LiquidityAirdropReward", function () {
   async function deployFixture() {
     const [admin, minter, bob] = await ethers.getSigners();
 
+    const block = await admin.provider.getBlock('latest');
+    const baseFee = block.baseFeePerGas;
+    const defaultTransactionOptions = {
+      maxFeePerGas: baseFee * BigInt(10)
+    };
+
     const LiquidityAirdropReward = await ethers.getContractFactory(
       "LiquidityAirdropReward"
     );
     const liquidityAirdropReward = await LiquidityAirdropReward.deploy(
-      admin.address
+      admin.address,
+      defaultTransactionOptions
     );
 
     await liquidityAirdropReward.waitForDeployment();
