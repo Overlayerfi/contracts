@@ -30,6 +30,7 @@ jobs:
       - name: Run your script with secret
         env:
           ALCHEMY_KEY: ${{ secrets.ALCHEMY_DEV_KEY }}
+          ADMIN_WALLET_KEY: ${{ secrets.ADMIN_WALLET_KEY }}
           TEAM_WALLET_KEY: ${{ secrets.TEAM_WALLET_KEY }}
           USER_A_WALLET_KEY: ${{ secrets.USER_A_WALLET_KEY }}
           USER_B_WALLET_KEY: ${{ secrets.USER_B_WALLET_KEY }}
@@ -37,4 +38,4 @@ jobs:
           USER_D_WALLET_KEY: ${{ secrets.USER_D_WALLET_KEY }}
           USER_E_WALLET_KEY: ${{ secrets.USER_E_WALLET_KEY }}
         run: |
-          echo $TEAM_WALLET_KEY && npx hardhat node & npm run unit
+          npx hardhat node & npm run unit
