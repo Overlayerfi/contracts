@@ -256,7 +256,7 @@ abstract contract AaveHandler is
         );
         IsUSDO(sUSDO).transferInRewards(amountToStaking);
 
-        IERC20(USDO).safeTransfer(owner(), minAmountBetween - amountToStaking);
+        IERC20(USDO).safeTransfer(TREASURY, minAmountBetween - amountToStaking);
     }
 
     ///@notice Supply funds to AAVE protocol
