@@ -11,5 +11,6 @@
 		"OVA",
 		"usdo",
 		"susdo"
-	]
+	],
+	"solidity.compileUsingRemoteVersion": "v0.8.20+commit.a1b79de6"
 }
