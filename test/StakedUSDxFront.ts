@@ -6,7 +6,7 @@ describe("StakedUSDOFront", function () {
   async function deployFixture() {
     const [admin, alice, bob] = await ethers.getSigners();
 
-    const block = await admin.provider.getBlock('latest');
+    const block = await admin.provider.getBlock("latest");
     const baseFee = block.baseFeePerGas;
     const defaultTransactionOptions = {
       maxFeePerGas: baseFee * BigInt(10)
@@ -16,7 +16,12 @@ describe("StakedUSDOFront", function () {
     const usdc = await Usdc.deploy(1000, "", "USDC", defaultTransactionOptions);
 
     const Usdt = await ethers.getContractFactory("FixedSupplyERC20");
-    const usdt = await Usdt.deploy(1000, "USDT", "USDT", defaultTransactionOptions);
+    const usdt = await Usdt.deploy(
+      1000,
+      "USDT",
+      "USDT",
+      defaultTransactionOptions
+    );
 
     const USDO = await ethers.getContractFactory("USDO");
     const usdo = await USDO.deploy(
@@ -318,13 +323,11 @@ describe("StakedUSDOFront", function () {
       expect((await stakedusdo.cooldowns(alice.address)).cooldownEnd).to.equal(
         now + 172800
       );
-      await expect(
-        stakedusdo.connect(alice).unstake(alice.address)
-      ).to.be.eventually.rejected;
+      await expect(stakedusdo.connect(alice).unstake(alice.address)).to.be
+        .eventually.rejected;
       await time.increase(172759);
-      await expect(
-        stakedusdo.connect(alice).unstake(alice.address)
-      ).to.be.eventually.rejected;
+      await expect(stakedusdo.connect(alice).unstake(alice.address)).to.be
+        .eventually.rejected;
     });
 
     it("Should unstake after cooldown", async function () {
