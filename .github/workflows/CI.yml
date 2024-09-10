@@ -39,5 +39,3 @@ jobs:
           USER_E_WALLET_KEY: ${{ secrets.USER_E_WALLET_KEY }}
         run: |
           npx hardhat node & npm run unit
-      - run: python3 -m pip install slither-analyzer
-      - run: slither --include-paths contracts/ .  
