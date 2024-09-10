@@ -30,4 +30,6 @@ interface IAaveHandlerDefs {
     event AaveNewTeamAllocation(uint8 amount);
 
     event AaveNewTreasury(address addr);
+
+    event AaveSwapPosition(uint256 usdc, uint256 usdt, uint256 out);
 }

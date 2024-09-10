@@ -51,6 +51,7 @@ const config: HardhatUserConfig = {
         blockNumber: 19709557,
       },
       accounts: testAccounts,
+      loggingEnabled: false,
     },
     ova: {
       url: OVA_BETA_RPC,
