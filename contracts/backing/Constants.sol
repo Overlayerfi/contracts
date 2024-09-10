@@ -5,8 +5,7 @@ pragma solidity 0.8.20;
  * @title Constants
  * @notice Define utils constants
  */
-abstract contract Constants
-{
+abstract contract Constants {
     //########################################## CONSTANT ##########################################
 
     ///@notice USDC eth mainnet contract address
@@ -22,7 +21,9 @@ abstract contract Constants
     ///@notice aWETH eth mainnet contract address
     address public constant AWETH = 0x4d5F47FA6A74757f35C14fD3a6Ef8E3C9BC514E8;
     ///@notice Uniswap SwapRouterV2
-    address public constant UNI_SWAP_ROUTER_V2 =  0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address public constant UNI_SWAP_ROUTER_V2 =
+        0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
     ///@notice Uniswap QuoterV2
-    address public constant UNI_QUOTER_V2 = 0x61fFE014bA17989E743c5F6cB21bF9697530B21e;
+    address public constant UNI_QUOTER_V2 =
+        0x61fFE014bA17989E743c5F6cB21bF9697530B21e;
 }

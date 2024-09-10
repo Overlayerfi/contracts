@@ -330,7 +330,20 @@ abstract contract AaveHandler is
     function adminSwapPosition() external onlyOwner {
         uint256 amountUsdc = IERC20(AUSDC).balanceOf(address(this));
         uint256 amountUsdt = IERC20(AUSDT).balanceOf(address(this));
-        PositionSwapperParams memory params = PositionSwapperParams(USDC, AUSDC, USDT, AUSDT, WETH, AAVE, UNI_SWAP_ROUTER_V2, UNI_QUOTER_V2, amountUsdc, amountUsdt, address(this), AAVE_REFERRAL_CODE);
+        PositionSwapperParams memory params = PositionSwapperParams(
+            USDC,
+            AUSDC,
+            USDT,
+            AUSDT,
+            WETH,
+            AAVE,
+            UNI_SWAP_ROUTER_V2,
+            UNI_QUOTER_V2,
+            amountUsdc,
+            amountUsdt,
+            address(this),
+            AAVE_REFERRAL_CODE
+        );
         uint256 swapped = swap(params);
         emit AaveSwapPosition(amountUsdc, amountUsdt, swapped);
     }
@@ -372,7 +385,6 @@ abstract contract AaveHandler is
     function renounceOwnership() public view override onlyOwner {
         revert AaveHandlerCantRenounceOwnership();
     }
-
 
     //########################################## INTERNAL FUNCTIONS ##########################################
 
