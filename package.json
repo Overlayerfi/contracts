@@ -9,7 +9,9 @@
     "exec-obsidia": "npx hardhat --network obsidia run",
     "exec-local": "npx hardhat --network localhost run",
     "prettier-sol": "prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'",
-    "prettier-ts": "prettier --config .prettierrc 'test/**/*.ts' --write &&  prettier --config .prettierrc 'scripts/**/*.ts' --write"
+    "prettier-check-sol": "prettier --check --plugin=prettier-plugin-solidity 'contracts/**/*.sol'",
+    "prettier-ts": "prettier --config .prettierrc 'test/**/*.ts' --write &&  prettier --config .prettierrc 'scripts/**/*.ts' --write",
+    "prettier-check-ts": "prettier --config .prettierrc 'test/**/*.ts' --check &&  prettier --config .prettierrc 'scripts/**/*.ts' --check"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
@@ -24,6 +26,8 @@
     "@openzeppelin/contracts": "^5.0.2",
     "@types/big.js": "^6.2.2",
     "@types/node": "^18.11.2",
+    "@uniswap/sdk-core": "^5.3.1",
+    "@uniswap/v3-sdk": "^3.13.1",
     "big.js": "^5.2.1",
     "dotenv": "^16.0.3"
   },
