@@ -15,24 +15,24 @@ import "./types/MintRedeemManagerTypes.sol";
 contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
     constructor(
         address admin,
-        MintRedeemManagerTypes.StableCoin memory usdc,
-        MintRedeemManagerTypes.StableCoin memory usdt,
-        uint256 maxMintPerBlock,
-        uint256 maxRedeemPerBlock
+        MintRedeemManagerTypes.StableCoin memory usdc_,
+        MintRedeemManagerTypes.StableCoin memory usdt_,
+        uint256 maxMintPerBlock_,
+        uint256 maxRedeemPerBlock_
     )
         ERC20("USDO", "USDO")
         ERC20Permit("USDO")
         MintRedeemManager(
-            usdc,
-            usdt,
+            usdc_,
+            usdt_,
             admin,
             decimals(),
-            maxMintPerBlock,
-            maxRedeemPerBlock
+            maxMintPerBlock_,
+            maxRedeemPerBlock_
         )
     {
         if (admin == address(0)) revert USDOZeroAddressException();
-        if (decimals() < usdc.decimals || decimals() < usdt.decimals) {
+        if (decimals() < usdc_.decimals || decimals() < usdt_.decimals) {
             revert USDOInvalidDecimals();
         }
     }
@@ -45,7 +45,7 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
     ) external nonReentrant {
         if (order.benefactor != msg.sender)
             revert MintRedeemManagerInvalidBenefactor();
-        mintInternal(order);
+        _managerMint(order);
         _mint(order.beneficiary, order.usdo_amount);
         emit Mint(
             msg.sender,
@@ -65,7 +65,7 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
     function redeem(
         MintRedeemManagerTypes.Order calldata order
     ) external nonReentrant {
-        (uint256 toBurn, uint256 usdcBack, uint256 usdtBack) = redeemInternal(
+        (uint256 toBurn, uint256 usdcBack, uint256 usdtBack) = _managerRedeem(
             order
         );
         if (msg.sender == order.benefactor) {

@@ -15,14 +15,18 @@ describe("Liquidity", function () {
     // Contracts are deployed using the first signer/account by default
     const [owner, notOwner, alice, bob] = await ethers.getSigners();
 
-    const block = await owner.provider.getBlock('latest');
+    const block = await owner.provider.getBlock("latest");
     const baseFee = block.baseFeePerGas;
     const defaultTransactionOptions = {
       maxFeePerGas: baseFee * BigInt(10)
     };
 
     const Liquidity = await ethers.getContractFactory("Liquidity");
-    const liquidity = await Liquidity.deploy(owner.getAddress(), latestBlock, defaultTransactionOptions);
+    const liquidity = await Liquidity.deploy(
+      owner.getAddress(),
+      latestBlock,
+      defaultTransactionOptions
+    );
 
     const StakedAsset = await ethers.getContractFactory("TokenLP_A_B");
     const stakedAsset = await StakedAsset.deploy(
@@ -36,7 +40,10 @@ describe("Liquidity", function () {
     const TokenRewardOne = await ethers.getContractFactory(
       "LiquidityAirdropReward"
     );
-    const tokenRewardOne = await TokenRewardOne.deploy(owner.address, defaultTransactionOptions);
+    const tokenRewardOne = await TokenRewardOne.deploy(
+      owner.address,
+      defaultTransactionOptions
+    );
     await tokenRewardOne.setMinter(liquidity.getAddress());
     // not using LiquidityAirdropReward as in some tests we need to transfer it
     const TokenRewardTwo = await ethers.getContractFactory("TokenLP_A_B");

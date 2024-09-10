@@ -6,7 +6,8 @@ import {
   AUSDC_ADDRESS,
   AUSDT_ADDRESS,
   USDC_ADDRESS,
-  USDT_ADDRESS
+  USDT_ADDRESS,
+  AWETH_ADDRESS
 } from "../scripts/addresses";
 import ERC20_ABI from "./ERC20_ABI.json";
 import { swap } from "../scripts/get_stables_from_uniswap_local/swap";
@@ -37,7 +38,7 @@ describe("USDOBacking", function () {
 
     const [admin, gatekeeper, alice, bob] = await ethers.getSigners();
 
-    const block = await admin.provider.getBlock('latest');
+    const block = await admin.provider.getBlock("latest");
     const baseFee = block.baseFeePerGas;
     const defaultTransactionOptions = {
       maxFeePerGas: baseFee * BigInt(10)
@@ -49,6 +50,7 @@ describe("USDOBacking", function () {
     const usdt = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, admin.provider);
     const ausdc = new ethers.Contract(AUSDC_ADDRESS, ERC20_ABI, admin.provider);
     const ausdt = new ethers.Contract(AUSDT_ADDRESS, ERC20_ABI, admin.provider);
+    const aweth = new ethers.Contract(AWETH_ADDRESS, ERC20_ABI, admin.provider);
 
     const Usdo = await ethers.getContractFactory("USDO");
     const usdo = await Usdo.deploy(
@@ -175,6 +177,7 @@ describe("USDOBacking", function () {
       usdt,
       ausdc,
       ausdt,
+      aweth,
       usdo,
       susdo,
       usdobacking,
@@ -243,9 +246,8 @@ describe("USDOBacking", function () {
         usdo_amount: ethers.parseEther("1990")
       };
       await usdo.connect(alice).mint(order);
-      await expect(
-        usdo.connect(admin).supplyToBacking()
-      ).to.be.eventually.rejected;
+      await expect(usdo.connect(admin).supplyToBacking()).to.be.eventually
+        .rejected;
       const newOrder = {
         benefactor: bob.address,
         beneficiary: bob.address,
@@ -521,8 +523,8 @@ describe("USDOBacking", function () {
     });
   });
 
-  describe("Admin withdraw", function () {
-    it("Should unstake from AAVE and return user funds to protocol", async function () {
+  describe("Admin emergency ops", function () {
+    it("adminWithdraw - should unstake from AAVE and return user funds to protocol", async function () {
       const { usdc, usdt, usdo, ausdc, ausdt, usdobacking, admin, alice, bob } =
         await loadFixture(deployFixture);
       const order = {
@@ -535,9 +537,8 @@ describe("USDOBacking", function () {
         usdo_amount: ethers.parseEther("1990")
       };
       await usdo.connect(alice).mint(order);
-      await expect(
-        usdo.connect(admin).supplyToBacking()
-      ).to.be.eventually.rejected;
+      await expect(usdo.connect(admin).supplyToBacking()).to.be.eventually
+        .rejected;
       const newOrder = {
         benefactor: bob.address,
         beneficiary: bob.address,
@@ -588,6 +589,51 @@ describe("USDOBacking", function () {
       expect(await usdt.balanceOf(await usdo.getAddress())).to.be.equal(
         ethers.parseUnits("2000.5", await usdt.decimals())
       );
+    });
+
+    it("adminSwapPosition - should move stable coins position into WETH position", async function () {
+      const {
+        usdc,
+        usdt,
+        usdo,
+        ausdc,
+        ausdt,
+        usdobacking,
+        admin,
+        alice,
+        aweth
+      } = await loadFixture(deployFixture);
+      const order = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral_usdt: await usdt.getAddress(),
+        collateral_usdc: await usdc.getAddress(),
+        collateral_usdt_amount: ethers.parseUnits(
+          "2100",
+          await usdt.decimals()
+        ),
+        collateral_usdc_amount: ethers.parseUnits(
+          "2100",
+          await usdc.decimals()
+        ),
+        usdo_amount: ethers.parseEther("4200")
+      };
+      await usdo.connect(alice).mint(order);
+      expect(await usdo.connect(alice).supplyToBacking()).to.emit(
+        usdo,
+        "SuppliedToBacking"
+      );
+
+      await time.increase(12 * 30 * 24 * 60 * 60); //12 months
+
+      await usdobacking.connect(admin).adminSwapPosition();
+      const backingAddr = await usdobacking.getAddress();
+      const beforeBalance = await aweth.balanceOf(backingAddr);
+      expect(beforeBalance).is.greaterThan(0);
+
+      // Try some rewards
+      await time.increase(12 * 30 * 24 * 60 * 60); //12 months
+      expect(await aweth.balanceOf(backingAddr)).is.greaterThan(beforeBalance);
     });
   });
 });

@@ -8,3 +8,4 @@ scripts/balanceChecker.ts
 ./test
 .DS_Store
 .openzeppelin
+contracts/cowswap/*
