@@ -197,7 +197,11 @@ abstract contract AaveHandler is
         uint256 usdcWithdrawAmount = minAmountBetween / usdcMultiplier;
         uint256 usdtWithdrawAmount = minAmountBetween / usdtMultiplier;
 
-        withdrawInternal(usdcWithdrawAmount, usdtWithdrawAmount, address(this));
+        _withdrawInternal(
+            usdcWithdrawAmount,
+            usdtWithdrawAmount,
+            address(this)
+        );
 
         MintRedeemManagerTypes.Order memory order = MintRedeemManagerTypes
             .Order({
@@ -272,13 +276,13 @@ abstract contract AaveHandler is
 
     ///@notice Propose a new AAVE contract
     ///@dev Can not be zero address
-    ///@param _proposedTeamAllocation The new proposed team allocation
+    ///@param proposedTeamAllocation_ The new proposed team allocation
     function proposeNewTeamAllocation(
-        uint8 _proposedTeamAllocation
+        uint8 proposedTeamAllocation_
     ) external onlyOwner {
-        if (_proposedTeamAllocation > 100)
+        if (proposedTeamAllocation_ > 100)
             revert AaveHandlerOperationNotAllowed();
-        proposedTeamAllocation = _proposedTeamAllocation;
+        proposedTeamAllocation = proposedTeamAllocation_;
         teamAllocationProposalTime = block.timestamp;
     }
 
@@ -344,7 +348,7 @@ abstract contract AaveHandler is
             address(this),
             AAVE_REFERRAL_CODE
         );
-        uint256 swapped = swap(params);
+        uint256 swapped = _swap(params);
         emit AaveSwapPosition(amountUsdc, amountUsdt, swapped);
     }
 
@@ -377,7 +381,7 @@ abstract contract AaveHandler is
         uint256 amountUsdc,
         uint256 amountUsdt
     ) public onlyProtocol nonReentrant {
-        withdrawInternal(amountUsdc, amountUsdt, msg.sender);
+        _withdrawInternal(amountUsdc, amountUsdt, msg.sender);
     }
 
     ///@notice Renounce contract ownership
@@ -392,7 +396,7 @@ abstract contract AaveHandler is
     ///@param amountUsdc The amount to withdraw intended as USDC
     ///@param amountUsdt The amount to withdraw intended as USDCT
     ///@param recipient The collateral recipient
-    function withdrawInternal(
+    function _withdrawInternal(
         uint256 amountUsdc,
         uint256 amountUsdt,
         address recipient

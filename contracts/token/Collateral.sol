@@ -24,14 +24,14 @@ abstract contract Collateral is SingleAdminAccessControl {
 
     constructor(
         address admin,
-        MintRedeemManagerTypes.StableCoin memory _usdc,
-        MintRedeemManagerTypes.StableCoin memory _usdt
+        MintRedeemManagerTypes.StableCoin memory usdc_,
+        MintRedeemManagerTypes.StableCoin memory usdt_
     ) {
         if (admin == address(0)) revert CollateralInvalidZeroAddress();
-        if (_usdc.addr == address(0)) revert CollateralInvalidZeroAddress();
-        if (_usdt.addr == address(0)) revert CollateralInvalidZeroAddress();
-        if (_usdc.decimals == 0) revert CollateralInvalidDecimals();
-        if (_usdt.decimals == 0) revert CollateralInvalidDecimals();
+        if (usdc_.addr == address(0)) revert CollateralInvalidZeroAddress();
+        if (usdt_.addr == address(0)) revert CollateralInvalidZeroAddress();
+        if (usdc_.decimals == 0) revert CollateralInvalidDecimals();
+        if (usdt_.decimals == 0) revert CollateralInvalidDecimals();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
@@ -39,7 +39,7 @@ abstract contract Collateral is SingleAdminAccessControl {
             _grantRole(DEFAULT_ADMIN_ROLE, admin);
         }
 
-        usdc = _usdc;
-        usdt = _usdt;
+        usdc = usdc_;
+        usdt = usdt_;
     }
 }
