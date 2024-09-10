@@ -34,7 +34,7 @@ abstract contract MintRedeemManager is
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /// @notice the minimum amount to trigger the backing collateral
-    /// @notice it has to be multiplied to the base (token decimal)
+    /// @dev it has to be multiplied to the base (token decimal)
     uint256 private constant BACKING_MIN_AMOUNT_TO_BE_MULTIPLIED_BY_BASE = 1000;
 
     /* --------------- STATE VARIABLES --------------- */
