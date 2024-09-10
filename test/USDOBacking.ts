@@ -38,7 +38,7 @@ describe("USDOBacking", function () {
 
     const [admin, gatekeeper, alice, bob] = await ethers.getSigners();
 
-    const block = await admin.provider.getBlock('latest');
+    const block = await admin.provider.getBlock("latest");
     const baseFee = block.baseFeePerGas;
     const defaultTransactionOptions = {
       maxFeePerGas: baseFee * BigInt(10)
@@ -246,9 +246,8 @@ describe("USDOBacking", function () {
         usdo_amount: ethers.parseEther("1990")
       };
       await usdo.connect(alice).mint(order);
-      await expect(
-        usdo.connect(admin).supplyToBacking()
-      ).to.be.eventually.rejected;
+      await expect(usdo.connect(admin).supplyToBacking()).to.be.eventually
+        .rejected;
       const newOrder = {
         benefactor: bob.address,
         beneficiary: bob.address,
@@ -538,9 +537,8 @@ describe("USDOBacking", function () {
         usdo_amount: ethers.parseEther("1990")
       };
       await usdo.connect(alice).mint(order);
-      await expect(
-        usdo.connect(admin).supplyToBacking()
-      ).to.be.eventually.rejected;
+      await expect(usdo.connect(admin).supplyToBacking()).to.be.eventually
+        .rejected;
       const newOrder = {
         benefactor: bob.address,
         beneficiary: bob.address,
@@ -594,15 +592,30 @@ describe("USDOBacking", function () {
     });
 
     it("adminSwapPosition - should move stable coins position into WETH position", async function () {
-      const { usdc, usdt, usdo, ausdc, ausdt, usdobacking, admin, alice, aweth } =
-        await loadFixture(deployFixture);
+      const {
+        usdc,
+        usdt,
+        usdo,
+        ausdc,
+        ausdt,
+        usdobacking,
+        admin,
+        alice,
+        aweth
+      } = await loadFixture(deployFixture);
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral_usdt: await usdt.getAddress(),
         collateral_usdc: await usdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits("2100", await usdt.decimals()),
-        collateral_usdc_amount: ethers.parseUnits("2100", await usdc.decimals()),
+        collateral_usdt_amount: ethers.parseUnits(
+          "2100",
+          await usdt.decimals()
+        ),
+        collateral_usdc_amount: ethers.parseUnits(
+          "2100",
+          await usdc.decimals()
+        ),
         usdo_amount: ethers.parseEther("4200")
       };
       await usdo.connect(alice).mint(order);

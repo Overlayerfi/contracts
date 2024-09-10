@@ -6,17 +6,27 @@ describe("USDO", function () {
   async function deployFixture() {
     const [admin, gatekeeper, alice, bob] = await ethers.getSigners();
 
-    const block = await admin.provider.getBlock('latest');
+    const block = await admin.provider.getBlock("latest");
     const baseFee = block.baseFeePerGas;
     const defaultTransactionOptions = {
       maxFeePerGas: baseFee * BigInt(10)
     };
 
     const Usdc = await ethers.getContractFactory("SixDecimalsUsd");
-    const usdc = await Usdc.deploy(1000, "USDC", "USDC", defaultTransactionOptions);
+    const usdc = await Usdc.deploy(
+      1000,
+      "USDC",
+      "USDC",
+      defaultTransactionOptions
+    );
 
     const Usdt = await ethers.getContractFactory("SixDecimalsUsd");
-    const usdt = await Usdt.deploy(1000, "USDT", "USDT", defaultTransactionOptions);
+    const usdt = await Usdt.deploy(
+      1000,
+      "USDT",
+      "USDT",
+      defaultTransactionOptions
+    );
 
     const Contract = await ethers.getContractFactory("USDO");
     const usdo = await Contract.deploy(
@@ -205,9 +215,8 @@ describe("USDO", function () {
 
       await time.increase(10 * 24 * 60 * 59);
 
-      await expect(
-        usdo.connect(admin).acceptProposedCollateralSpender()
-      ).to.be.eventually.rejected;
+      await expect(usdo.connect(admin).acceptProposedCollateralSpender()).to.be
+        .eventually.rejected;
     });
   });
 
@@ -353,9 +362,7 @@ describe("USDO", function () {
         collateral_usdc_amount: ethers.parseUnits("10", await usdc.decimals()),
         usdo_amount: ethers.parseEther("20")
       };
-      await expect(
-        usdo.connect(alice).mint(order)
-      ).to.be.eventually.rejected;
+      await expect(usdo.connect(alice).mint(order)).to.be.eventually.rejected;
     });
 
     it("Should mint small amount", async function () {
@@ -434,9 +441,7 @@ describe("USDO", function () {
         ),
         usdo_amount: ethers.parseEther("20")
       };
-      await expect(
-        usdo.connect(alice).mint(order)
-      ).to.be.eventually.rejected;
+      await expect(usdo.connect(alice).mint(order)).to.be.eventually.rejected;
       expect(await usdo.balanceOf(alice.address)).to.equal(
         ethers.parseEther("0")
       );
@@ -448,9 +453,7 @@ describe("USDO", function () {
         "10.00001",
         await usdc.decimals()
       );
-      await expect(
-        usdo.connect(alice).mint(order)
-      ).to.be.eventually.rejected;
+      await expect(usdo.connect(alice).mint(order)).to.be.eventually.rejected;
       expect(await usdo.balanceOf(alice.address)).to.equal(
         ethers.parseEther("0")
       );
@@ -545,9 +548,8 @@ describe("USDO", function () {
         usdo_amount: ethers.parseEther("20")
       };
       await usdo.connect(alice).mint(order);
-      await expect(
-        usdo.connect(bob).redeem(redeemOrder)
-      ).to.be.eventually.rejected;
+      await expect(usdo.connect(bob).redeem(redeemOrder)).to.be.eventually
+        .rejected;
     });
 
     it("Should not redeem on low USDO balance", async function () {
@@ -588,9 +590,8 @@ describe("USDO", function () {
       expect(await usdo.balanceOf(alice.address)).to.equal(
         ethers.parseEther("20")
       );
-      await expect(
-        usdo.connect(alice).redeem(redeemOrder)
-      ).to.be.eventually.rejected;
+      await expect(usdo.connect(alice).redeem(redeemOrder)).to.be.eventually
+        .rejected;
       expect(await usdc.balanceOf(alice.address)).to.be.equal(
         ethers.parseUnits("40", await usdc.decimals())
       );

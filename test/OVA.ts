@@ -6,14 +6,17 @@ describe("OVA", function () {
   async function deployFixture() {
     const [admin, minter, bob] = await ethers.getSigners();
 
-    const block = await admin.provider.getBlock('latest');
+    const block = await admin.provider.getBlock("latest");
     const baseFee = block.baseFeePerGas;
     const defaultTransactionOptions = {
       maxFeePerGas: baseFee * BigInt(10)
     };
 
     const OVA = await ethers.getContractFactory("OVA");
-    const liquidityAirdropReward = await OVA.deploy(admin.address, defaultTransactionOptions);
+    const liquidityAirdropReward = await OVA.deploy(
+      admin.address,
+      defaultTransactionOptions
+    );
 
     await liquidityAirdropReward.waitForDeployment();
     await liquidityAirdropReward.connect(admin).setMinter(minter.address);
