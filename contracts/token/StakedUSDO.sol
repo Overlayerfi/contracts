@@ -67,28 +67,28 @@ abstract contract StakedUSDO is
 
     /**
      * @notice Constructor for StakedUSDO contract.
-     * @param _asset The address of the USDO token.
-     * @param _initialRewarder The address of the initial rewarder.
-     * @param _owner The address of the admin role.
+     * @param asset The address of the USDO token.
+     * @param initialRewarder The address of the initial rewarder.
+     * @param admin The address of the admin role.
      * @param vestingPeriod The rewards vesting period
      *
      */
     constructor(
-        IERC20 _asset,
-        address _initialRewarder,
-        address _owner,
+        IERC20 asset,
+        address initialRewarder,
+        address admin,
         uint256 vestingPeriod
-    ) ERC20("Staked USDO", "sUSDO") ERC4626(_asset) ERC20Permit("sUSDO") {
+    ) ERC20("Staked USDO", "sUSDO") ERC4626(asset) ERC20Permit("sUSDO") {
         if (
-            _owner == address(0) ||
-            _initialRewarder == address(0) ||
-            address(_asset) == address(0)
+            admin == address(0) ||
+            initialRewarder == address(0) ||
+            address(asset) == address(0)
         ) {
             revert StakedUSDOInvalidZeroAddress();
         }
 
-        _grantRole(REWARDER_ROLE, _initialRewarder);
-        _grantRole(DEFAULT_ADMIN_ROLE, _owner);
+        _grantRole(REWARDER_ROLE, initialRewarder);
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
 
         _vestingPeriod = vestingPeriod;
     }
@@ -214,6 +214,13 @@ abstract contract StakedUSDO is
         return 18;
     }
 
+    /**
+     * @dev Remove renounce role access from AccessControl, to prevent users to resign roles.
+     */
+    function renounceRole(bytes32, address) public virtual override {
+        revert StakedUSDOOperationNotAllowed();
+    }
+
     /* ------------- INTERNAL ------------- */
 
     /// @notice ensures a small non-zero amount of shares does not remain, exposing to donation attack
@@ -256,26 +263,26 @@ abstract contract StakedUSDO is
      * @dev Withdraw/redeem common workflow.
      * @param caller tx sender
      * @param receiver where to send assets
-     * @param _owner where to burn shares from
+     * @param sharesOwner where to burn shares from
      * @param assets asset amount to transfer out
      * @param shares shares to burn
      */
     function _withdraw(
         address caller,
         address receiver,
-        address _owner,
+        address sharesOwner,
         uint256 assets,
         uint256 shares
     ) internal override nonReentrant notZero(assets) notZero(shares) {
         if (
             hasRole(FULL_RESTRICTED_STAKER_ROLE, caller) ||
             hasRole(FULL_RESTRICTED_STAKER_ROLE, receiver) ||
-            hasRole(FULL_RESTRICTED_STAKER_ROLE, _owner)
+            hasRole(FULL_RESTRICTED_STAKER_ROLE, sharesOwner)
         ) {
             revert StakedUSDOOperationNotAllowed();
         }
 
-        super._withdraw(caller, receiver, _owner, assets, shares);
+        super._withdraw(caller, receiver, sharesOwner, assets, shares);
         _checkMinShares();
     }
 
@@ -301,12 +308,5 @@ abstract contract StakedUSDO is
             revert StakedUSDOOperationNotAllowed();
         }
         super._update(from, to, value);
-    }
-
-    /**
-     * @dev Remove renounce role access from AccessControl, to prevent users to resign roles.
-     */
-    function renounceRole(bytes32, address) public virtual override {
-        revert StakedUSDOOperationNotAllowed();
     }
 }

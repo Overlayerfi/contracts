@@ -43,7 +43,8 @@ interface ISwapRouter02 {
 /**
  * @title PositionSwapper
  * @notice This contract works as a helper utility for AaveHandler to swap Aave
- * positions. Its intended usage is ideally once. Not optimized for recurrent usages.
+ * positions. This usage won't affect the security of user's funds as the new position
+ * will still belong to the backing contract.
  */
 abstract contract PositionSwapper {
     using SafeERC20 for IERC20;
@@ -66,7 +67,7 @@ abstract contract PositionSwapper {
     ///@param from The input token
     ///@param to The output token
     ///@param sqrtPriceLimitX96 The sqrtPriceLimitX96 value
-    function swapExactInputSingleHop(
+    function _swapExactInputSingleHop(
         address router,
         uint256 amountFrom,
         uint256 amountToMin,
@@ -89,10 +90,10 @@ abstract contract PositionSwapper {
     }
 
     ///@notice Compute the right sqrtPriceLimitX96 for UniV3
-    ///@dev Disabled as this module is an emergency call, ignore market conditions
+    ///@dev Disabled as the current contract will be used in an emergency call, ignore market conditions
     ///But for ref: (https://ethereum.stackexchange.com/questions/140992/how-to-calculate-sqrtpricelimitx96-in-production)
     ///@return The limit price
-    function getSqrtPriceLimitX96() private pure returns (uint160) {
+    function _getSqrtPriceLimitX96() private pure returns (uint160) {
         return 0;
     }
 
@@ -101,7 +102,7 @@ abstract contract PositionSwapper {
     ///@notice Swap all the aUSDC, aUSDT position into aWETH.
     ///@param params A PositionSwapperParams struct containing all the needed swap informations
     ///@return The amount of out token put back into Aave
-    function swap(
+    function _swap(
         PositionSwapperParams memory params
     ) internal returns (uint256) {
         if (IERC20(params.ausdc).balanceOf(address(this)) < params.amountUsdc)
@@ -136,9 +137,9 @@ abstract contract PositionSwapper {
 
         // Swap for WETH
         if (params.amountUsdc > 0) {
-            uint160 sqrtLimitPrice = getSqrtPriceLimitX96();
+            uint160 sqrtLimitPrice = _getSqrtPriceLimitX96();
             IERC20(params.usdc).forceApprove(params.router, params.amountUsdc);
-            swapExactInputSingleHop(
+            _swapExactInputSingleHop(
                 params.router,
                 params.amountUsdc,
                 1,
@@ -148,9 +149,9 @@ abstract contract PositionSwapper {
             );
         }
         if (params.amountUsdt > 0) {
-            uint160 sqrtLimitPrice = getSqrtPriceLimitX96();
+            uint160 sqrtLimitPrice = _getSqrtPriceLimitX96();
             IERC20(params.usdt).forceApprove(params.router, params.amountUsdc);
-            swapExactInputSingleHop(
+            _swapExactInputSingleHop(
                 params.router,
                 params.amountUsdt,
                 1,
