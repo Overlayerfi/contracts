@@ -10,6 +10,9 @@ import {IAaveHandlerDefs} from "./interfaces/IAaveHandlerDefs.sol";
 import {IsUSDO} from "./interfaces/IsUSDO.sol";
 import {IUSDO} from "./interfaces/IUSDO.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Constants} from "./Constants.sol";
+import {PositionSwapper} from "./PositionSwapper.sol";
+import {PositionSwapperParams} from "./PositionSwapperParams.sol";
 import "../token/types/MintRedeemManagerTypes.sol";
 
 /**
@@ -17,6 +20,8 @@ import "../token/types/MintRedeemManagerTypes.sol";
  * @notice This contract represent the Aave position handler
  */
 abstract contract AaveHandler is
+    Constants,
+    PositionSwapper,
     Ownable2Step,
     IAaveHandlerDefs,
     ReentrancyGuard
@@ -26,14 +31,6 @@ abstract contract AaveHandler is
 
     //########################################## CONSTANT ##########################################
 
-    ///@notice USDC eth mainnet contract address
-    address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
-    ///@notice USDT eth mainnet contract address
-    address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
-    ///@notice aUSDC eth mainnet contract address
-    address public constant AUSDC = 0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c;
-    ///@notice aUSDT eth mainnet contract address
-    address public constant AUSDT = 0x23878914EFE38d27C4D67Ab83ed1b93A74D4086a;
     ///@notice AAVE referral code
     uint16 private constant AAVE_REFERRAL_CODE = 0;
     /// @notice the time interval needed to changed the AAVE contract
@@ -111,44 +108,6 @@ abstract contract AaveHandler is
         approveUSDO(type(uint256).max);
     }
 
-    //########################################## PUBLIC FUNCTIONS ##########################################
-
-    ///@notice Approve aave spending
-    ///@param amount The amount to allow aave as spender
-    function approveAave(uint256 amount) public onlyOwner nonReentrant {
-        IERC20(USDC).forceApprove(AAVE, amount);
-        IERC20(USDT).forceApprove(AAVE, amount);
-    }
-
-    ///@notice Approve Staked USDO spending
-    ///@param amount The amount to allow sUSDO as spender
-    function approveStakingUSDO(uint256 amount) public onlyOwner nonReentrant {
-        IERC20(USDO).forceApprove(sUSDO, amount);
-    }
-
-    ///@notice Approve USDO spending
-    ///@param amount The amount to allow USDO as spender
-    function approveUSDO(uint256 amount) public onlyOwner nonReentrant {
-        IERC20(USDC).forceApprove(USDO, amount);
-        IERC20(USDT).forceApprove(USDO, amount);
-    }
-
-    ///@notice Withraw funds from AAVE protocol, the public interface for allowed callers
-    ///@param amountUsdc The amount to withdraw intended as USDC
-    ///@param amountUsdt The amount to withdraw intended as USDCT
-    function withdraw(
-        uint256 amountUsdc,
-        uint256 amountUsdt
-    ) public onlyProtocol nonReentrant {
-        withdrawInternal(amountUsdc, amountUsdt, msg.sender);
-    }
-
-    ///@notice Renounce contract ownership
-    ///@dev Reverts by design
-    function renounceOwnership() public view override onlyOwner {
-        revert AaveHandlerCantRenounceOwnership();
-    }
-
     //########################################## EXTERNAL FUNCTIONS ##########################################
 
     ///@notice Withraw funds from AAVE protocol
@@ -217,7 +176,8 @@ abstract contract AaveHandler is
 
     ///@notice Compound funds from-to AAVE protocol
     ///@dev This method assumes that USDC and USDT decimals are less or equal 18
-    ///@dev We track the user deposited funds with totalSuppliedUSDC/T and leverage the dynamic balance of AAVE aToken in order to compute the gains
+    ///@dev We track the user deposited funds with totalSuppliedUSDC/T and leverage
+    ///the dynamic balance of AAVE aToken in order to compute the gains
     function compound() external nonReentrant {
         uint256 diffUSDC = IERC20(AUSDC).balanceOf(address(this)) -
             totalSuppliedUSDC;
@@ -226,7 +186,8 @@ abstract contract AaveHandler is
         if (diffUSDC == 0 || diffUSDT == 0) {
             return;
         }
-        //hardcoded USDC and USDT decimals offset as immutables, these multipliers represent the amount up to 18 decimals (usdo decimals)
+        //hardcoded USDC and USDT decimals offset as immutables,
+        //these multipliers represent the amount up to 18 decimals (usdo decimals)
         uint256 usdcMultiplier = 10 ** 12;
         uint256 usdtMultiplier = 10 ** 12;
         uint256 minAmountBetween = Math.min(
@@ -356,7 +317,7 @@ abstract contract AaveHandler is
         emit AaveNewTeamAllocation(TEAM_ALLOCATION);
     }
 
-    ///@notice Update protocol treasurty
+    ///@notice Update protocol treasury
     ///@dev Does not harm protocol users
     ///@param treasury The new treasury address
     function updateTreasury(address treasury) external onlyOwner {
@@ -364,6 +325,54 @@ abstract contract AaveHandler is
         TREASURY = treasury;
         emit AaveNewTreasury(treasury);
     }
+
+    ///@notice Swap the current stable coins position into a blue chip (WETH)
+    function adminSwapPosition() external onlyOwner {
+        uint256 amountUsdc = IERC20(AUSDC).balanceOf(address(this));
+        uint256 amountUsdt = IERC20(AUSDT).balanceOf(address(this));
+        PositionSwapperParams memory params = PositionSwapperParams(USDC, AUSDC, USDT, AUSDT, WETH, AAVE, UNI_SWAP_ROUTER_V2, UNI_QUOTER_V2, amountUsdc, amountUsdt, address(this), AAVE_REFERRAL_CODE);
+        uint256 swapped = swap(params);
+        emit AaveSwapPosition(amountUsdc, amountUsdt, swapped);
+    }
+
+    //########################################## PUBLIC FUNCTIONS ##########################################
+
+    ///@notice Approve aave spending
+    ///@param amount The amount to allow aave as spender
+    function approveAave(uint256 amount) public onlyOwner nonReentrant {
+        IERC20(USDC).forceApprove(AAVE, amount);
+        IERC20(USDT).forceApprove(AAVE, amount);
+    }
+
+    ///@notice Approve Staked USDO spending
+    ///@param amount The amount to allow sUSDO as spender
+    function approveStakingUSDO(uint256 amount) public onlyOwner nonReentrant {
+        IERC20(USDO).forceApprove(sUSDO, amount);
+    }
+
+    ///@notice Approve USDO spending
+    ///@param amount The amount to allow USDO as spender
+    function approveUSDO(uint256 amount) public onlyOwner nonReentrant {
+        IERC20(USDC).forceApprove(USDO, amount);
+        IERC20(USDT).forceApprove(USDO, amount);
+    }
+
+    ///@notice Withraw funds from AAVE protocol, the public interface for allowed callers
+    ///@param amountUsdc The amount to withdraw intended as USDC
+    ///@param amountUsdt The amount to withdraw intended as USDCT
+    function withdraw(
+        uint256 amountUsdc,
+        uint256 amountUsdt
+    ) public onlyProtocol nonReentrant {
+        withdrawInternal(amountUsdc, amountUsdt, msg.sender);
+    }
+
+    ///@notice Renounce contract ownership
+    ///@dev Reverts by design
+    function renounceOwnership() public view override onlyOwner {
+        revert AaveHandlerCantRenounceOwnership();
+    }
+
 
     //########################################## INTERNAL FUNCTIONS ##########################################
 
