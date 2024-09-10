@@ -19,7 +19,7 @@ contract GovernanceTokenBase is Ownable2Step, ERC20Burnable, ERC20Permit {
 
     error OperationNotAllowed();
 
-    event MinterStateChanged(address indexed _minter, bool _event);
+    event MinterStateChanged(address indexed minter_, bool _event);
 
     /// @notice The allowed minter
     mapping(address => bool) public minter;
@@ -37,17 +37,17 @@ contract GovernanceTokenBase is Ownable2Step, ERC20Burnable, ERC20Permit {
     }
 
     ///@notice Set a new minter
-    ///@param _minter The new minter address
-    function setMinter(address _minter) external onlyOwner {
-        minter[_minter] = true;
-        emit MinterStateChanged(_minter, true);
+    ///@param minter_ The new minter address
+    function setMinter(address minter_) external onlyOwner {
+        minter[minter_] = true;
+        emit MinterStateChanged(minter_, true);
     }
 
     ///@notice Set a new minter
-    ///@param _minter The new minter address
-    function removeMinter(address _minter) external onlyOwner {
-        minter[_minter] = false;
-        emit MinterStateChanged(_minter, false);
+    ///@param minter_ The new minter address
+    function removeMinter(address minter_) external onlyOwner {
+        minter[minter_] = false;
+        emit MinterStateChanged(minter_, false);
     }
 
     ///@notice Mint tokens

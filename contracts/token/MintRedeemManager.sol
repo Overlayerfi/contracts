@@ -73,19 +73,19 @@ abstract contract MintRedeemManager is
     /* --------------- CONSTRUCTOR --------------- */
 
     constructor(
-        MintRedeemManagerTypes.StableCoin memory _usdc,
-        MintRedeemManagerTypes.StableCoin memory _usdt,
+        MintRedeemManagerTypes.StableCoin memory usdc_,
+        MintRedeemManagerTypes.StableCoin memory usdt_,
         address admin,
         uint256 decimals,
-        uint256 _maxMintPerBlock,
-        uint256 _maxRedeemPerBlock
-    ) CollateralSpenderManager(admin, _usdc, _usdt) {
+        uint256 maxMintPerBlock_,
+        uint256 maxRedeemPerBlock_
+    ) CollateralSpenderManager(admin, usdc_, usdt_) {
         if (decimals == 0) revert MintRedeemManagerInvalidDecimals();
         _decimals = decimals;
 
         // Set the max mint/redeem limits per block
-        _setMaxMintPerBlock(_maxMintPerBlock);
-        _setMaxRedeemPerBlock(_maxRedeemPerBlock);
+        _setMaxMintPerBlock(maxMintPerBlock_);
+        _setMaxRedeemPerBlock(maxRedeemPerBlock_);
     }
 
     /* --------------- EXTERNAL --------------- */
@@ -113,19 +113,19 @@ abstract contract MintRedeemManager is
     }
 
     /// @notice Sets the max mintPerBlock limit
-    /// @param _maxMintPerBlock The new max value
+    /// @param maxMintPerBlock_ The new max value
     function setMaxMintPerBlock(
-        uint256 _maxMintPerBlock
+        uint256 maxMintPerBlock_
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setMaxMintPerBlock(_maxMintPerBlock);
+        _setMaxMintPerBlock(maxMintPerBlock_);
     }
 
     /// @notice Sets the max redeemPerBlock limit
-    /// @param _maxRedeemPerBlock The new max value
+    /// @param maxRedeemPerBlock_ The new max value
     function setMaxRedeemPerBlock(
-        uint256 _maxRedeemPerBlock
+        uint256 maxRedeemPerBlock_
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setMaxRedeemPerBlock(_maxRedeemPerBlock);
+        _setMaxRedeemPerBlock(maxRedeemPerBlock_);
     }
 
     /// @notice Disables the mint and redeem
@@ -139,52 +139,6 @@ abstract contract MintRedeemManager is
         address collateralManager
     ) external onlyRole(GATEKEEPER_ROLE) {
         _revokeRole(COLLATERAL_MANAGER_ROLE, collateralManager);
-    }
-
-    /* --------------- INTERNAL --------------- */
-
-    /// @notice Check mint and redeem invariant
-    /// @dev The minimum amount is 1 USDC and 1 USDT. This invariant holds only if _decimasl >= usdc.decimals >= usdt.decimals
-    /// @param order A struct containing the order
-    function validateInvariant(
-        MintRedeemManagerTypes.Order calldata order
-    ) internal view {
-        uint256 usdcDecimalsDiff = _decimals - usdc.decimals;
-        uint256 usdtDecimalsDiff = _decimals - usdt.decimals;
-        uint256 usdc_amount_normalized = order.collateral_usdc_amount *
-            (10 ** usdcDecimalsDiff);
-        uint256 usdt_amount_normalized = order.collateral_usdt_amount *
-            (10 ** usdtDecimalsDiff);
-        if (usdc_amount_normalized != usdt_amount_normalized) {
-            revert MintRedeemManagerDifferentAssetsAmounts();
-        }
-        // Their sum must be equal to USDO amount
-        if (
-            usdc_amount_normalized + usdt_amount_normalized != order.usdo_amount
-        ) {
-            revert MintRedeemManagerInvalidAssetAmounts();
-        }
-    }
-
-    /// @notice Mint stablecoins from assets
-    /// @dev Order benefactor is not used as we constraint it to be the msg.sender at higher level
-    /// @param order A struct containing the mint order
-    function mintInternal(
-        MintRedeemManagerTypes.Order calldata order
-    ) internal belowMaxMintPerBlock(order.usdo_amount) {
-        validateInvariant(order);
-        // Add to the minted amount in this block
-        mintedPerBlock[block.number] += order.usdo_amount;
-        _transferCollateral(
-            order.collateral_usdc_amount,
-            order.collateral_usdc,
-            address(this)
-        );
-        _transferCollateral(
-            order.collateral_usdt_amount,
-            order.collateral_usdt,
-            address(this)
-        );
     }
 
     /// @notice Supply funds to the active backing contract (aka approvedCollateralSpender)
@@ -207,16 +161,74 @@ abstract contract MintRedeemManager is
         emit SuppliedToBacking(msg.sender, usdcToMove, usdtToMove);
     }
 
+    /// @notice Pause the contract
+    /// @dev This call is used only to lock the supplyToBacking public call
+    function pause() external nonReentrant onlyRole(GATEKEEPER_ROLE) {
+        _pause();
+    }
+
+    /// @notice Unpause the contract
+    /// @dev This call is used only to unlock the supplyToBacking public call
+    function unpause() external nonReentrant onlyRole(GATEKEEPER_ROLE) {
+        _unpause();
+    }
+
+    /* --------------- INTERNAL --------------- */
+
+    /// @notice Check mint and redeem invariant
+    /// @dev The minimum amount is 1 USDC and 1 USDT. This invariant holds only if _decimasl >= usdc.decimals >= usdt.decimals
+    /// @param order A struct containing the order
+    function _validateInvariant(
+        MintRedeemManagerTypes.Order calldata order
+    ) internal view {
+        uint256 usdcDecimalsDiff = _decimals - usdc.decimals;
+        uint256 usdtDecimalsDiff = _decimals - usdt.decimals;
+        uint256 usdc_amount_normalized = order.collateral_usdc_amount *
+            (10 ** usdcDecimalsDiff);
+        uint256 usdt_amount_normalized = order.collateral_usdt_amount *
+            (10 ** usdtDecimalsDiff);
+        if (usdc_amount_normalized != usdt_amount_normalized) {
+            revert MintRedeemManagerDifferentAssetsAmounts();
+        }
+        // Their sum must be equal to USDO amount
+        if (
+            usdc_amount_normalized + usdt_amount_normalized != order.usdo_amount
+        ) {
+            revert MintRedeemManagerInvalidAssetAmounts();
+        }
+    }
+
+    /// @notice Mint stablecoins from assets
+    /// @dev Order benefactor is not used as we constraint it to be the msg.sender at higher level
+    /// @param order A struct containing the mint order
+    function _managerMint(
+        MintRedeemManagerTypes.Order calldata order
+    ) internal belowMaxMintPerBlock(order.usdo_amount) {
+        _validateInvariant(order);
+        // Add to the minted amount in this block
+        mintedPerBlock[block.number] += order.usdo_amount;
+        _transferCollateral(
+            order.collateral_usdc_amount,
+            order.collateral_usdc,
+            address(this)
+        );
+        _transferCollateral(
+            order.collateral_usdt_amount,
+            order.collateral_usdt,
+            address(this)
+        );
+    }
+
     /// @notice Redeem stablecoins for assets
     /// @param order struct containing order details and confirmation from server
-    function redeemInternal(
+    function _managerRedeem(
         MintRedeemManagerTypes.Order calldata order
     )
         internal
         belowMaxRedeemPerBlock(order.usdo_amount)
         returns (uint256 amountToBurn, uint256 usdcBack, uint256 usdtBack)
     {
-        validateInvariant(order);
+        _validateInvariant(order);
         // Add to the redeemed amount in this block
         redeemedPerBlock[block.number] += order.usdo_amount;
 
@@ -224,7 +236,7 @@ abstract contract MintRedeemManager is
             uint256 checkedBurnAmount,
             uint256 checkedUsdcBack,
             uint256 checkedUsdtBack
-        ) = withdrawFromProtocol(order.usdo_amount);
+        ) = _withdrawFromProtocol(order.usdo_amount);
 
         _transferToBeneficiary(
             order.beneficiary,
@@ -245,7 +257,7 @@ abstract contract MintRedeemManager is
     /// @notice Redeem collateral from the protocol
     /// @dev It will trigger the backing contract (aka approvedCollateralSpender) withdraw method if the collateral is not sufficient
     /// @param amount The amount of USDO to be unmint
-    function withdrawFromProtocol(
+    function _withdrawFromProtocol(
         uint256 amount
     )
         internal
@@ -316,33 +328,21 @@ abstract contract MintRedeemManager is
     }
 
     /// @notice Sets the max mintPerBlock limit
-    /// @param _maxMintPerBlock The new max value
-    function _setMaxMintPerBlock(uint256 _maxMintPerBlock) internal {
+    /// @param maxMintPerBlock_ The new max value
+    function _setMaxMintPerBlock(uint256 maxMintPerBlock_) internal {
         uint256 oldMaxMintPerBlock = maxMintPerBlock;
-        maxMintPerBlock = _maxMintPerBlock;
+        maxMintPerBlock = maxMintPerBlock_;
         emit MaxMintPerBlockChanged(oldMaxMintPerBlock, maxMintPerBlock);
     }
 
     /// @notice Sets the max redeemPerBlock limit
-    /// @param _maxRedeemPerBlock The new max value
-    function _setMaxRedeemPerBlock(uint256 _maxRedeemPerBlock) internal {
-        if (_maxRedeemPerBlock == 0) {
+    /// @param maxRedeemPerBlock_ The new max value
+    function _setMaxRedeemPerBlock(uint256 maxRedeemPerBlock_) internal {
+        if (maxRedeemPerBlock_ == 0) {
             revert MintRedeemManagerInvalidMaxRedeemAmount();
         }
         uint256 oldMaxRedeemPerBlock = maxRedeemPerBlock;
-        maxRedeemPerBlock = _maxRedeemPerBlock;
+        maxRedeemPerBlock = maxRedeemPerBlock_;
         emit MaxRedeemPerBlockChanged(oldMaxRedeemPerBlock, maxRedeemPerBlock);
-    }
-
-    /// @notice Pause the contract
-    /// @dev This call is used only to lock the supplyToBacking public call
-    function pause() external nonReentrant onlyRole(GATEKEEPER_ROLE) {
-        _pause();
-    }
-
-    /// @notice Unpause the contract
-    /// @dev This call is used only to unlock the supplyToBacking public call
-    function unpause() external nonReentrant onlyRole(GATEKEEPER_ROLE) {
-        _unpause();
     }
 }

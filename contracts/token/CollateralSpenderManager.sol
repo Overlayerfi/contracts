@@ -38,9 +38,9 @@ abstract contract CollateralSpenderManager is Collateral, ReentrancyGuard {
 
     constructor(
         address admin,
-        MintRedeemManagerTypes.StableCoin memory _usdc,
-        MintRedeemManagerTypes.StableCoin memory _usdt
-    ) Collateral(admin, _usdc, _usdt) {}
+        MintRedeemManagerTypes.StableCoin memory usdc_,
+        MintRedeemManagerTypes.StableCoin memory usdt_
+    ) Collateral(admin, usdc_, usdt_) {}
 
     /// @notice View the spender
     /// @return The active spender
@@ -50,6 +50,7 @@ abstract contract CollateralSpenderManager is Collateral, ReentrancyGuard {
 
     /// @notice Propose a new spender
     /// @dev Can not be zero address
+    /// @param spender The proposed new spender
     function proposeNewCollateralSpender(
         address spender
     ) external onlyRole(COLLATERAL_MANAGER_ROLE) {
