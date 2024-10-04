@@ -1,8 +1,4 @@
-import {
-  time,
-  loadFixture,
-  mineUpTo
-} from "@nomicfoundation/hardhat-network-helpers";
+import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect, assert } from "chai";
 
@@ -11,7 +7,7 @@ describe("Liquidity", function () {
   // We use loadFixture to run this setup once, snapshot that state,
   // and reset Hardhat Network to that snapshot in every test.
   async function deployFixture() {
-    const latestBlock: number = await time.latestBlock();
+    const latestTime: number = await time.latest();
     // Contracts are deployed using the first signer/account by default
     const [owner, notOwner, alice, bob] = await ethers.getSigners();
 
@@ -24,7 +20,7 @@ describe("Liquidity", function () {
     const Liquidity = await ethers.getContractFactory("Liquidity");
     const liquidity = await Liquidity.deploy(
       owner.getAddress(),
-      latestBlock,
+      latestTime,
       defaultTransactionOptions
     );
 
@@ -60,7 +56,7 @@ describe("Liquidity", function () {
       stakedAsset,
       tokenRewardOne,
       tokenRewardTwo,
-      latestBlock,
+      latestTime,
       owner,
       notOwner,
       alice,
@@ -75,8 +71,8 @@ describe("Liquidity", function () {
     });
 
     it("Should set the right start block", async function () {
-      const { liquidity, latestBlock } = await loadFixture(deployFixture);
-      expect(await liquidity.startBlock()).to.equal(latestBlock);
+      const { liquidity, latestTime } = await loadFixture(deployFixture);
+      expect(await liquidity.startTime()).to.equal(latestTime);
     });
   });
 
@@ -94,16 +90,14 @@ describe("Liquidity", function () {
     });
 
     it("Should update starting block", async function () {
-      const { liquidity, owner, latestBlock } = await loadFixture(
-        deployFixture
-      );
-      await liquidity.connect(owner).updateStartBlock(latestBlock + 100);
-      expect(await liquidity.startBlock()).to.equal(latestBlock + 100);
+      const { liquidity, owner, latestTime } = await loadFixture(deployFixture);
+      await liquidity.connect(owner).updateStartTime(latestTime + 100);
+      expect(await liquidity.startTime()).to.equal(latestTime + 100);
     });
 
     it("Should revert update multiplier if not owner", async function () {
       const { liquidity, notOwner } = await loadFixture(deployFixture);
-      await expect(liquidity.connect(notOwner).updateStartBlock(2)).to.be
+      await expect(liquidity.connect(notOwner).updateStartTime(2)).to.be
         .eventually.rejected;
     });
   });
@@ -119,7 +113,7 @@ describe("Liquidity", function () {
     it("Should not add a new pool if start block for rewards is zero", async function () {
       const { liquidity, stakedAsset, owner, tokenRewardOne } =
         await loadFixture(deployFixture);
-      await liquidity.connect(owner).updateStartBlock(0);
+      await liquidity.connect(owner).updateStartTime(0);
       await liquidity.setReward(tokenRewardOne.getAddress(), 1);
       await expect(
         liquidity.add(
@@ -215,11 +209,11 @@ describe("Liquidity", function () {
         await liquidity.activeRewards(stakedAsset.getAddress())
       ).to.be.equal(true);
       expect(
-        await liquidity.rewardsPerBlock(stakedAsset.getAddress())
+        await liquidity.rewardsPerSecond(stakedAsset.getAddress())
       ).to.be.equal(1);
       await liquidity.setReward(stakedAsset.getAddress(), 10);
       expect(
-        await liquidity.rewardsPerBlock(stakedAsset.getAddress())
+        await liquidity.rewardsPerSecond(stakedAsset.getAddress())
       ).to.be.equal(10);
     });
 
@@ -276,8 +270,8 @@ describe("Liquidity", function () {
       const { liquidity, stakedAsset, tokenRewardOne, alice, bob } =
         await loadFixture(deployFixture);
 
-      const latestBlock: number = await time.latestBlock();
-      await mineUpTo(latestBlock + 1);
+      const latestTime: number = await time.latest();
+      await time.increaseTo(latestTime + 1);
 
       await stakedAsset.transfer(alice.getAddress(), 10);
       await stakedAsset.transfer(bob.getAddress(), 10);
@@ -319,13 +313,13 @@ describe("Liquidity", function () {
       const TOTAL_PARTICIPATION: string = (
         users.length * +PARTICIPATION
       ).toString();
-      const REWARD_PER_BLOCK: string = "1";
+      const REWARD_PER_SECOND: string = "1";
 
-      const latestBlock: number = await time.latestBlock();
-      await mineUpTo(latestBlock + 1);
+      const lastestTime = await time.latest();
+      await time.increaseTo(lastestTime + 1);
       await liquidity.setReward(
         tokenRewardOne.getAddress(),
-        ethers.parseEther(REWARD_PER_BLOCK)
+        ethers.parseEther(REWARD_PER_SECOND)
       );
       await liquidity.add(
         stakedAsset.getAddress(),
@@ -360,14 +354,14 @@ describe("Liquidity", function () {
           .connect(alice)
           .deposit(0, ethers.parseEther(PARTICIPATION))
       ).to.emit(liquidity, "Deposit");
-      const afterAliceDeposit: number = await time.latestBlock();
+      const afterAliceDeposit: number = await time.latest();
 
       await expect(
         await liquidity
           .connect(bob)
           .deposit(0, ethers.parseEther(PARTICIPATION))
       ).to.emit(liquidity, "Deposit");
-      const afterBobDeposit: number = await time.latestBlock();
+      const afterBobDeposit: number = await time.latest();
 
       expect(await stakedAsset.balanceOf(alice.getAddress())).to.equal(
         ethers.parseEther("0")
@@ -379,10 +373,10 @@ describe("Liquidity", function () {
         ethers.parseEther("20")
       );
 
-      const BLOCKS_TO_MINE: number = 100;
-      await mineUpTo(afterBobDeposit + BLOCKS_TO_MINE);
+      const SECONDS_TO_MINE: number = 100;
+      await time.increaseTo(afterBobDeposit + SECONDS_TO_MINE);
       // two users, there is alice and bob supply
-      let commonRewardBlocks: number = BLOCKS_TO_MINE;
+      let commonRewardBlocks: number = SECONDS_TO_MINE;
       // one users, there is only alice supply for these blocks
       const onlyAliceRewardBlock: number = afterBobDeposit - afterAliceDeposit;
       const twoUserTotalSupply: number = +TOTAL_PARTICIPATION;
@@ -393,8 +387,8 @@ describe("Liquidity", function () {
           (
             (+PARTICIPATION / twoUserTotalSupply) *
               commonRewardBlocks *
-              +REWARD_PER_BLOCK +
-            (+PARTICIPATION * onlyAliceRewardBlock * +REWARD_PER_BLOCK) /
+              +REWARD_PER_SECOND +
+            (+PARTICIPATION * onlyAliceRewardBlock * +REWARD_PER_SECOND) /
               oneUserTotalSupply
           ).toString()
         )
@@ -404,20 +398,20 @@ describe("Liquidity", function () {
           (
             (+PARTICIPATION / twoUserTotalSupply) *
             commonRewardBlocks *
-            +REWARD_PER_BLOCK
+            +REWARD_PER_SECOND
           ).toString()
         )
       );
 
-      await mineUpTo(afterBobDeposit + BLOCKS_TO_MINE * 2);
-      commonRewardBlocks = BLOCKS_TO_MINE * 2;
+      await time.increaseTo(afterBobDeposit + SECONDS_TO_MINE * 2);
+      commonRewardBlocks = SECONDS_TO_MINE * 2;
       expect(await liquidity.pendingReward(0, alice.getAddress())).to.equal(
         ethers.parseEther(
           (
             (+PARTICIPATION / twoUserTotalSupply) *
               commonRewardBlocks *
-              +REWARD_PER_BLOCK +
-            (+PARTICIPATION * onlyAliceRewardBlock * +REWARD_PER_BLOCK) /
+              +REWARD_PER_SECOND +
+            (+PARTICIPATION * onlyAliceRewardBlock * +REWARD_PER_SECOND) /
               oneUserTotalSupply
           ).toString()
         )
@@ -427,7 +421,7 @@ describe("Liquidity", function () {
           (
             (+PARTICIPATION / twoUserTotalSupply) *
             commonRewardBlocks *
-            +REWARD_PER_BLOCK
+            +REWARD_PER_SECOND
           ).toString()
         )
       );
@@ -444,13 +438,13 @@ describe("Liquidity", function () {
         bob
       } = await loadFixture(deployFixture);
       const PARTICIPATION: string = "10";
-      const REWARD_PER_BLOCK: string = "1";
+      const REWARD_PER_SECOND: string = "1";
 
-      const latestBlock: number = await time.latestBlock();
-      await mineUpTo(latestBlock + 1);
+      const latestTime: number = await time.latest();
+      await time.increaseTo(latestTime + 1);
       await liquidity.setReward(
         tokenRewardOne.getAddress(),
-        ethers.parseEther(REWARD_PER_BLOCK)
+        ethers.parseEther(REWARD_PER_SECOND)
       );
       await liquidity.add(
         stakedAsset.getAddress(),
@@ -491,7 +485,7 @@ describe("Liquidity", function () {
           .connect(alice)
           .deposit(0, ethers.parseEther(PARTICIPATION))
       ).to.emit(liquidity, "Deposit");
-      const afterAliceDeposit: number = await time.latestBlock();
+      const afterAliceDeposit: number = await time.latest();
 
       expect(await tokenRewardTwo.balanceOf(bob.getAddress())).to.be.equal(
         ethers.parseEther(PARTICIPATION)
@@ -501,7 +495,7 @@ describe("Liquidity", function () {
           .connect(bob)
           .deposit(1, ethers.parseEther(PARTICIPATION))
       ).to.emit(liquidity, "Deposit");
-      const afterBobDeposit: number = await time.latestBlock();
+      const afterBobDeposit: number = await time.latest();
 
       expect(await stakedAsset.balanceOf(alice.getAddress())).to.equal(
         ethers.parseEther("0")
@@ -516,10 +510,10 @@ describe("Liquidity", function () {
         ethers.parseEther(PARTICIPATION)
       );
 
-      const BLOCKS_TO_MINE: number = 100;
-      await mineUpTo(afterBobDeposit + BLOCKS_TO_MINE);
+      const SECONDS_TO_MINE: number = 100;
+      await time.increaseTo(afterBobDeposit + SECONDS_TO_MINE);
       // two users, there is alice and bob supply
-      let commonRewardBlocks: number = BLOCKS_TO_MINE;
+      let commonRewardBlocks: number = SECONDS_TO_MINE;
       // one users, there is only alice supply for these blocks
       const onlyAliceRewardBlock: number = afterBobDeposit - afterAliceDeposit;
       const oneUserTotalSupply: number = +PARTICIPATION;
@@ -533,12 +527,12 @@ describe("Liquidity", function () {
           +(
             (+PARTICIPATION *
               commonRewardBlocks *
-              +REWARD_PER_BLOCK *
+              +REWARD_PER_SECOND *
               (1 / 3)) /
               +oneUserTotalSupply +
             (+PARTICIPATION *
               onlyAliceRewardBlock *
-              +REWARD_PER_BLOCK *
+              +REWARD_PER_SECOND *
               (1 / 3)) /
               +oneUserTotalSupply
           ).toFixed(1)
@@ -551,7 +545,7 @@ describe("Liquidity", function () {
           +(
             (+PARTICIPATION *
               commonRewardBlocks *
-              +REWARD_PER_BLOCK *
+              +REWARD_PER_SECOND *
               (2 / 3)) /
             +oneUserTotalSupply
           ).toFixed(1)
@@ -568,13 +562,13 @@ describe("Liquidity", function () {
       const TOTAL_PARTICIPATION: string = (
         users.length * +PARTICIPATION
       ).toString();
-      const REWARD_PER_BLOCK: string = "1";
+      const REWARD_PER_SECOND: string = "1";
 
-      const latestBlock: number = await time.latestBlock();
-      await mineUpTo(latestBlock + 1);
+      const latestTime: number = await time.latest();
+      await time.increaseTo(latestTime + 1);
       await liquidity.setReward(
         tokenRewardOne.getAddress(),
-        ethers.parseEther(REWARD_PER_BLOCK)
+        ethers.parseEther(REWARD_PER_SECOND)
       );
       await liquidity.add(
         stakedAsset.getAddress(),
@@ -609,14 +603,14 @@ describe("Liquidity", function () {
           .connect(alice)
           .deposit(0, ethers.parseEther(PARTICIPATION))
       ).to.emit(liquidity, "Deposit");
-      const afterAliceDeposit: number = await time.latestBlock();
+      const afterAliceDeposit: number = await time.latest();
 
       await expect(
         await liquidity
           .connect(bob)
           .deposit(0, ethers.parseEther(PARTICIPATION))
       ).to.emit(liquidity, "Deposit");
-      const afterBobDeposit: number = await time.latestBlock();
+      const afterBobDeposit: number = await time.latest();
 
       expect(await stakedAsset.balanceOf(alice.getAddress())).to.equal(
         ethers.parseEther("0")
@@ -628,10 +622,10 @@ describe("Liquidity", function () {
         ethers.parseEther("20")
       );
 
-      const BLOCKS_TO_MINE: number = 100;
-      await mineUpTo(afterBobDeposit + BLOCKS_TO_MINE);
+      const SECONDS_TO_MINE: number = 100;
+      await time.increaseTo(afterBobDeposit + SECONDS_TO_MINE);
       // two users, there is alice and bob supply
-      let commonRewardBlocks: number = BLOCKS_TO_MINE;
+      let commonRewardBlocks: number = SECONDS_TO_MINE;
       // one users, there is only alice supply for these blocks
       const onlyAliceRewardBlock: number = afterBobDeposit - afterAliceDeposit;
       const twoUserTotalSupply: number = +TOTAL_PARTICIPATION;
@@ -642,8 +636,8 @@ describe("Liquidity", function () {
           (
             (+PARTICIPATION / twoUserTotalSupply) *
               commonRewardBlocks *
-              +REWARD_PER_BLOCK +
-            (+PARTICIPATION * onlyAliceRewardBlock * +REWARD_PER_BLOCK) /
+              +REWARD_PER_SECOND +
+            (+PARTICIPATION * onlyAliceRewardBlock * +REWARD_PER_SECOND) /
               oneUserTotalSupply
           ).toString()
         )
@@ -653,7 +647,7 @@ describe("Liquidity", function () {
           (
             (+PARTICIPATION / twoUserTotalSupply) *
             commonRewardBlocks *
-            +REWARD_PER_BLOCK
+            +REWARD_PER_SECOND
           ).toString()
         )
       );
@@ -682,13 +676,13 @@ describe("Liquidity", function () {
       const PARTICIPATION: string = "10";
       const HALF_PARTICIPATION: string = "5";
       const TOTAL_PARTICIPATION: string = "15";
-      const REWARD_PER_BLOCK: string = "1";
+      const REWARD_PER_SECOND: string = "1";
 
-      const latestBlock: number = await time.latestBlock();
-      await mineUpTo(latestBlock + 1);
+      const latestTime: number = await time.latest();
+      await time.increaseTo(latestTime + 1);
       await liquidity.setReward(
         tokenRewardOne.getAddress(),
-        ethers.parseEther(REWARD_PER_BLOCK)
+        ethers.parseEther(REWARD_PER_SECOND)
       );
       await liquidity.add(
         stakedAsset.getAddress(),
@@ -723,14 +717,14 @@ describe("Liquidity", function () {
           .connect(alice)
           .deposit(0, ethers.parseEther(PARTICIPATION))
       ).to.emit(liquidity, "Deposit");
-      const afterAliceDeposit: number = await time.latestBlock();
+      const afterAliceDeposit: number = await time.latest();
 
       await expect(
         await liquidity
           .connect(bob)
           .deposit(0, ethers.parseEther(HALF_PARTICIPATION))
       ).to.emit(liquidity, "Deposit");
-      const afterBobDeposit: number = await time.latestBlock();
+      const afterBobDeposit: number = await time.latest();
 
       expect(await stakedAsset.balanceOf(alice.getAddress())).to.equal(
         ethers.parseEther("0")
@@ -742,10 +736,10 @@ describe("Liquidity", function () {
         ethers.parseEther("15")
       );
 
-      const BLOCKS_TO_MINE: number = 100;
-      await mineUpTo(afterBobDeposit + BLOCKS_TO_MINE);
+      const SECONDS_TO_MINE: number = 100;
+      await time.increaseTo(afterBobDeposit + SECONDS_TO_MINE);
       // two users, there is alice and bob supply
-      let commonRewardBlocks: number = BLOCKS_TO_MINE;
+      let commonRewardBlocks: number = SECONDS_TO_MINE;
       // one users, there is only alice supply for these blocks
       const onlyAliceRewardBlock: number = afterBobDeposit - afterAliceDeposit;
       const oneUserTotalSupply: number = +PARTICIPATION;
@@ -758,8 +752,8 @@ describe("Liquidity", function () {
         (
           (+PARTICIPATION / +TOTAL_PARTICIPATION) *
             commonRewardBlocks *
-            +REWARD_PER_BLOCK +
-          (+PARTICIPATION * onlyAliceRewardBlock * +REWARD_PER_BLOCK) /
+            +REWARD_PER_SECOND +
+          (+PARTICIPATION * onlyAliceRewardBlock * +REWARD_PER_SECOND) /
             oneUserTotalSupply
         )
           .toString()
@@ -773,7 +767,7 @@ describe("Liquidity", function () {
         (
           (+HALF_PARTICIPATION / +TOTAL_PARTICIPATION) *
           commonRewardBlocks *
-          +REWARD_PER_BLOCK
+          +REWARD_PER_SECOND
         )
           .toString()
           .substring(0, 4)
@@ -810,13 +804,13 @@ describe("Liquidity", function () {
       const TOTAL_PARTICIPATION: string = (
         users.length * +PARTICIPATION
       ).toString();
-      const REWARD_PER_BLOCK: string = "1";
+      const REWARD_PER_SECOND: string = "1";
 
-      const latestBlock: number = await time.latestBlock();
-      await mineUpTo(latestBlock + 1);
+      const latestTime: number = await time.latest();
+      await time.increaseTo(latestTime + 1);
       await liquidity.setReward(
         tokenRewardOne.getAddress(),
-        ethers.parseEther(REWARD_PER_BLOCK)
+        ethers.parseEther(REWARD_PER_SECOND)
       );
       await liquidity.add(
         stakedAsset.getAddress(),
@@ -851,14 +845,14 @@ describe("Liquidity", function () {
           .connect(alice)
           .deposit(0, ethers.parseEther(PARTICIPATION))
       ).to.emit(liquidity, "Deposit");
-      const afterAliceDeposit: number = await time.latestBlock();
+      const afterAliceDeposit: number = await time.latest();
 
       await expect(
         await liquidity
           .connect(bob)
           .deposit(0, ethers.parseEther(PARTICIPATION))
       ).to.emit(liquidity, "Deposit");
-      const afterBobDeposit: number = await time.latestBlock();
+      const afterBobDeposit: number = await time.latest();
 
       expect(await stakedAsset.balanceOf(alice.getAddress())).to.equal(
         ethers.parseEther("0")
@@ -870,26 +864,26 @@ describe("Liquidity", function () {
         ethers.parseEther("20")
       );
 
-      const BLOCKS_TO_MINE: number = 100;
-      await mineUpTo(afterBobDeposit + BLOCKS_TO_MINE);
+      const SECONDS_TO_MINE: number = 100;
+      await time.increaseTo(afterBobDeposit + SECONDS_TO_MINE);
       // two users, there is alice and bob supply
-      let commonRewardBlocks: number = BLOCKS_TO_MINE;
+      let commonRewardBlocks: number = SECONDS_TO_MINE;
       // one users, there is only alice supply for these blocks
       const onlyAliceRewardBlock: number = afterBobDeposit - afterAliceDeposit;
       const twoUserTotalSupply: number = +TOTAL_PARTICIPATION;
       const oneUserTotalSupply: number = +PARTICIPATION;
 
-      const beforeAliceHarvestBlock: number = await time.latestBlock();
+      const beforeAliceHarvestBlock: number = await time.latest();
       expect(await liquidity.connect(alice).harvest(0)).to.emit(
         liquidity,
         "Harvest"
       );
-      const afterAliceHarverstBlock: number = await time.latestBlock();
+      const afterAliceHarverstBlock: number = await time.latest();
       expect(await liquidity.connect(bob).harvest(0)).to.emit(
         liquidity,
         "Harvest"
       );
-      const afterBobHarverstBlock: number = await time.latestBlock();
+      const afterBobHarverstBlock: number = await time.latest();
       const aliceHarverstBlocksToAdd: number =
         afterAliceHarverstBlock - beforeAliceHarvestBlock;
       const bobHarvestBlocksToAdd: number =
@@ -900,8 +894,8 @@ describe("Liquidity", function () {
           (
             (+PARTICIPATION / twoUserTotalSupply) *
               (commonRewardBlocks + aliceHarverstBlocksToAdd) *
-              +REWARD_PER_BLOCK +
-            (+PARTICIPATION * onlyAliceRewardBlock * +REWARD_PER_BLOCK) /
+              +REWARD_PER_SECOND +
+            (+PARTICIPATION * onlyAliceRewardBlock * +REWARD_PER_SECOND) /
               oneUserTotalSupply
           ).toString()
         )
@@ -911,18 +905,18 @@ describe("Liquidity", function () {
           (
             (+PARTICIPATION / twoUserTotalSupply) *
             (commonRewardBlocks + bobHarvestBlocksToAdd) *
-            +REWARD_PER_BLOCK
+            +REWARD_PER_SECOND
           ).toString()
         )
       );
 
       //check that new pending reward discount already harvested amount
-      await mineUpTo((await time.latestBlock()) + 100);
+      await time.increaseTo((await time.latest()) + 100);
       const alreadyHarvestedAmount: number = +ethers.formatEther(
         await tokenRewardOne.balanceOf(alice.getAddress())
       );
       const elapsedBlockFromLastUpdate: number =
-        (await time.latestBlock()) - afterBobDeposit;
+        (await time.latest()) - afterBobDeposit;
       const latestUpdatedRewardPerBlock: number = 2 / +TOTAL_PARTICIPATION; //2 = num blocks between deposits
       const elapsedRewardFromUpdate: number =
         elapsedBlockFromLastUpdate / +TOTAL_PARTICIPATION; //for alice
@@ -959,8 +953,8 @@ describe("Liquidity", function () {
         true
       );
 
-      const latestBlock: number = await time.latestBlock();
-      await mineUpTo(latestBlock + 1);
+      const latestTime: number = await time.latest();
+      await time.increaseTo(latestTime + 1);
       await expect(await liquidity.connect(alice).deposit(0, 5)).to.emit(
         liquidity,
         "Deposit"
@@ -969,7 +963,7 @@ describe("Liquidity", function () {
         liquidity,
         "Deposit"
       );
-      await mineUpTo(latestBlock + 11);
+      await time.increaseTo(latestTime + 11);
 
       await expect(await liquidity.connect(alice).deposit(0, 0)).to.emit(
         liquidity,
@@ -984,7 +978,7 @@ describe("Liquidity", function () {
       assert.isTrue(aliceReward.toString() == "5");
       assert.isTrue(bobReward.toString() == "5");
 
-      await mineUpTo(latestBlock + 40);
+      await time.increaseTo(latestTime + 40);
       await expect(liquidity.connect(alice).withdraw(0, 10)).to.be.eventually
         .rejected;
       await expect(liquidity.connect(bob).withdraw(0, 10)).to.be.eventually

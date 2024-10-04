@@ -1,5 +1,7 @@
 # contracts
 
+[![Actions Status](https://github.com/Ovafi/contracts/workflows/CI/badge.svg)](https://github.com/Ovafi/contracts/actions)
+
 Yield generating USDC/T backed stable coin.
 
 ## Overview
