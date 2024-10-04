@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "./interfaces/ILiquidityDefs.sol";
 import "./interfaces/IRewardAsset.sol";
 
@@ -14,6 +15,8 @@ import "./interfaces/IRewardAsset.sol";
  */
 contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     using SafeERC20 for IERC20;
+    using Math for uint256;
+
     /**
      * @notice The pool info.
      */
@@ -63,29 +66,29 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     /**
      * @notice Contract constructor.
      * @param admin The contract admin
-     * @param _startBlock The reward start block
+     * @param startBlock_ The reward start block
      */
-    constructor(address admin, uint256 _startBlock) Ownable(admin) {
+    constructor(address admin, uint256 startBlock_) Ownable(admin) {
         if (admin == address(0)) {
             revert InvalidZeroAddress();
         }
-        startBlock = _startBlock;
+        startBlock = startBlock_;
     }
 
     /**
      * @notice Update the rewards starting block.
-     * @param _startBlock the new multiplier value.
+     * @param startBlock_ the new multiplier value.
      */
-    function updateStartBlock(uint256 _startBlock) external onlyOwner {
-        startBlock = _startBlock;
+    function updateStartBlock(uint256 startBlock_) external onlyOwner {
+        startBlock = startBlock_;
     }
 
     /**
      * @notice Update the multiplier value.
-     * @param _new the new multiplier value.
+     * @param bonusMultiplier_ the new multiplier value.
      */
-    function updateMultiplier(uint256 _new) external onlyOwner {
-        bonusMultiplier = _new;
+    function updateMultiplier(uint256 bonusMultiplier_) external onlyOwner {
+        bonusMultiplier = bonusMultiplier_;
     }
 
     /**
@@ -98,55 +101,55 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
 
     /**
      * @notice Set a reward rate.
-     * @param _rewardAsset the reward.
-     * @param _newRewardRate the new reward rate.
+     * @param rewardAsset the reward.
+     * @param rewardRate the new reward rate.
      */
     function setReward(
-        IERC20 _rewardAsset,
-        uint256 _newRewardRate
+        IERC20 rewardAsset,
+        uint256 rewardRate
     ) external onlyOwner {
-        if (!activeRewards[address(_rewardAsset)]) {
-            activeRewards[address(_rewardAsset)] = true;
+        if (!activeRewards[address(rewardAsset)]) {
+            activeRewards[address(rewardAsset)] = true;
         }
-        if (rewardsPerBlock[address(_rewardAsset)] != _newRewardRate) {
-            rewardsPerBlock[address(_rewardAsset)] = _newRewardRate;
+        if (rewardsPerBlock[address(rewardAsset)] != rewardRate) {
+            rewardsPerBlock[address(rewardAsset)] = rewardRate;
         }
     }
 
     /**
      * @notice Add a new pool.
      * @dev It reverts if the starting block is set to zero
-     * @param _stakedAsset the wanted lp token.
-     * @param _rewardAsset the reward that will be payed out.
-     * @param _allocPoints the weight of the added pool.
-     * @param _withUpdate a boolean flag stating if update or not old pools.
+     * @param stakedAsset the wanted lp token.
+     * @param rewardAsset the reward that will be payed out.
+     * @param allocationPoints the weight of the added pool.
+     * @param update a boolean flag stating if update or not old pools.
      */
     function add(
-        IERC20 _stakedAsset,
-        IERC20 _rewardAsset,
-        uint256 _allocPoints,
-        bool _withUpdate
+        IERC20 stakedAsset,
+        IERC20 rewardAsset,
+        uint256 allocationPoints,
+        bool update
     ) public onlyOwner {
         if (startBlock == NOT_ACTIVE) {
             revert LiquidityNotActive();
         }
-        if (!activeRewards[address(_rewardAsset)]) {
+        if (!activeRewards[address(rewardAsset)]) {
             revert InvactiveReward();
         }
-        if (_withUpdate) {
+        if (update) {
             _massUpdatePools();
         }
         uint256 lastRewardBlock = block.number > startBlock
             ? block.number
             : startBlock;
-        totalAllocPointsPerReward[address(_rewardAsset)] =
-            totalAllocPointsPerReward[address(_rewardAsset)] +
-            (_allocPoints);
+        totalAllocPointsPerReward[address(rewardAsset)] =
+            totalAllocPointsPerReward[address(rewardAsset)] +
+            (allocationPoints);
         poolInfo.push(
             PoolInfo({
-                stakedAsset: _stakedAsset,
-                rewardAsset: _rewardAsset,
-                allocPoints: _allocPoints,
+                stakedAsset: stakedAsset,
+                rewardAsset: rewardAsset,
+                allocPoints: allocationPoints,
                 lastRewardBlock: lastRewardBlock,
                 accRewardPerShare: 0
             })
@@ -155,80 +158,84 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
 
     /**
      * @notice Get the total amount of tokens staked inside a pool.
-     * @param _pid the pool identifier.
+     * @param pid the pool identifier.
      * @return the amount of token staked inside the given pool.
      */
-    function getTotalStakedInPool(
-        uint256 _pid
-    ) external view returns (uint256) {
-        if (_pid >= poolInfo.length) {
+    function getTotalStakedInPool(uint256 pid) external view returns (uint256) {
+        if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
-        return (poolInfo[_pid].stakedAsset.balanceOf(address(this)));
+        return (poolInfo[pid].stakedAsset.balanceOf(address(this)));
     }
 
     /**
      * @notice Get the multiplier value calculated between two blocks.
-     * @param _from the starting block.
-     * @param _to the ending block.
-     * @return the difference between the two sides multiplied for the bonus.
+     * @param from the starting block.
+     * @param to the ending block.
+     * @return The difference between the two sides multiplied for the bonus.
      */
     function _getMultiplier(
-        uint256 _from,
-        uint256 _to
+        uint256 from,
+        uint256 to
     ) internal view returns (uint256) {
-        if (_from >= _to) {
-            return 0;
+        // Sould never happen.
+        if (to < from) {
+            return bonusMultiplier;
         }
-        return _to - (_from) / (bonusMultiplier);
+
+        uint256 delta = to - from;
+        if (delta == 0) {
+            return bonusMultiplier;
+        }
+        return delta * bonusMultiplier;
     }
 
     /**
      * @notice Modify the allocation points for a pool.
-     * @param _pid the pool pid.
-     * @param _newPoints the new weight.
+     * @param pid the pool pid.
+     * @param newPoints the new weight.
      * @return newTotal the new total allocation.
      */
     function setPoolAllocPoints(
-        uint256 _pid,
-        uint256 _newPoints,
-        bool _withUpdate
+        uint256 pid,
+        uint256 newPoints,
+        bool update
     ) external onlyOwner returns (uint256 newTotal) {
-        if (_pid >= poolInfo.length) {
+        if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
 
-        if (_withUpdate) {
+        if (update) {
             _massUpdatePools();
         }
-        PoolInfo storage pool = poolInfo[_pid];
+        PoolInfo storage pool = poolInfo[pid];
         uint256 oldPoints = pool.allocPoints;
-        pool.allocPoints = _newPoints;
-        if (oldPoints != _newPoints) {
+        pool.allocPoints = newPoints;
+        if (oldPoints != newPoints) {
             totalAllocPointsPerReward[address(pool.rewardAsset)] =
                 totalAllocPointsPerReward[address(pool.rewardAsset)] -
                 (oldPoints) +
-                (_newPoints);
+                (newPoints);
         }
         newTotal = totalAllocPointsPerReward[address(pool.rewardAsset)];
     }
 
     /**
      * @notice Get the pending reward for a given pool and user.
-     * @param _pid the pool identifier.
-     * @param _user the participant.
+     * @param pid the pool identifier.
+     * @param user the participant.
      * @return the pending reward for given pool and user.
      */
     function pendingReward(
-        uint256 _pid,
-        address _user
+        uint256 pid,
+        address user
     ) public view returns (uint256) {
-        if (_pid >= poolInfo.length) {
+        if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
 
-        PoolInfo memory pool = poolInfo[_pid];
-        UserInfo memory user = userInfo[_pid][_user];
+        PoolInfo memory pool = poolInfo[pid];
+        UserInfo memory currentUser = userInfo[pid][user];
 
         uint256 accRewardPerShare = pool.accRewardPerShare;
         uint256 stakedAssetSupply = pool.stakedAsset.balanceOf(address(this));
@@ -237,16 +244,25 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
                 pool.lastRewardBlock,
                 block.number
             );
-            uint256 reward = (multiplier *
-                (rewardsPerBlock[address(pool.rewardAsset)]) *
-                (pool.allocPoints)) /
-                (totalAllocPointsPerReward[address(pool.rewardAsset)]);
-            // Note, this calculation won't update pool accRewardPerShare status
+
+            // This is the same computation made in the updatePool function. Just a view version.
+            uint256 rewards = multiplier *
+                (
+                    rewardsPerBlock[address(pool.rewardAsset)].mulDiv(
+                        pool.allocPoints,
+                        totalAllocPointsPerReward[address(pool.rewardAsset)]
+                    )
+                );
             accRewardPerShare =
                 accRewardPerShare +
-                ((reward * (1e12)) / (stakedAssetSupply));
+                rewards.mulDiv(1e18, stakedAssetSupply);
+
+            return
+                currentUser.amount.mulDiv(accRewardPerShare, 1e18) -
+                currentUser.rewardDebt;
+        } else {
+            return 0;
         }
-        return (user.amount * (accRewardPerShare)) / (1e12) - (user.rewardDebt);
     }
 
     /**
@@ -261,10 +277,10 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
 
     /**
      * @notice Update pool infos.
-     * @param _pid the pool identifier.
+     * @param pid the pool identifier.
      */
-    function updatePool(uint256 _pid) internal {
-        PoolInfo storage pool = poolInfo[_pid];
+    function updatePool(uint256 pid) internal {
+        PoolInfo storage pool = poolInfo[pid];
         if (block.number <= pool.lastRewardBlock) {
             return;
         }
@@ -274,163 +290,171 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
             return;
         }
         uint256 multiplier = _getMultiplier(pool.lastRewardBlock, block.number);
-        uint256 reward = (multiplier *
-            (rewardsPerBlock[address(pool.rewardAsset)]) *
-            (pool.allocPoints)) /
-            (totalAllocPointsPerReward[address(pool.rewardAsset)]);
-
+        uint256 rewards = multiplier *
+            (
+                rewardsPerBlock[address(pool.rewardAsset)].mulDiv(
+                    pool.allocPoints,
+                    totalAllocPointsPerReward[address(pool.rewardAsset)]
+                )
+            );
         pool.accRewardPerShare =
             pool.accRewardPerShare +
-            ((reward * (1e12)) / (stakedAssetSupply));
+            rewards.mulDiv(1e18, stakedAssetSupply);
+
         pool.lastRewardBlock = block.number;
     }
 
     /**
      * @notice Deposit into the pool with harvest.
-     * @param _pid the pool identifier.
-     * @param _amount the amount to deposit.
+     * @param pid the pool identifier.
+     * @param amount the amount to deposit.
      */
-    function deposit(uint256 _pid, uint256 _amount) external nonReentrant {
-        if (_pid >= poolInfo.length) {
+    function deposit(uint256 pid, uint256 amount) external nonReentrant {
+        if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
 
         // Get pool and user
-        PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][msg.sender];
+        PoolInfo storage pool = poolInfo[pid];
+        UserInfo storage currentUser = userInfo[pid][msg.sender];
 
         // update the pool up to date
-        updatePool(_pid);
+        updatePool(pid);
 
         // harvest up to date rewards
-        if (user.amount > 0) {
-            uint256 pending = (user.amount * (pool.accRewardPerShare)) /
-                (1e12) -
-                (user.rewardDebt);
+        if (currentUser.amount > 0) {
+            uint256 pending = currentUser.amount.mulDiv(
+                pool.accRewardPerShare,
+                1e18
+            ) - currentUser.rewardDebt;
             if (pending > 0) {
                 _payReward(pool.rewardAsset, msg.sender, pending);
             }
         }
-        if (_amount > 0) {
+        if (amount > 0) {
             pool.stakedAsset.safeTransferFrom(
                 address(msg.sender),
                 address(this),
-                _amount
+                amount
             );
-            user.amount = user.amount + (_amount);
+            currentUser.amount = currentUser.amount + amount;
         }
-        // update reward debt, there is harvest on deposit so at every deposit the debt will be reset with the new amount the user has.
-        user.rewardDebt = (user.amount * (pool.accRewardPerShare)) / (1e12);
-        emit Deposit(msg.sender, _pid, _amount);
+
+        // update reward debt, there is harvest on deposit so at every deposit the debt will be updated with the new amount the user has.
+        currentUser.rewardDebt = currentUser.amount.mulDiv(
+            pool.accRewardPerShare,
+            1e18
+        );
+        emit Deposit(msg.sender, pid, amount);
     }
 
     /**
      * @notice Withdraw from the pool with harvest.
-     * @param _pid the pool identifier.
-     * @param _amount the amount to withdraw.
+     * @param pid the pool identifier.
+     * @param amount the amount to withdraw.
      */
-    function withdraw(uint256 _pid, uint256 _amount) external nonReentrant {
-        if (_pid >= poolInfo.length) {
+    function withdraw(uint256 pid, uint256 amount) external nonReentrant {
+        if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
 
         // Get pool and user
-        PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][msg.sender];
-        if (_amount > user.amount) {
+        PoolInfo storage pool = poolInfo[pid];
+        UserInfo storage currentUser = userInfo[pid][msg.sender];
+        if (amount > currentUser.amount) {
             revert InvalidAmount();
         }
 
         // update the pool up to date
-        updatePool(_pid);
+        updatePool(pid);
 
-        uint256 pending = (user.amount * (pool.accRewardPerShare)) /
-            (1e12) -
-            (user.rewardDebt);
-
+        uint256 pending = currentUser.amount.mulDiv(
+            pool.accRewardPerShare,
+            1e18
+        ) - currentUser.rewardDebt;
         if (pending > 0) {
             _payReward(pool.rewardAsset, msg.sender, pending);
         }
-        if (_amount > 0) {
-            user.amount = user.amount - (_amount);
-            _returnStakedTokens(pool.stakedAsset, address(msg.sender), _amount);
+        if (amount > 0) {
+            currentUser.amount = currentUser.amount - amount;
+            _returnStakedTokens(pool.stakedAsset, address(msg.sender), amount);
         }
-        // update reward debt, there is harvest on withdraw so at every deposit the debt will be reset with the new amount the user has.
-        user.rewardDebt = (user.amount * (pool.accRewardPerShare)) / (1e12);
-        emit Withdraw(msg.sender, _pid, _amount);
+
+        // update reward debt, there is harvest on deposit so at every deposit the debt will be updated with the new amount the user has.
+        currentUser.rewardDebt = currentUser.amount.mulDiv(
+            pool.accRewardPerShare,
+            1e18
+        );
+        emit Withdraw(msg.sender, pid, amount);
     }
 
     /**
      * @notice Harvest reward.
-     * @param _pid the pool identifier.
+     * @param pid the pool identifier.
      */
-    function harvest(uint256 _pid) external nonReentrant {
-        if (_pid >= poolInfo.length) {
+    function harvest(uint256 pid) external nonReentrant {
+        if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
 
         // Get pool and user
-        PoolInfo memory pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][msg.sender];
+        PoolInfo memory pool = poolInfo[pid];
+        UserInfo storage currentUser = userInfo[pid][msg.sender];
 
-        uint256 pending = pendingReward(_pid, msg.sender);
+        uint256 pending = pendingReward(pid, msg.sender);
         if (pending > 0) {
             _payReward(pool.rewardAsset, msg.sender, pending);
         }
 
         // update reward debt
-        user.rewardDebt = user.rewardDebt + (pending);
-        emit Harvest(msg.sender, _pid, pending);
+        currentUser.rewardDebt = currentUser.rewardDebt + pending;
+        emit Harvest(msg.sender, pid, pending);
     }
 
     /**
      * @notice Pay the reward.
      * @dev The reward asset is directly minted from the reward token
-     * @param _rewardAsset the reward token.
-     * @param _to the reward receiver.
-     * @param _amount the amount to be payed.
+     * @param rewardAsset the reward token.
+     * @param to the reward receiver.
+     * @param amount the amount to be payed.
      */
     function _payReward(
-        IERC20 _rewardAsset,
-        address _to,
-        uint256 _amount
+        IERC20 rewardAsset,
+        address to,
+        uint256 amount
     ) internal {
-        IRewardAsset(address(_rewardAsset)).mint(_to, _amount);
+        IRewardAsset(address(rewardAsset)).mint(to, amount);
     }
 
     /**
      * @notice Return the staked tokens.
-     * @param _token the staked token.
-     * @param _to the reward receiver.
-     * @param _amount the amount to be returned.
+     * @param token the staked token.
+     * @param to the reward receiver.
+     * @param amount the amount to be returned.
      */
     function _returnStakedTokens(
-        IERC20 _token,
-        address _to,
-        uint256 _amount
+        IERC20 token,
+        address to,
+        uint256 amount
     ) internal {
-        _token.safeTransfer(_to, _amount);
+        token.safeTransfer(to, amount);
     }
 
     /**
      * @notice Emergency withdraw all the deposited funds.
-     * @param _pid the pool identifier.
+     * @param pid the pool identifier.
      */
-    function emergencyWithdraw(uint256 _pid) external nonReentrant {
-        PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][msg.sender];
+    function emergencyWithdraw(uint256 pid) external nonReentrant {
+        PoolInfo storage pool = poolInfo[pid];
+        UserInfo storage user = userInfo[pid][msg.sender];
 
-        uint256 toWithdraw = user.amount;
+        uint256 amount = user.amount;
         user.amount = 0;
         user.rewardDebt = 0;
-        if (toWithdraw > 0) {
-            _returnStakedTokens(
-                pool.stakedAsset,
-                address(msg.sender),
-                toWithdraw
-            );
+        if (amount > 0) {
+            _returnStakedTokens(pool.stakedAsset, address(msg.sender), amount);
         }
 
-        emit EmergencyWithdraw(msg.sender, _pid, toWithdraw);
+        emit EmergencyWithdraw(msg.sender, pid, amount);
     }
 }

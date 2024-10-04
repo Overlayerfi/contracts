@@ -46,21 +46,21 @@ interface ILiquidityDefs {
 
     error LiquidityNotActive();
 
-    function deposit(uint256 _pid, uint256 _amount) external;
+    function deposit(uint256 pid, uint256 amount) external;
 
-    function withdraw(uint256 _pid, uint256 _amount) external;
+    function withdraw(uint256 pid, uint256 amount) external;
 
-    function harvest(uint256 _pid) external;
+    function harvest(uint256 pid) external;
 
     function pendingReward(
-        uint256 _pid,
+        uint256 pid,
         address _user
     ) external view returns (uint256);
 
     function userInfo(
-        uint256 _pid,
+        uint256 pid,
         address _user
     ) external view returns (uint256, uint256);
 
-    function emergencyWithdraw(uint256 _pid) external;
+    function emergencyWithdraw(uint256 pid) external;
 }
