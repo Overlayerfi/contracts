@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { Contract } from "ethers";
-import { USDC_ABI } from "../get_stables_from_uniswap_local/USDC_abi";
+import { USDC_ABI } from "../abi/USDC_abi";
 
 export async function transfer(
   token: string,

@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { ETH_RPC } from "../../rpc";
-import { USDC_ABI } from "../get_stables_from_uniswap_local/USDC_abi";
+import { USDC_ABI } from "../abi/USDC_abi";
 import { USDC_ADDRESS, USDT_ADDRESS } from "../addresses";
 
 export async function ethBalance(
