@@ -27,14 +27,14 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
 
     /**
-     * @notice The starting block for rewards.
+     * @notice The starting time for rewards.
      */
-    uint256 public startBlock;
+    uint256 public startTime;
 
     /**
-     * @notice The block amounts for each offered reward.
+     * @notice The emitted amount of reward for each second.
      */
-    mapping(address => uint256) public rewardsPerBlock;
+    mapping(address => uint256) public rewardsPerSecond;
 
     /**
      * @notice Currently active reward.
@@ -65,21 +65,21 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     /**
      * @notice Contract constructor.
      * @param admin The contract admin
-     * @param startBlock_ The reward start block
+     * @param startTime_ The reward start time
      */
-    constructor(address admin, uint256 startBlock_) Ownable(admin) {
+    constructor(address admin, uint256 startTime_) Ownable(admin) {
         if (admin == address(0)) {
             revert InvalidZeroAddress();
         }
-        startBlock = startBlock_;
+        startTime = startTime_;
     }
 
     /**
-     * @notice Update the rewards starting block.
-     * @param startBlock_ the new multiplier value.
+     * @notice Update the rewards starting time.
+     * @param startTime_ the new start time.
      */
-    function updateStartBlock(uint256 startBlock_) external onlyOwner {
-        startBlock = startBlock_;
+    function updateStartTime(uint256 startTime_) external onlyOwner {
+        startTime = startTime_;
     }
 
     /**
@@ -102,8 +102,8 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         if (!activeRewards[address(rewardAsset)]) {
             activeRewards[address(rewardAsset)] = true;
         }
-        if (rewardsPerBlock[address(rewardAsset)] != rewardRate) {
-            rewardsPerBlock[address(rewardAsset)] = rewardRate;
+        if (rewardsPerSecond[address(rewardAsset)] != rewardRate) {
+            rewardsPerSecond[address(rewardAsset)] = rewardRate;
         }
     }
 
@@ -167,10 +167,8 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         );
 
         // harvest up to date rewards
-        uint256 pending = oldAmount.mulDiv(
-            pool.accRewardPerShare,
-            1e18
-        ) - oldDebt;
+        uint256 pending = oldAmount.mulDiv(pool.accRewardPerShare, 1e18) -
+            oldDebt;
         if (pending > 0) {
             _payReward(pool.rewardAsset, msg.sender, pending);
         }
@@ -294,7 +292,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
 
     /**
      * @notice Add a new pool.
-     * @dev It reverts if the starting block is set to zero
+     * @dev It reverts if the starting time is set to zero
      * @param stakedAsset the wanted lp token.
      * @param rewardAsset the reward that will be payed out.
      * @param allocationPoints the weight of the added pool.
@@ -306,7 +304,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         uint256 allocationPoints,
         bool update
     ) public onlyOwner {
-        if (startBlock == NOT_ACTIVE) {
+        if (startTime == NOT_ACTIVE) {
             revert LiquidityNotActive();
         }
         if (!activeRewards[address(rewardAsset)]) {
@@ -315,9 +313,9 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         if (update) {
             _massUpdatePools();
         }
-        uint256 lastRewardBlock = block.number > startBlock
-            ? block.number
-            : startBlock;
+        uint256 lastRewardTime = block.timestamp > startTime
+            ? block.timestamp
+            : startTime;
         totalAllocPointsPerReward[address(rewardAsset)] =
             totalAllocPointsPerReward[address(rewardAsset)] +
             (allocationPoints);
@@ -326,7 +324,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
                 stakedAsset: stakedAsset,
                 rewardAsset: rewardAsset,
                 allocPoints: allocationPoints,
-                lastRewardBlock: lastRewardBlock,
+                lastRewardTime: lastRewardTime,
                 accRewardPerShare: 0
             })
         );
@@ -351,16 +349,16 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
 
         uint256 accRewardPerShare = pool.accRewardPerShare;
         uint256 stakedAssetSupply = pool.stakedAsset.balanceOf(address(this));
-        if (block.number > pool.lastRewardBlock && stakedAssetSupply != 0) {
+        if (block.timestamp > pool.lastRewardTime && stakedAssetSupply != 0) {
             uint256 multiplier = _getMultiplier(
-                pool.lastRewardBlock,
-                block.number
+                pool.lastRewardTime,
+                block.timestamp
             );
 
             // This is the same computation made in the updatePool function. Just a view version.
             uint256 rewards = multiplier *
                 (
-                    rewardsPerBlock[address(pool.rewardAsset)].mulDiv(
+                    rewardsPerSecond[address(pool.rewardAsset)].mulDiv(
                         pool.allocPoints,
                         totalAllocPointsPerReward[address(pool.rewardAsset)]
                     )
@@ -422,18 +420,21 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      */
     function updatePool(uint256 pid) internal {
         PoolInfo storage pool = poolInfo[pid];
-        if (block.number <= pool.lastRewardBlock) {
+        if (block.timestamp <= pool.lastRewardTime) {
             return;
         }
         uint256 stakedAssetSupply = pool.stakedAsset.balanceOf(address(this));
         if (stakedAssetSupply == 0) {
-            pool.lastRewardBlock = block.number;
+            pool.lastRewardTime = block.timestamp;
             return;
         }
-        uint256 multiplier = _getMultiplier(pool.lastRewardBlock, block.number);
+        uint256 multiplier = _getMultiplier(
+            pool.lastRewardTime,
+            block.timestamp
+        );
         uint256 rewards = multiplier *
             (
-                rewardsPerBlock[address(pool.rewardAsset)].mulDiv(
+                rewardsPerSecond[address(pool.rewardAsset)].mulDiv(
                     pool.allocPoints,
                     totalAllocPointsPerReward[address(pool.rewardAsset)]
                 )
@@ -442,13 +443,13 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
             pool.accRewardPerShare +
             rewards.mulDiv(1e18, stakedAssetSupply);
 
-        pool.lastRewardBlock = block.number;
+        pool.lastRewardTime = block.timestamp;
     }
 
     /**
-     * @notice Get the multiplier value calculated between two blocks.
-     * @param from the starting block.
-     * @param to the ending block.
+     * @notice Get the multiplier value calculated between two times.
+     * @param from the starting time.
+     * @param to the ending time.
      * @return The difference between the two sides multiplied for the bonus.
      */
     function _getMultiplier(
