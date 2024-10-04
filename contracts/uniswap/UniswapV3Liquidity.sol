@@ -35,7 +35,10 @@ contract UniswapV3Liquidity is IERC721Receiver {
         return IERC721Receiver.onERC721Received.selector;
     }
 
-    function mintNewPosition(uint256 amount0ToAdd, uint256 amount1ToAdd)
+    function mintNewPosition(
+        uint256 amount0ToAdd,
+        uint256 amount1ToAdd
+    )
         external
         returns (
             uint256 tokenId,
@@ -50,23 +53,23 @@ contract UniswapV3Liquidity is IERC721Receiver {
         dai.approve(address(nonfungiblePositionManager), amount0ToAdd);
         weth.approve(address(nonfungiblePositionManager), amount1ToAdd);
 
-        INonfungiblePositionManager.MintParams memory params =
-        INonfungiblePositionManager.MintParams({
-            token0: DAI,
-            token1: WETH,
-            fee: 3000,
-            tickLower: (MIN_TICK / TICK_SPACING) * TICK_SPACING,
-            tickUpper: (MAX_TICK / TICK_SPACING) * TICK_SPACING,
-            amount0Desired: amount0ToAdd,
-            amount1Desired: amount1ToAdd,
-            amount0Min: 0,
-            amount1Min: 0,
-            recipient: msg.sender,
-            deadline: block.timestamp
-        });
+        INonfungiblePositionManager.MintParams
+            memory params = INonfungiblePositionManager.MintParams({
+                token0: DAI,
+                token1: WETH,
+                fee: 3000,
+                tickLower: (MIN_TICK / TICK_SPACING) * TICK_SPACING,
+                tickUpper: (MAX_TICK / TICK_SPACING) * TICK_SPACING,
+                amount0Desired: amount0ToAdd,
+                amount1Desired: amount1ToAdd,
+                amount0Min: 0,
+                amount1Min: 0,
+                recipient: msg.sender,
+                deadline: block.timestamp
+            });
 
-        (tokenId, liquidity, amount0, amount1) =
-            nonfungiblePositionManager.mint(params);
+        (tokenId, liquidity, amount0, amount1) = nonfungiblePositionManager
+            .mint(params);
 
         if (amount0 < amount0ToAdd) {
             dai.approve(address(nonfungiblePositionManager), 0);
@@ -82,17 +85,16 @@ contract UniswapV3Liquidity is IERC721Receiver {
         emit Mint(tokenId, liquidity, amount0, amount1);
     }
 
-    function collectAllFees(uint256 tokenId)
-        external
-        returns (uint256 amount0, uint256 amount1)
-    {
-        INonfungiblePositionManager.CollectParams memory params =
-        INonfungiblePositionManager.CollectParams({
-            tokenId: tokenId,
-            recipient: msg.sender,
-            amount0Max: type(uint128).max,
-            amount1Max: type(uint128).max
-        });
+    function collectAllFees(
+        uint256 tokenId
+    ) external returns (uint256 amount0, uint256 amount1) {
+        INonfungiblePositionManager.CollectParams
+            memory params = INonfungiblePositionManager.CollectParams({
+                tokenId: tokenId,
+                recipient: msg.sender,
+                amount0Max: type(uint128).max,
+                amount1Max: type(uint128).max
+            });
 
         (amount0, amount1) = nonfungiblePositionManager.collect(params);
     }
@@ -108,35 +110,38 @@ contract UniswapV3Liquidity is IERC721Receiver {
         dai.approve(address(nonfungiblePositionManager), amount0ToAdd);
         weth.approve(address(nonfungiblePositionManager), amount1ToAdd);
 
-        INonfungiblePositionManager.IncreaseLiquidityParams memory params =
-        INonfungiblePositionManager.IncreaseLiquidityParams({
-            tokenId: tokenId,
-            amount0Desired: amount0ToAdd,
-            amount1Desired: amount1ToAdd,
-            amount0Min: 0,
-            amount1Min: 0,
-            deadline: block.timestamp
-        });
+        INonfungiblePositionManager.IncreaseLiquidityParams
+            memory params = INonfungiblePositionManager
+                .IncreaseLiquidityParams({
+                    tokenId: tokenId,
+                    amount0Desired: amount0ToAdd,
+                    amount1Desired: amount1ToAdd,
+                    amount0Min: 0,
+                    amount1Min: 0,
+                    deadline: block.timestamp
+                });
 
-        (liquidity, amount0, amount1) =
-            nonfungiblePositionManager.increaseLiquidity(params);
+        (liquidity, amount0, amount1) = nonfungiblePositionManager
+            .increaseLiquidity(params);
     }
 
-    function decreaseLiquidityCurrentRange(uint256 tokenId, uint128 liquidity)
-        external
-        returns (uint256 amount0, uint256 amount1)
-    {
-        INonfungiblePositionManager.DecreaseLiquidityParams memory params =
-        INonfungiblePositionManager.DecreaseLiquidityParams({
-            tokenId: tokenId,
-            liquidity: liquidity,
-            amount0Min: 0,
-            amount1Min: 0,
-            deadline: block.timestamp
-        });
+    function decreaseLiquidityCurrentRange(
+        uint256 tokenId,
+        uint128 liquidity
+    ) external returns (uint256 amount0, uint256 amount1) {
+        INonfungiblePositionManager.DecreaseLiquidityParams
+            memory params = INonfungiblePositionManager
+                .DecreaseLiquidityParams({
+                    tokenId: tokenId,
+                    liquidity: liquidity,
+                    amount0Min: 0,
+                    amount1Min: 0,
+                    deadline: block.timestamp
+                });
 
-        (amount0, amount1) =
-            nonfungiblePositionManager.decreaseLiquidity(params);
+        (amount0, amount1) = nonfungiblePositionManager.decreaseLiquidity(
+            params
+        );
     }
 }
 
@@ -155,7 +160,9 @@ interface INonfungiblePositionManager {
         uint256 deadline;
     }
 
-    function mint(MintParams calldata params)
+    function mint(
+        MintParams calldata params
+    )
         external
         payable
         returns (
@@ -174,7 +181,9 @@ interface INonfungiblePositionManager {
         uint256 deadline;
     }
 
-    function increaseLiquidity(IncreaseLiquidityParams calldata params)
+    function increaseLiquidity(
+        IncreaseLiquidityParams calldata params
+    )
         external
         payable
         returns (uint128 liquidity, uint256 amount0, uint256 amount1);
@@ -187,10 +196,9 @@ interface INonfungiblePositionManager {
         uint256 deadline;
     }
 
-    function decreaseLiquidity(DecreaseLiquidityParams calldata params)
-        external
-        payable
-        returns (uint256 amount0, uint256 amount1);
+    function decreaseLiquidity(
+        DecreaseLiquidityParams calldata params
+    ) external payable returns (uint256 amount0, uint256 amount1);
 
     struct CollectParams {
         uint256 tokenId;
@@ -199,26 +207,28 @@ interface INonfungiblePositionManager {
         uint128 amount1Max;
     }
 
-    function collect(CollectParams calldata params)
-        external
-        payable
-        returns (uint256 amount0, uint256 amount1);
+    function collect(
+        CollectParams calldata params
+    ) external payable returns (uint256 amount0, uint256 amount1);
 }
 
 interface IERC20 {
     function totalSupply() external view returns (uint256);
     function balanceOf(address account) external view returns (uint256);
-    function transfer(address recipient, uint256 amount)
-        external
-        returns (bool);
-    function allowance(address owner, address spender)
-        external
-        view
-        returns (uint256);
+    function transfer(
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256);
     function approve(address spender, uint256 amount) external returns (bool);
-    function transferFrom(address sender, address recipient, uint256 amount)
-        external
-        returns (bool);
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
 }
 
 interface IWETH is IERC20 {

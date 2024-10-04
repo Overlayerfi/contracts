@@ -7,23 +7,21 @@ import { swap } from "../get_stables_from_uniswap_local/swap";
 
 // token0: DAI
 // token1: WETH
-export async function mintPosition(amountDai: string, amountWeth: string, ) {
+export async function mintPosition(amountDai: string, amountWeth: string) {
   const [deployer] = await ethers.getSigners();
   console.log(
     "Deploying UniswapV3Liquidity contract with signer:",
     deployer.address
   );
 
-  const swapContract = await ethers.getContractFactory(
-    "UniswapV3Liquidity"
-  );
+  const swapContract = await ethers.getContractFactory("UniswapV3Liquidity");
 
   // define max fee for test network
   const block = await deployer.provider.getBlock("latest");
   const baseFee = block.baseFeePerGas;
   const maxFee = baseFee * BigInt(10);
   const defaultTransactionOptions = {
-    maxFeePerGas: maxFee 
+    maxFeePerGas: maxFee
   };
 
   // deploy the uni proxy contract
@@ -50,23 +48,27 @@ export async function mintPosition(amountDai: string, amountWeth: string, ) {
   console.log("Spender approved");
 
   // mint position
-  const tx = await uni.connect(deployer).mintNewPosition(
-      ethers.parseUnits(amountDai, 18), ethers.parseEther(amountWeth), defaultTransactionOptions
+  const tx = await uni
+    .connect(deployer)
+    .mintNewPosition(
+      ethers.parseUnits(amountDai, 18),
+      ethers.parseEther(amountWeth),
+      defaultTransactionOptions
     );
-    
+
   // read emitted events and parse the required infos
   const result = await tx.wait();
   const logs = result?.logs;
   const lastLog = logs[logs.length - 1];
-  console.log(parseLog(lastLog))
+  console.log(parseLog(lastLog));
 }
 
 // amounts are in wei
 function parseLog(log) {
   return {
-    "tokenId": log.args[0],
-    "liquidity": log.args[1],
-    "token0": log.args[2],
-    "token1": log.args[3]
-  }
+    tokenId: log.args[0],
+    liquidity: log.args[1],
+    token0: log.args[2],
+    token1: log.args[3]
+  };
 }
