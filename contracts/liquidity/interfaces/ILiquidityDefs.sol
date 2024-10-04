@@ -19,7 +19,7 @@ interface ILiquidityDefs {
          *  pending reward = (user.amount * pool.accRewardPerShare)
          *
          * Whenever a user deposits or withdraws tokens to a pool. Here's what happens:
-         *  1. The pool's `accRewardPerShare` (and `lastRewardBlock`) gets updated.
+         *  1. The pool's `accRewardPerShare` (and `lastRewardTime`) gets updated.
          *  2. User receives the pending reward sent to his/her address.
          *  3. User's `amount` gets updated.
          */
@@ -32,7 +32,7 @@ interface ILiquidityDefs {
         IERC20 stakedAsset; // Address of staked token contract.
         IERC20 rewardAsset; // REward token.
         uint256 allocPoints; // Pool weight
-        uint256 lastRewardBlock; // Last block number that REWARD distribution occurs.
+        uint256 lastRewardTime; // Last timestamp that REWARD distribution occured.
         uint256 accRewardPerShare; // Accumulated REWARD per share, times 1e12. See below.
     }
 
@@ -46,21 +46,21 @@ interface ILiquidityDefs {
 
     error LiquidityNotActive();
 
-    function deposit(uint256 _pid, uint256 _amount) external;
+    function deposit(uint256 pid, uint256 amount) external;
 
-    function withdraw(uint256 _pid, uint256 _amount) external;
+    function withdraw(uint256 pid, uint256 amount) external;
 
-    function harvest(uint256 _pid) external;
+    function harvest(uint256 pid) external;
 
     function pendingReward(
-        uint256 _pid,
+        uint256 pid,
         address _user
     ) external view returns (uint256);
 
     function userInfo(
-        uint256 _pid,
+        uint256 pid,
         address _user
     ) external view returns (uint256, uint256);
 
-    function emergencyWithdraw(uint256 _pid) external;
+    function emergencyWithdraw(uint256 pid) external;
 }
