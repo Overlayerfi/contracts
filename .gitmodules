@@ -1,3 +1,0 @@
-[submodule "contracts/uniswap/v3-staker"]
-	path = contracts/uniswap/v3-staker
-	url = https://github.com/Uniswap/v3-staker.git
