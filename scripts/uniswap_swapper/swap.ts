@@ -11,7 +11,7 @@ import { USDC_ABI } from "../abi/USDC_abi";
 import { USDT_ABI } from "../abi/USDT_abi";
 import { DAI_ABI } from "../abi/DAI_abi";
 
-let SWAP_CODES = [1, 2];
+let SWAP_CODES = [0, 1, 2];
 
 // code 0: DAI
 // code 1: USDC
