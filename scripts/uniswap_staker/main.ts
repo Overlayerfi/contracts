@@ -77,7 +77,7 @@ async function main() {
   );
 
   //advance time
-  await time.increaseTo(startTime + (60 * 60 * 24 * 30 * 6)); //~6 months
+  await time.increaseTo(startTime + 60 * 60 * 24 * 30 * 6); //~6 months
 
   await depositAndStake(
     mintResultB.tokenId.toString(),
