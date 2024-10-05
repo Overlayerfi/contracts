@@ -10,7 +10,7 @@ import {
   AWETH_ADDRESS
 } from "../scripts/addresses";
 import ERC20_ABI from "./ERC20_ABI.json";
-import { swap } from "../scripts/uniswap_swapper/swap";
+import { swap } from "../scripts/uniswap_swapper/proxy";
 import { Contract } from "ethers";
 import Big from "big.js";
 

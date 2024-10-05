@@ -2,14 +2,15 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import {INonfungiblePositionManager} from "./interfaces/INonfungiblePositionManager.sol";
+import {INonfungiblePositionManager} from "../interfaces/INonfungiblePositionManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IWETH} from "./interfaces/IWETH.sol";
+import {IWETH} from "../interfaces/IWETH.sol";
 
 // eth mainnet addresses
 address constant UNIV3_POSITION_MANAGER = 0xC36442b4a4522E871399CD717aBDD847Ab11FE88;
 
 /// @title Proxy contract to interact with the Uniswap V3 liquidity
+/// @dev This a test helper contract. Do not use in prod
 contract UniswapV3LiquidityProxy is IERC721Receiver {
     /// @dev This tick may work only for DAI-WETH
     int24 private constant MIN_TICK = -887272;
@@ -103,6 +104,8 @@ contract UniswapV3LiquidityProxy is IERC721Receiver {
         emit Mint(tokenId, liquidity, amount0, amount1, fee);
     }
 
+    /// @notice Collect a position fees
+    /// @param tokenId The position token id
     function collectAllFees(
         uint256 tokenId
     ) external returns (uint256 amount0, uint256 amount1) {
@@ -117,6 +120,12 @@ contract UniswapV3LiquidityProxy is IERC721Receiver {
         (amount0, amount1) = nonfungiblePositionManager.collect(params);
     }
 
+    /// @notice Increase the current range liquidity position
+    /// @param token0 The first liquidity token
+    /// @param token1 The second liquidity token
+    /// @param tokenId The position token id
+    /// @param amount0ToAdd The amount of the first token
+    /// @param amount1ToAdd The amount of the second token
     function increaseLiquidityCurrentRange(
         address token0,
         address token1,
@@ -151,6 +160,9 @@ contract UniswapV3LiquidityProxy is IERC721Receiver {
             .increaseLiquidity(params);
     }
 
+    /// @notice Decrease the current range liquidity position
+    /// @param tokenId The position token id
+    /// @param liquidity The amount of liquidity
     function decreaseLiquidityCurrentRange(
         uint256 tokenId,
         uint128 liquidity
