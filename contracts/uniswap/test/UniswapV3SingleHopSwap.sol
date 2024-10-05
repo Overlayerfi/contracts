@@ -2,8 +2,8 @@
 pragma solidity ^0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ISwapRouter02} from "./interfaces/ISwapRouter02.sol";
-import {IWETH} from "./interfaces/IWETH.sol";
+import {ISwapRouter02} from "../interfaces/ISwapRouter02.sol";
+import {IWETH} from "../interfaces/IWETH.sol";
 
 address constant SWAP_ROUTER_02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
 address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -12,6 +12,8 @@ address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 address constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
 uint24 constant FEE = 3000;
 
+/// @title Proxy to handle UniV3 swaps by communicating with the swap router v2
+/// @dev This a test helper contract. Do not use in prod
 contract UniswapV3SingleHopSwap {
     ISwapRouter02 private constant router = ISwapRouter02(SWAP_ROUTER_02);
     IERC20 private constant weth = IERC20(WETH);

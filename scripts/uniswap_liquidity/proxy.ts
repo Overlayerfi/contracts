@@ -7,7 +7,7 @@ import {
   WETH_MAINNET_ADDRESS
 } from "../addresses";
 import { DAI_ABI } from "../abi/DAI_abi";
-import { swap } from "../uniswap_swapper/swap";
+import { swap } from "../uniswap_swapper/proxy";
 
 export async function mintPosition(
   token0: string,
