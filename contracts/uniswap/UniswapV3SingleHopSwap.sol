@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ISwapRouter02} from "./interfaces/ISwapRouter02.sol";
+import {IWETH} from "./interfaces/IWETH.sol";
+
 address constant SWAP_ROUTER_02 = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
 address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 address constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
 address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 address constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+uint24 constant FEE = 3000;
 
 contract UniswapV3SingleHopSwap {
     ISwapRouter02 private constant router = ISwapRouter02(SWAP_ROUTER_02);
@@ -31,7 +36,7 @@ contract UniswapV3SingleHopSwap {
             .ExactInputSingleParams({
                 tokenIn: WETH,
                 tokenOut: outAddress,
-                fee: 3000,
+                fee: FEE,
                 recipient: msg.sender,
                 amountIn: amountIn,
                 amountOutMinimum: amountOutMin,
@@ -61,7 +66,7 @@ contract UniswapV3SingleHopSwap {
             .ExactOutputSingleParams({
                 tokenIn: WETH,
                 tokenOut: DAI,
-                fee: 3000,
+                fee: FEE,
                 recipient: msg.sender,
                 amountOut: amountOut,
                 amountInMaximum: amountInMax,
@@ -75,58 +80,4 @@ contract UniswapV3SingleHopSwap {
             weth.transfer(msg.sender, amountInMax - amountIn);
         }
     }
-}
-
-interface ISwapRouter02 {
-    struct ExactInputSingleParams {
-        address tokenIn;
-        address tokenOut;
-        uint24 fee;
-        address recipient;
-        uint256 amountIn;
-        uint256 amountOutMinimum;
-        uint160 sqrtPriceLimitX96;
-    }
-
-    function exactInputSingle(
-        ExactInputSingleParams calldata params
-    ) external payable returns (uint256 amountOut);
-
-    struct ExactOutputSingleParams {
-        address tokenIn;
-        address tokenOut;
-        uint24 fee;
-        address recipient;
-        uint256 amountOut;
-        uint256 amountInMaximum;
-        uint160 sqrtPriceLimitX96;
-    }
-
-    function exactOutputSingle(
-        ExactOutputSingleParams calldata params
-    ) external payable returns (uint256 amountIn);
-}
-
-interface IERC20 {
-    function totalSupply() external view returns (uint256);
-    function balanceOf(address account) external view returns (uint256);
-    function transfer(
-        address recipient,
-        uint256 amount
-    ) external returns (bool);
-    function allowance(
-        address owner,
-        address spender
-    ) external view returns (uint256);
-    function approve(address spender, uint256 amount) external returns (bool);
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) external returns (bool);
-}
-
-interface IWETH is IERC20 {
-    function deposit() external payable;
-    function withdraw(uint256 amount) external;
 }
