@@ -75,11 +75,17 @@ async function main() {
     incentiveKey,
     ret.proxy
   );
+
+  //advance time
+  await time.increaseTo(startTime + (60 * 60 * 24 * 30 * 6)); //~6 months
+
   await depositAndStake(
     mintResultB.tokenId.toString(),
     incentiveKey,
     ret.proxy
   );
+
+  // Deposit B injects double the amount but will remain inside the staking half the time...they should have the same reward more or less...
 
   //advance time (1h until the end)
   await time.increaseTo(endTime - 60 * 60);
