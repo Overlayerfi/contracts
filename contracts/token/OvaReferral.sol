@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title OvaReferral
- * @notice This token represent the airdrop token to receive the governance OVAG token.
+ * @notice This token tracks the referral points.
  */
 contract OvaReferral is GovernanceTokenBase, ReentrancyGuard {
     /// @notice Track the referral source for given address
@@ -30,7 +30,7 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard {
     error OvaReferralNotAllowed();
 
     modifier onlyTracker() {
-        if (allowedPointsTrackers[msg.sender] != true) {
+        if (!allowedPointsTrackers[msg.sender]) {
             revert OvaReferralNotAllowed();
         }
         _;
@@ -59,15 +59,6 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard {
         emit Referral(source, consumer);
     }
 
-    /// @notice Retrieve all the referred user for a given address
-    /// @param source The query key
-    /// @return All the referred user addresses
-    function seeReferred(
-        address source
-    ) external view returns (address[] memory) {
-        return referredUsers[source];
-    }
-
     /// @notice Track a new points update
     /// @param source The user address to track
     /// @param amount The amount of points to be tracked
@@ -87,5 +78,14 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard {
     function removePointsTracker(address tracker) external onlyOwner {
         allowedPointsTrackers[tracker] = false;
         emit RemoveTracker(tracker);
+    }
+
+    /// @notice Retrieve all the referred user for a given address
+    /// @param source The query key
+    /// @return All the referred user addresses
+    function seeReferred(
+        address source
+    ) external view returns (address[] memory) {
+        return referredUsers[source];
     }
 }
