@@ -213,7 +213,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
             pool.accRewardPerShare,
             1e18
         );
-        //harvest accued rewards
+        //harvest accrued rewards
         if (pending > 0) {
             _payReward(pool.rewardAsset, msg.sender, pending);
         }
