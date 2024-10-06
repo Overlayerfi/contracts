@@ -37,6 +37,24 @@ interface ILiquidityDefs {
         uint256 accRewardPerShare; // Accumulated REWARD per share, times 1e12. See below.
     }
 
+    event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
+
+    event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
+
+    event Harvest(address indexed user, uint256 indexed pid, uint256 amount);
+
+    event EmergencyWithdraw(
+        address indexed user,
+        uint256 indexed pid,
+        uint256 amount
+    );
+
+    event NewBonusMultiplier(uint256 multiplier);
+
+    event NewReferralBonus(uint8 bonus);
+
+    event NewReferral(IOvaReferral referral);
+
     error InvalidAmount();
 
     error InvalidPid();
@@ -47,19 +65,11 @@ interface ILiquidityDefs {
 
     error LiquidityNotActive();
 
-    function deposit(
-        uint256 pid,
-        uint256 amount,
-        IOvaReferral referral
-    ) external;
+    function deposit(uint256 pid, uint256 amount) external;
 
-    function withdraw(
-        uint256 pid,
-        uint256 amount,
-        IOvaReferral referral
-    ) external;
+    function withdraw(uint256 pid, uint256 amount) external;
 
-    function harvest(uint256 pid, IOvaReferral referral) external;
+    function harvest(uint256 pid) external;
 
     function pendingReward(
         uint256 pid,
