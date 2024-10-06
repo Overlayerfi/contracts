@@ -5,9 +5,13 @@ pragma abicoder v2;
 import "@uniswap/v3-core/contracts/interfaces/IERC20Minimal.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import {INonfungiblePositionManager} from "./interfaces/INonfungiblePositionManager.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {INonfungiblePositionManager} from "./interfaces/INonfungiblePositionManager.sol";
+import {IOvaReferral} from "../token/interfaces/IOvaReferral.sol";
+import {IRewardAsset} from "../liquidity/interfaces/IRewardAsset.sol";
 import {IUniswapV3Staker} from "./interfaces/IUniswapV3Staker.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -20,17 +24,50 @@ uint24 constant FEE = 100;
 
 /// @title Uniswap V3 staker contract proxy
 /// @notice It handles user stakings by integrating all the bonus points obtained by referrals
-contract UniswapV3StakerProxy is Ownable {
+contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
+    using Math for uint256;
 
+    /// @notice Cache of original token owners
     mapping(uint256 => address) public originalOwners;
+
+    /// @notice Referral bonus amount
+    uint8 public referralBonus = 5;
+
+    /// @notice Ova referral contract
+    IOvaReferral public referral;
+
+    event UniswapV3StakerReferralUpdated(IOvaReferral referral);
+
+    event UniswapV3StakerReferralBonusUpdated(uint8 bonus);
 
     error UniswapV3StakerProxyZeroAddress();
 
     /// @notice Constructor
-    constructor() Ownable(msg.sender) {}
+    /// @param admin The contract admin
+    constructor(address admin) Ownable(admin) {}
+
+    /// @notice Update the referral contract
+    /// @param referral_ The new referral contract
+    function updateReferral(IOvaReferral referral_) external onlyOwner {
+        referral = referral_;
+        emit UniswapV3StakerReferralUpdated(referral);
+    }
+
+    /**
+     * @notice Update the referral bonus amount.
+     * @dev It can not be over 100 (100%).
+     * @param referralBonus_ the bonus amount.
+     */
+    function updateReferralBonus(uint8 referralBonus_) external onlyOwner {
+        if (referralBonus_ <= 100) {
+            referralBonus = referralBonus_;
+            emit UniswapV3StakerReferralBonusUpdated(referralBonus_);
+        }
+    }
 
     /// @notice Create a new incentive
+    /// @dev Public uniswap staker allows a max incentive time of 63072000 seconds (https://etherscan.io/address/0xe34139463ba50bd61336e0c446bd8c0867c6fe65#readContract)
     /// @param token0 The first pool token
     /// @param token1 The second pool token
     /// @param reward The reward token
@@ -76,15 +113,30 @@ contract UniswapV3StakerProxy is Ownable {
     /// @notice Deposit a token into the staker contract
     /// @dev This transfer will trigger deposit + stake inside the staker contract
     /// @dev The original token owner is cached if any token is blocked inside this contract
+    /// @dev Referral is consumed if the source valid
     /// @param tokenId The position tokenId
     /// @param key The incentive key created inside the staker contract
+    /// @param referralSource Any referral source
     function stake(
         uint256 tokenId,
-        IUniswapV3Staker.IncentiveKey memory key
-    ) external {
+        IUniswapV3Staker.IncentiveKey memory key,
+        address referralSource
+    ) external nonReentrant {
         address tokenOwner = msg.sender;
         // Cache the owner
         originalOwners[tokenId] = tokenOwner;
+
+        // Consume referral if the current user has not been referred.
+        // We have to perform that msg.sender has been never referred
+        // check otherwise the tx will revert for additional stakes.
+        if (
+            address(referral) != address(0) &&
+            referral.referredFrom(msg.sender) == address(0) &&
+            referralSource != address(0)
+        ) {
+            referral.consumeReferral(referralSource, msg.sender);
+        }
+
         // Deposit and stake
         INonfungiblePositionManager(UNIV3_NFT_POSITION_MANAGER)
             .safeTransferFrom(
@@ -97,6 +149,7 @@ contract UniswapV3StakerProxy is Ownable {
 
     /// @notice Unstake, collect and withraw the token
     /// @dev The token owner must have called `transferDeposit` before (https://github.com/Uniswap/v3-staker/blob/6d06fe4034e4eec53e1e587fc4770286466f4b35/contracts/UniswapV3Staker.sol#L179C14-L179C29)
+    /// @dev If user has being referred, the referral source will gain the referral bonus
     /// @param tokenId The token id
     /// @param key The incentive key
     /// @param reward The reward token
@@ -108,7 +161,7 @@ contract UniswapV3StakerProxy is Ownable {
         IERC20Minimal reward,
         address rewardRecipient,
         address tokenRecipient
-    ) external {
+    ) external nonReentrant returns (uint256) {
         if (rewardRecipient == address(0))
             revert UniswapV3StakerProxyZeroAddress();
         if (tokenRecipient == address(0))
@@ -119,7 +172,11 @@ contract UniswapV3StakerProxy is Ownable {
         // Unstake the token
         IUniswapV3Staker(UNIV3_STAKER).unstakeToken(key, tokenId);
         // Collect reward
-        IUniswapV3Staker(UNIV3_STAKER).claimReward(reward, rewardRecipient, 0);
+        uint256 collected = IUniswapV3Staker(UNIV3_STAKER).claimReward(
+            reward,
+            rewardRecipient,
+            0
+        );
         // Withraw token
         bytes memory data = new bytes(0);
         IUniswapV3Staker(UNIV3_STAKER).withdrawToken(
@@ -127,6 +184,13 @@ contract UniswapV3StakerProxy is Ownable {
             tokenRecipient,
             data
         );
+
+        // Referral bonus
+        if (address(referral) != address(0)) {
+            _payBonus(address(reward), collected);
+        }
+
+        return collected;
     }
 
     /// @notice Recover a deposit who changed owner to this contract
@@ -144,7 +208,7 @@ contract UniswapV3StakerProxy is Ownable {
         }
     }
 
-    /// @notice Visualize the accued reward so far for a tokenId
+    /// @notice Visualize the accrued reward so far for a tokenId
     /// @param tokenId The position tokenId
     /// @param key The incentive key created inside the staker contract
     /// @return amount The accurent amount for the given tokenid and incentive
@@ -193,5 +257,19 @@ contract UniswapV3StakerProxy is Ownable {
         IUniswapV3Staker.IncentiveKey memory key
     ) public pure returns (bytes memory) {
         return abi.encode(key);
+    }
+
+    /**
+     * @notice Pay the reward bonus to referral source.
+     * @dev The reward asset is directly minted from the reward token
+     * @param rewardAsset the reward token.
+     * @param amount the original collected amount.
+     */
+    function _payBonus(address rewardAsset, uint256 amount) internal {
+        uint256 bonus = amount.mulDiv(referralBonus, 100);
+        address recipient = referral.referredFrom(msg.sender);
+        // Pay only if the referral source do exist (is not address(0))
+        if (bonus > 0 && recipient != address(0))
+            IRewardAsset(rewardAsset).mint(recipient, bonus);
     }
 }
