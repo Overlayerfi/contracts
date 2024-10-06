@@ -47,11 +47,19 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     mapping(address => uint256) public totalAllocPointsPerReward;
 
     /**
-     * @notice The bonus multiplier for this chef.
+     * @notice The bonus multiplier.
      */
     uint256 public bonusMultiplier = 1;
 
+    /**
+     * @notice A disabled flag.
+     */
     uint8 private constant NOT_ACTIVE = 0;
+
+    /**
+     * @notice Referral bonus percentage.
+     */
+    uint8 public referralBonus = 5;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -80,6 +88,17 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      */
     function updateStartTime(uint256 startTime_) external onlyOwner {
         startTime = startTime_;
+    }
+
+    /**
+     * @notice Update the referral bonus amount.
+     * @dev It can not be over 100 (100%).
+     * @param referralBonus_ the bonus amount.
+     */
+    function updateReferralBonus(uint8 referralBonus_) external onlyOwner {
+        if (referralBonus_ <= 100) {
+            referralBonus = referralBonus_;
+        }
     }
 
     /**
@@ -141,8 +160,13 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @notice Deposit into the pool with harvest.
      * @param pid the pool identifier.
      * @param amount the amount to deposit.
+     * @param referral a possible referral contract
      */
-    function deposit(uint256 pid, uint256 amount) external nonReentrant {
+    function deposit(
+        uint256 pid,
+        uint256 amount,
+        IOvaReferral referral
+    ) public nonReentrant {
         if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
@@ -172,6 +196,13 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         if (pending > 0) {
             _payReward(pool.rewardAsset, msg.sender, pending);
         }
+
+        // harvest referral bonus and track gained point from the referral source
+        if (address(referral) != address(0)) {
+            _payBonus(referral, pending, pool.rewardAsset);
+        }
+
+        // collect collateral
         if (amount > 0) {
             pool.stakedAsset.safeTransferFrom(
                 address(msg.sender),
@@ -184,11 +215,34 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     }
 
     /**
+     * @notice Deposit into the pool with harvest by consuming a referral.
+     * @dev The referral must be consumed after the deposit otherwise the referral source will also gain past performances.
+     * @param pid the pool identifier.
+     * @param amount the amount to deposit.
+     * @param referral a possible referral contract
+     * @param referralSource the referral source user
+     */
+    function deposit(
+        uint256 pid,
+        uint256 amount,
+        IOvaReferral referral,
+        address referralSource
+    ) external nonReentrant {
+        deposit(pid, amount, referral);
+
+        referral.consumeReferral(msg.sender, referralSource);
+    }
+
+    /**
      * @notice Withdraw from the pool with harvest.
      * @param pid the pool identifier.
      * @param amount the amount to withdraw.
      */
-    function withdraw(uint256 pid, uint256 amount) external nonReentrant {
+    function withdraw(
+        uint256 pid,
+        uint256 amount,
+        IOvaReferral referral
+    ) external nonReentrant {
         if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
@@ -216,10 +270,15 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
             pool.accRewardPerShare,
             1e18
         );
-
+        //harvest accued rewards
         if (pending > 0) {
             _payReward(pool.rewardAsset, msg.sender, pending);
         }
+        // harvest referral bonus and track gained point from the referral source
+        if (address(referral) != address(0)) {
+            _payBonus(referral, pending, pool.rewardAsset);
+        }
+        //return stating funds
         if (amount > 0) {
             _returnStakedTokens(pool.stakedAsset, address(msg.sender), amount);
         }
@@ -230,8 +289,9 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     /**
      * @notice Harvest reward.
      * @param pid the pool identifier.
+     * @param referral a referral contract.
      */
-    function harvest(uint256 pid) external nonReentrant {
+    function harvest(uint256 pid, IOvaReferral referral) external nonReentrant {
         if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
@@ -245,8 +305,13 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         // update reward debt
         currentUser.rewardDebt = currentUser.rewardDebt + pending;
 
+        // pay rewards
         if (pending > 0) {
             _payReward(pool.rewardAsset, msg.sender, pending);
+        }
+        // pay bonus rewards
+        if (address(referral) != address(0)) {
+            _payBonus(referral, pending, pool.rewardAsset);
         }
 
         emit Harvest(msg.sender, pid, pending);
@@ -412,6 +477,24 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         uint256 amount
     ) internal {
         token.safeTransfer(to, amount);
+    }
+
+    /**
+     * @notice Pay bonus referral tokens
+     * @param referral the referral contract.
+     * @param originalAmount the original amount.
+     */
+    function _payBonus(
+        IOvaReferral referral,
+        uint256 originalAmount,
+        IERC20 asset
+    ) internal {
+        uint256 bonus = originalAmount.mulDiv(referralBonus, 100);
+        address recipient = referral.referredFrom(msg.sender);
+        if (bonus > 0 && recipient != address(0)) {
+            _payReward(asset, recipient, bonus);
+            referral.track(recipient, bonus);
+        }
     }
 
     /**
