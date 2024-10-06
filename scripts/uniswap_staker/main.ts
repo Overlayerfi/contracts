@@ -18,12 +18,15 @@ import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 // This test demonstrate how to stake and unstake UniV3 position into the Staker contract.
 // The public Staker contract deployed on eth mainnet is being used.
+// This is only a demo test as the we rely on Uniswap contract correctness.
 async function main() {
   const startTime = (await time.latest()) + 60 * 60;
   const endTime = (await time.latest()) + 60 * 60 * 24 * 30 * 12; //~1 year
   const token0 = DAI_ADDRESS;
   const token1 = WETH_MAINNET_ADDRESS;
   const owner = "0x10fc45741bfE5D527c1b83Fe0BD70fC96D7ec30F";
+
+  const [deployer, recipient] = await ethers.getSigners();
 
   // Create incentive
   const ret = await deploy();
@@ -46,6 +49,7 @@ async function main() {
     "1000",
     "0.1",
     100,
+    deployer,
     "1"
   );
   const mintResultB = await mintPosition(
@@ -56,6 +60,7 @@ async function main() {
     "2000",
     "0.2",
     100,
+    deployer,
     "1"
   );
 
@@ -73,6 +78,8 @@ async function main() {
   await depositAndStake(
     mintResultA.tokenId.toString(),
     incentiveKey,
+    ethers.ZeroAddress,
+    deployer,
     ret.proxy
   );
 
@@ -82,6 +89,8 @@ async function main() {
   await depositAndStake(
     mintResultB.tokenId.toString(),
     incentiveKey,
+    ethers.ZeroAddress,
+    deployer,
     ret.proxy
   );
 
@@ -116,7 +125,6 @@ async function main() {
     await recoverDeposit(r.tokenId.toString(), ret.proxy);
   }
 
-  const [deployer, recipient] = await ethers.getSigners();
   console.log(`Using as recipient ${recipient.address}`);
   // Transfer deposit to the proxy account to initiate the unstake procedure. Now for real
   for (const r of [mintResultA, mintResultB]) {
@@ -126,7 +134,8 @@ async function main() {
       incentiveKey,
       ret.proxy,
       ret.reward,
-      recipient.address
+      recipient.address,
+      deployer
     );
   }
 

@@ -8,6 +8,7 @@ import {
 } from "../addresses";
 import { DAI_ABI } from "../abi/DAI_abi";
 import { swap } from "../uniswap_swapper/proxy";
+import { Signer } from "ethers";
 
 export async function mintPosition(
   token0: string,
@@ -17,6 +18,7 @@ export async function mintPosition(
   amount0: string,
   amount1: string,
   fee: number,
+  deployer: Signer,
   limitAmount?: string
 ) {
   const supported: string[] = [
@@ -37,7 +39,7 @@ export async function mintPosition(
     limitAmount !== undefined ? +limitAmount : 2 ^ 18
   );
 
-  const [deployer] = await ethers.getSigners();
+  //const [deployer] = await ethers.getSigners();
   console.log(
     "Deploying UniswapV3LiquidityProxy contract with signer:",
     deployer.address
