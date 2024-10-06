@@ -18,10 +18,23 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard {
     /// @notice Track all the generated referral points for given address
     mapping(address => uint256) public generatedPoints;
 
+    /// @notice External entities who can control the points tracking
+    mapping(address => bool) public allowedPointsTrackers;
+
     event Referral(address indexed source, address consumer);
+    event AddTracker(address tracker);
+    event RemoveTracker(address tracker);
 
     error OvaReferralAlreadyReferred();
     error OvaReferralZeroAddress();
+    error OvaReferralNotAllowed();
+
+    modifier onlyTracker() {
+        if (allowedPointsTrackers[msg.sender] != true) {
+            revert OvaReferralNotAllowed();
+        }
+        _;
+    }
 
     ///@notice The constructor
     ///@param admin The contract admin
@@ -29,17 +42,21 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard {
 
     /// @notice Create a new referral
     /// @param source The referral source
-    function consumeReferral(address source) external nonReentrant {
-        if (referredFrom[msg.sender] != address(0)) {
+    /// @param consumer The referral consumer
+    function consumeReferral(
+        address source,
+        address consumer
+    ) external nonReentrant onlyTracker {
+        if (referredFrom[consumer] != address(0)) {
             revert OvaReferralAlreadyReferred();
         }
 
         if (source == address(0)) revert OvaReferralZeroAddress();
 
-        referredFrom[msg.sender] = source;
-        referredUsers[source].push(msg.sender);
+        referredFrom[consumer] = source;
+        referredUsers[source].push(consumer);
 
-        emit Referral(source, msg.sender);
+        emit Referral(source, consumer);
     }
 
     /// @notice Retrieve all the referred user for a given address
@@ -49,5 +66,26 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard {
         address source
     ) external view returns (address[] memory) {
         return referredUsers[source];
+    }
+
+    /// @notice Track a new points update
+    /// @param source The user address to track
+    /// @param amount The amount of points to be tracked
+    function track(address source, uint256 amount) external onlyTracker {
+        generatedPoints[source] += amount;
+    }
+
+    /// @notice Add a new points tracker
+    /// @param tracker The tracker address
+    function addPointsTracker(address tracker) external onlyOwner {
+        allowedPointsTrackers[tracker] = true;
+        emit AddTracker(tracker);
+    }
+
+    /// @notice Remove a points tracker
+    /// @param tracker The tracker address
+    function removePointsTracker(address tracker) external onlyOwner {
+        allowedPointsTrackers[tracker] = false;
+        emit RemoveTracker(tracker);
     }
 }
