@@ -70,7 +70,7 @@ describe("Liquidity", function () {
       expect(await liquidity.owner()).to.equal(await owner.getAddress());
     });
 
-    it("Should set the right start block", async function () {
+    it("Should set the right start timestamp", async function () {
       const { liquidity, latestTime } = await loadFixture(deployFixture);
       expect(await liquidity.startTime()).to.equal(latestTime);
     });
@@ -89,7 +89,7 @@ describe("Liquidity", function () {
         .eventually.rejected;
     });
 
-    it("Should update starting block", async function () {
+    it("Should update starting timestamp", async function () {
       const { liquidity, owner, latestTime } = await loadFixture(deployFixture);
       await liquidity.connect(owner).updateStartTime(latestTime + 100);
       expect(await liquidity.startTime()).to.equal(latestTime + 100);
@@ -110,7 +110,7 @@ describe("Liquidity", function () {
   });
 
   describe("AddPool", function () {
-    it("Should not add a new pool if start block for rewards is zero", async function () {
+    it("Should not add a new pool if start timestamp for rewards is zero", async function () {
       const { liquidity, stakedAsset, owner, tokenRewardOne } =
         await loadFixture(deployFixture);
       await liquidity.connect(owner).updateStartTime(0);
@@ -304,8 +304,7 @@ describe("Liquidity", function () {
       );
     });
 
-    it("Should return right pending reward with block advance", async function () {
-      // block number starts from zero
+    it("Should return right pending reward with timestamp advance", async function () {
       const { liquidity, stakedAsset, tokenRewardOne, alice, bob } =
         await loadFixture(deployFixture);
       const users: Array<any> = [alice, bob];
@@ -428,7 +427,6 @@ describe("Liquidity", function () {
     });
 
     it("Should have proportioned reward with same reward blocks and deposit with different weights", async function () {
-      // block number starts from zero
       const {
         liquidity,
         stakedAsset,
@@ -554,7 +552,6 @@ describe("Liquidity", function () {
     });
 
     it("Should have same reward with same reward blocks and deposit", async function () {
-      // block number starts from zero
       const { liquidity, stakedAsset, tokenRewardOne, alice, bob } =
         await loadFixture(deployFixture);
       const users: Array<any> = [alice, bob];
@@ -670,7 +667,6 @@ describe("Liquidity", function () {
     });
 
     it("Should have double reward with same blocks and double deposit deposit", async function () {
-      // block number starts from zero
       const { liquidity, stakedAsset, tokenRewardOne, alice, bob } =
         await loadFixture(deployFixture);
       const PARTICIPATION: string = "10";
@@ -796,7 +792,6 @@ describe("Liquidity", function () {
     });
 
     it("Should harvest correct amount", async function () {
-      // block number starts from zero
       const { liquidity, stakedAsset, tokenRewardOne, alice, bob } =
         await loadFixture(deployFixture);
       const users: Array<any> = [alice, bob];
