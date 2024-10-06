@@ -33,9 +33,7 @@ describe("Liquidity", function () {
     );
     await stakedAsset.setMinter(liquidity.getAddress());
 
-    const TokenRewardOne = await ethers.getContractFactory(
-      "LiquidityAirdropReward"
-    );
+    const TokenRewardOne = await ethers.getContractFactory("OvaReferral");
     const tokenRewardOne = await TokenRewardOne.deploy(
       owner.address,
       defaultTransactionOptions
@@ -294,14 +292,12 @@ describe("Liquidity", function () {
         true
       );
 
-      await expect(await liquidity.connect(alice).deposit(0, 5)).to.emit(
-        liquidity,
-        "Deposit"
-      );
-      await expect(await liquidity.connect(bob).deposit(0, 5)).to.emit(
-        liquidity,
-        "Deposit"
-      );
+      await expect(
+        await liquidity.connect(alice).deposit(0, 5, ethers.ZeroAddress)
+      ).to.emit(liquidity, "Deposit");
+      await expect(
+        await liquidity.connect(bob).deposit(0, 5, ethers.ZeroAddress)
+      ).to.emit(liquidity, "Deposit");
     });
 
     it("Should return right pending reward with timestamp advance", async function () {
@@ -351,14 +347,14 @@ describe("Liquidity", function () {
       await expect(
         await liquidity
           .connect(alice)
-          .deposit(0, ethers.parseEther(PARTICIPATION))
+          .deposit(0, ethers.parseEther(PARTICIPATION), ethers.ZeroAddress)
       ).to.emit(liquidity, "Deposit");
       const afterAliceDeposit: number = await time.latest();
 
       await expect(
         await liquidity
           .connect(bob)
-          .deposit(0, ethers.parseEther(PARTICIPATION))
+          .deposit(0, ethers.parseEther(PARTICIPATION), ethers.ZeroAddress)
       ).to.emit(liquidity, "Deposit");
       const afterBobDeposit: number = await time.latest();
 
@@ -481,7 +477,7 @@ describe("Liquidity", function () {
       await expect(
         await liquidity
           .connect(alice)
-          .deposit(0, ethers.parseEther(PARTICIPATION))
+          .deposit(0, ethers.parseEther(PARTICIPATION), ethers.ZeroAddress)
       ).to.emit(liquidity, "Deposit");
       const afterAliceDeposit: number = await time.latest();
 
@@ -491,7 +487,7 @@ describe("Liquidity", function () {
       await expect(
         await liquidity
           .connect(bob)
-          .deposit(1, ethers.parseEther(PARTICIPATION))
+          .deposit(1, ethers.parseEther(PARTICIPATION), ethers.ZeroAddress)
       ).to.emit(liquidity, "Deposit");
       const afterBobDeposit: number = await time.latest();
 
@@ -598,14 +594,14 @@ describe("Liquidity", function () {
       await expect(
         await liquidity
           .connect(alice)
-          .deposit(0, ethers.parseEther(PARTICIPATION))
+          .deposit(0, ethers.parseEther(PARTICIPATION), ethers.ZeroAddress)
       ).to.emit(liquidity, "Deposit");
       const afterAliceDeposit: number = await time.latest();
 
       await expect(
         await liquidity
           .connect(bob)
-          .deposit(0, ethers.parseEther(PARTICIPATION))
+          .deposit(0, ethers.parseEther(PARTICIPATION), ethers.ZeroAddress)
       ).to.emit(liquidity, "Deposit");
       const afterBobDeposit: number = await time.latest();
 
@@ -652,12 +648,12 @@ describe("Liquidity", function () {
       await expect(
         await liquidity
           .connect(alice)
-          .withdraw(0, ethers.parseEther(PARTICIPATION))
+          .withdraw(0, ethers.parseEther(PARTICIPATION), ethers.ZeroAddress)
       ).to.emit(liquidity, "Withdraw");
       await expect(
         await liquidity
           .connect(bob)
-          .withdraw(0, ethers.parseEther(PARTICIPATION))
+          .withdraw(0, ethers.parseEther(PARTICIPATION), ethers.ZeroAddress)
       ).to.emit(liquidity, "Withdraw");
       const aliceReward = await tokenRewardOne.balanceOf(alice.getAddress());
       const bobReward = await tokenRewardOne.balanceOf(bob.getAddress());
@@ -711,14 +707,14 @@ describe("Liquidity", function () {
       await expect(
         await liquidity
           .connect(alice)
-          .deposit(0, ethers.parseEther(PARTICIPATION))
+          .deposit(0, ethers.parseEther(PARTICIPATION), ethers.ZeroAddress)
       ).to.emit(liquidity, "Deposit");
       const afterAliceDeposit: number = await time.latest();
 
       await expect(
         await liquidity
           .connect(bob)
-          .deposit(0, ethers.parseEther(HALF_PARTICIPATION))
+          .deposit(0, ethers.parseEther(HALF_PARTICIPATION), ethers.ZeroAddress)
       ).to.emit(liquidity, "Deposit");
       const afterBobDeposit: number = await time.latest();
 
@@ -774,12 +770,16 @@ describe("Liquidity", function () {
       await expect(
         await liquidity
           .connect(alice)
-          .withdraw(0, ethers.parseEther(PARTICIPATION))
+          .withdraw(0, ethers.parseEther(PARTICIPATION), ethers.ZeroAddress)
       ).to.emit(liquidity, "Withdraw");
       await expect(
         await liquidity
           .connect(bob)
-          .withdraw(0, ethers.parseEther(HALF_PARTICIPATION))
+          .withdraw(
+            0,
+            ethers.parseEther(HALF_PARTICIPATION),
+            ethers.ZeroAddress
+          )
       ).to.emit(liquidity, "Withdraw");
       const aliceReward = await tokenRewardOne.balanceOf(alice.getAddress());
       const bobReward = await tokenRewardOne.balanceOf(bob.getAddress());
@@ -838,14 +838,14 @@ describe("Liquidity", function () {
       await expect(
         await liquidity
           .connect(alice)
-          .deposit(0, ethers.parseEther(PARTICIPATION))
+          .deposit(0, ethers.parseEther(PARTICIPATION), ethers.ZeroAddress)
       ).to.emit(liquidity, "Deposit");
       const afterAliceDeposit: number = await time.latest();
 
       await expect(
         await liquidity
           .connect(bob)
-          .deposit(0, ethers.parseEther(PARTICIPATION))
+          .deposit(0, ethers.parseEther(PARTICIPATION), ethers.ZeroAddress)
       ).to.emit(liquidity, "Deposit");
       const afterBobDeposit: number = await time.latest();
 
@@ -869,15 +869,13 @@ describe("Liquidity", function () {
       const oneUserTotalSupply: number = +PARTICIPATION;
 
       const beforeAliceHarvestBlock: number = await time.latest();
-      expect(await liquidity.connect(alice).harvest(0)).to.emit(
-        liquidity,
-        "Harvest"
-      );
+      expect(
+        await liquidity.connect(alice).harvest(0, ethers.ZeroAddress)
+      ).to.emit(liquidity, "Harvest");
       const afterAliceHarverstBlock: number = await time.latest();
-      expect(await liquidity.connect(bob).harvest(0)).to.emit(
-        liquidity,
-        "Harvest"
-      );
+      expect(
+        await liquidity.connect(bob).harvest(0, ethers.ZeroAddress)
+      ).to.emit(liquidity, "Harvest");
       const afterBobHarverstBlock: number = await time.latest();
       const aliceHarverstBlocksToAdd: number =
         afterAliceHarverstBlock - beforeAliceHarvestBlock;
@@ -950,34 +948,30 @@ describe("Liquidity", function () {
 
       const latestTime: number = await time.latest();
       await time.increaseTo(latestTime + 1);
-      await expect(await liquidity.connect(alice).deposit(0, 5)).to.emit(
-        liquidity,
-        "Deposit"
-      );
-      await expect(await liquidity.connect(bob).deposit(0, 5)).to.emit(
-        liquidity,
-        "Deposit"
-      );
+      await expect(
+        await liquidity.connect(alice).deposit(0, 5, ethers.ZeroAddress)
+      ).to.emit(liquidity, "Deposit");
+      await expect(
+        await liquidity.connect(bob).deposit(0, 5, ethers.ZeroAddress)
+      ).to.emit(liquidity, "Deposit");
       await time.increaseTo(latestTime + 11);
 
-      await expect(await liquidity.connect(alice).deposit(0, 0)).to.emit(
-        liquidity,
-        "Deposit"
-      );
-      await expect(await liquidity.connect(bob).deposit(0, 0)).to.emit(
-        liquidity,
-        "Deposit"
-      );
+      await expect(
+        await liquidity.connect(alice).deposit(0, 0, ethers.ZeroAddress)
+      ).to.emit(liquidity, "Deposit");
+      await expect(
+        await liquidity.connect(bob).deposit(0, 0, ethers.ZeroAddress)
+      ).to.emit(liquidity, "Deposit");
       let aliceReward = await tokenRewardOne.balanceOf(alice.getAddress());
       let bobReward = await tokenRewardOne.balanceOf(bob.getAddress());
       assert.isTrue(aliceReward.toString() == "5");
       assert.isTrue(bobReward.toString() == "5");
 
       await time.increaseTo(latestTime + 40);
-      await expect(liquidity.connect(alice).withdraw(0, 10)).to.be.eventually
-        .rejected;
-      await expect(liquidity.connect(bob).withdraw(0, 10)).to.be.eventually
-        .rejected;
+      await expect(liquidity.connect(alice).withdraw(0, 10, ethers.ZeroAddress))
+        .to.be.eventually.rejected;
+      await expect(liquidity.connect(bob).withdraw(0, 10, ethers.ZeroAddress))
+        .to.be.eventually.rejected;
     });
   });
 });

@@ -56,10 +56,14 @@ describe("OvaReferral", function () {
 
   describe("Referrral", function () {
     it("Should add new referral", async function () {
-      const { ovaReferral, admin, bob, alice } = await loadFixture(deployFixture);
+      const { ovaReferral, admin, bob, alice } = await loadFixture(
+        deployFixture
+      );
       await ovaReferral.connect(admin).addPointsTracker(admin.address);
       await expect(
-        await ovaReferral.connect(admin).consumeReferral(alice.address, bob.address)
+        await ovaReferral
+          .connect(admin)
+          .consumeReferral(alice.address, bob.address)
       ).to.emit(ovaReferral, "Referral");
 
       expect(await ovaReferral.referredFrom(bob.address)).to.be.equal(
@@ -76,17 +80,23 @@ describe("OvaReferral", function () {
       );
       await ovaReferral.connect(admin).addPointsTracker(admin.address);
       await expect(
-        await ovaReferral.connect(admin).consumeReferral(alice.address, bob.address)
+        await ovaReferral
+          .connect(admin)
+          .consumeReferral(alice.address, bob.address)
       ).to.emit(ovaReferral, "Referral");
-      await expect(ovaReferral.connect(admin).consumeReferral(minter.address, bob.address)).to
-        .be.eventually.rejected;
+      await expect(
+        ovaReferral.connect(admin).consumeReferral(minter.address, bob.address)
+      ).to.be.eventually.rejected;
     });
 
     it("Should not be referred from zero address", async function () {
       const { ovaReferral, admin, bob } = await loadFixture(deployFixture);
       await ovaReferral.connect(admin).addPointsTracker(admin.address);
-      await expect(ovaReferral.connect(admin).consumeReferral(ethers.ZeroAddress, bob.address))
-        .to.be.eventually.rejected;
+      await expect(
+        ovaReferral
+          .connect(admin)
+          .consumeReferral(ethers.ZeroAddress, bob.address)
+      ).to.be.eventually.rejected;
     });
   });
 
@@ -111,10 +121,9 @@ describe("OvaReferral", function () {
     });
 
     it("Should not add new tracker if not admin", async function () {
-      const { ovaReferral,  minter } = await loadFixture(deployFixture);
-      await expect(
-        ovaReferral.connect(minter).addPointsTracker(minter.address)
-      ).to.be.eventually.rejected;
+      const { ovaReferral, minter } = await loadFixture(deployFixture);
+      await expect(ovaReferral.connect(minter).addPointsTracker(minter.address))
+        .to.be.eventually.rejected;
     });
   });
 });
