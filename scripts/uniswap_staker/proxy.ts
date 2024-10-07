@@ -57,8 +57,15 @@ export async function unstake(
 ) {
   const proxyContract = new ethers.Contract(uni, ProxyAbi.abi, deployer);
 
-  await proxyContract.unstake(tokenId, key, reward, recipient, recipient);
+  const collected = await proxyContract.unstake(
+    tokenId,
+    key,
+    reward,
+    recipient,
+    recipient
+  );
   console.log(`Unstaked token ${tokenId}`);
+  return collected;
 }
 
 export async function transferDeposit(tokenId: string, to: string) {

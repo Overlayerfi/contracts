@@ -32,7 +32,12 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
     mapping(uint256 => address) public originalOwners;
 
     /// @notice Referral bonus amount
+    /// @dev 5%
     uint8 public referralBonus = 5;
+
+    /// @notice Self referral bonus amount
+    /// @dev 1.5%
+    uint16 public selfReferralBonus = 15;
 
     /// @notice Ova referral contract
     IOvaReferral public referral;
@@ -40,6 +45,18 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
     event UniswapV3StakerReferralUpdated(IOvaReferral referral);
 
     event UniswapV3StakerReferralBonusUpdated(uint8 bonus);
+
+    event UniswapV3StakerReferralBonusPayed(
+        address indexed recipient,
+        uint256 amount
+    );
+
+    event UniswapV3StakerSelfReferralBonusUpdated(uint16 bonus);
+
+    event UniswapV3StakerSelfReferralBonusPayed(
+        address indexed recipient,
+        uint256 amount
+    );
 
     error UniswapV3StakerProxyZeroAddress();
 
@@ -63,6 +80,20 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
         if (referralBonus_ <= 100) {
             referralBonus = referralBonus_;
             emit UniswapV3StakerReferralBonusUpdated(referralBonus_);
+        }
+    }
+
+    /**
+     * @notice Update the referral bonus amount.
+     * @dev It can not be over 1000 (100%).
+     * @param selfReferralBonus_ the bonus amount.
+     */
+    function updateSelfReferralBonus(
+        uint16 selfReferralBonus_
+    ) external onlyOwner {
+        if (selfReferralBonus_ <= 1000) {
+            selfReferralBonus = selfReferralBonus_;
+            emit UniswapV3StakerSelfReferralBonusUpdated(selfReferralBonus_);
         }
     }
 
@@ -150,11 +181,13 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
     /// @notice Unstake, collect and withraw the token
     /// @dev The token owner must have called `transferDeposit` before (https://github.com/Uniswap/v3-staker/blob/6d06fe4034e4eec53e1e587fc4770286466f4b35/contracts/UniswapV3Staker.sol#L179C14-L179C29)
     /// @dev If user has being referred, the referral source will gain the referral bonus
+    /// and the current user will gain the self referral bonus
     /// @param tokenId The token id
     /// @param key The incentive key
     /// @param reward The reward token
     /// @param rewardRecipient The reward destination
     /// @param tokenRecipient The token destination
+    /// @return The collected reward amount
     function unstake(
         uint256 tokenId,
         IUniswapV3Staker.IncentiveKey memory key,
@@ -175,7 +208,7 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
         uint256 collected = IUniswapV3Staker(UNIV3_STAKER).claimReward(
             reward,
             rewardRecipient,
-            0
+            0 //claim alll
         );
         // Withraw token
         bytes memory data = new bytes(0);
@@ -187,7 +220,7 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
 
         // Referral bonus
         if (address(referral) != address(0)) {
-            _payBonus(address(reward), collected);
+            _payBonus(address(reward), collected, rewardRecipient);
         }
 
         return collected;
@@ -264,12 +297,28 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
      * @dev The reward asset is directly minted from the reward token
      * @param rewardAsset the reward token.
      * @param amount the original collected amount.
+     * @param selfBonusRecipient The self bonus recipient
      */
-    function _payBonus(address rewardAsset, uint256 amount) internal {
+    function _payBonus(
+        address rewardAsset,
+        uint256 amount,
+        address selfBonusRecipient
+    ) internal {
         uint256 bonus = amount.mulDiv(referralBonus, 100);
         address recipient = referral.referredFrom(msg.sender);
         // Pay only if the referral source do exist (is not address(0))
-        if (bonus > 0 && recipient != address(0))
+        if (bonus > 0 && recipient != address(0)) {
             IRewardAsset(rewardAsset).mint(recipient, bonus);
+            emit UniswapV3StakerReferralBonusPayed(recipient, bonus);
+
+            // Pay also the self referral bonus (for having consumed a referral)
+            uint256 selfBonus = amount.mulDiv(selfReferralBonus, 1000);
+            // Self bonus is not zero
+            IRewardAsset(rewardAsset).mint(selfBonusRecipient, selfBonus);
+            emit UniswapV3StakerSelfReferralBonusPayed(
+                selfBonusRecipient,
+                selfBonus
+            );
+        }
     }
 }
