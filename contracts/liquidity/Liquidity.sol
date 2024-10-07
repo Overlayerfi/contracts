@@ -110,7 +110,9 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @dev It can not be over 1000 (100%).
      * @param selfReferralBonus_ the bonus amount.
      */
-    function updateSelfReferralBonus(uint16 selfReferralBonus_) external onlyOwner {
+    function updateSelfReferralBonus(
+        uint16 selfReferralBonus_
+    ) external onlyOwner {
         if (selfReferralBonus_ <= 1000) {
             selfReferralBonus = selfReferralBonus_;
             emit NewSelfReferralBonus(selfReferralBonus_);
