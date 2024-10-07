@@ -53,7 +53,13 @@ interface ILiquidityDefs {
 
     event NewReferralBonus(uint8 bonus);
 
+    event NewSelfReferralBonus(uint16 bonus);
+
     event NewReferral(IOvaReferral referral);
+
+    event BonusPayed(address indexed recipient, uint256 amount);
+
+    event SelfBonusPayed(address indexed recipient, uint256 amount);
 
     error InvalidAmount();
 
