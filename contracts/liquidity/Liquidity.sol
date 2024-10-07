@@ -58,8 +58,15 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
 
     /**
      * @notice Referral bonus percentage.
+     * @dev 5%
      */
     uint8 public referralBonus = 5;
+
+    /**
+     * @notice Referral bonus percentage.
+     * @dev 1.5%
+     */
+    uint16 public selfReferralBonus = 15;
 
     /**
      * @notice Referral contract.
@@ -95,6 +102,18 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         if (referralBonus_ <= 100) {
             referralBonus = referralBonus_;
             emit NewReferralBonus(referralBonus_);
+        }
+    }
+
+    /**
+     * @notice Update the referral bonus amount.
+     * @dev It can not be over 1000 (100%).
+     * @param selfReferralBonus_ the bonus amount.
+     */
+    function updateSelfReferralBonus(uint16 selfReferralBonus_) external onlyOwner {
+        if (selfReferralBonus_ <= 1000) {
+            selfReferralBonus = selfReferralBonus_;
+            emit NewSelfReferralBonus(selfReferralBonus_);
         }
     }
 
@@ -476,6 +495,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
 
     /**
      * @notice Pay bonus referral tokens
+     * @dev The self bonus will be payed only if the current user is referred.
      * @param originalAmount the original amount.
      */
     function _payBonus(uint256 originalAmount, IERC20 asset) internal {
@@ -483,7 +503,14 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         address recipient = referral.referredFrom(msg.sender);
         if (bonus > 0 && recipient != address(0)) {
             _payReward(asset, recipient, bonus);
+            emit BonusPayed(recipient, bonus);
             referral.track(recipient, bonus);
+
+            // Pay also the self referral bonus (for having consumed a referral)
+            uint256 selfBonus = originalAmount.mulDiv(selfReferralBonus, 1000);
+            // Self bonus is not zero
+            _payReward(asset, msg.sender, selfBonus);
+            emit SelfBonusPayed(msg.sender, selfBonus);
         }
     }
 

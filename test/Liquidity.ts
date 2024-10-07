@@ -380,7 +380,7 @@ describe("Liquidity", function () {
 
       // Check harvest do generate bonuses
       await time.increaseTo((await time.latest()) + 60 * 60 * 24 * 10);
-      await liquidity.connect(alice).harvest(0);
+      expect(await liquidity.connect(alice).harvest(0)).to.emit(liquidity, "SelfBonusPayed");
       expect(
         await tokenRewardOneOvaReferral.balanceOf(bob.address)
       ).to.be.greaterThan(bobBonus);
@@ -388,7 +388,7 @@ describe("Liquidity", function () {
 
       // Check withdraw do generate bonuses
       await time.increaseTo((await time.latest()) + 60 * 60 * 24 * 10);
-      await liquidity.connect(alice).withdraw(0, 10);
+      expect(await liquidity.connect(alice).withdraw(0, 10)).to.emit(liquidity, "BonusPayed");
       expect(
         await tokenRewardOneOvaReferral.balanceOf(bob.address)
       ).to.be.greaterThan(bobBonus);
