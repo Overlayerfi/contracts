@@ -19,13 +19,14 @@ import { mintPosition } from "../scripts/uniswap_liquidity/proxy";
 
 describe("UniswapV3StakerProxy", function () {
   async function deployFixture() {
-    const [deployer, bob] = await ethers.getSigners();
+    const [deployer, bob, alice] = await ethers.getSigners();
 
     const startTime = (await time.latest()) + 60 * 60;
     const endTime = (await time.latest()) + 60 * 60 * 24 * 30 * 12; //~1 year
     const token0 = DAI_ADDRESS;
     const token1 = WETH_MAINNET_ADDRESS;
     const owner = deployer.address;
+    const incentiveAmount = "1000";
 
     // This will deploy the proxy contract and the referral token
     // From now on reward token and referral are the same contract
@@ -37,7 +38,7 @@ describe("UniswapV3StakerProxy", function () {
       token0,
       token1,
       ret.reward,
-      "1000",
+      incentiveAmount,
       startTime,
       endTime,
       proxyAddress
@@ -72,9 +73,11 @@ describe("UniswapV3StakerProxy", function () {
       token1,
       deployer,
       bob,
+      alice,
       startTime,
       endTime,
-      incentiveKey
+      incentiveKey,
+      incentiveAmount
     };
   }
 
@@ -144,9 +147,11 @@ describe("UniswapV3StakerProxy", function () {
         token1,
         deployer,
         bob,
+        alice,
         startTime,
         endTime,
-        incentiveKey
+        incentiveKey,
+        incentiveAmount
       } = await loadFixture(deployFixture);
       // Mint Uni position
       const mintResultA = await mintPosition(
@@ -205,7 +210,7 @@ describe("UniswapV3StakerProxy", function () {
       expect(owner).to.be.equal(deployer.address);
 
       // Unstake
-      await time.increaseTo(endTime - 60 * 60);
+      await time.increaseTo(endTime - 60);
 
       expect(await referral.balanceOf(bob.address)).to.be.equal(0);
       for (const t of [mintResultA, mintResultB]) {
@@ -216,11 +221,26 @@ describe("UniswapV3StakerProxy", function () {
           incentiveKey,
           await proxy.getAddress(),
           await referral.getAddress(),
-          deployer.address,
+          alice.address,
           deployer
         );
       }
-      expect(await referral.balanceOf(bob.address)).to.be.greaterThan(0);
+
+      // Alice has gained all the timeframe rewards (incentiveAmount) plus all the self referral bonus (1.5%)
+      const aliceRewardBal = ethers.formatEther(
+        await referral.balanceOf(alice.address)
+      );
+      expect(+aliceRewardBal).to.be.greaterThan(+incentiveAmount);
+      expect(+aliceRewardBal).to.be.lessThan(
+        +incentiveAmount + +incentiveAmount * (15 / 1000)
+      );
+
+      // Bob gains referral amount (5% incentiveAmount)
+      const bobRewardBal = ethers.formatEther(
+        await referral.balanceOf(bob.address)
+      );
+      expect(+bobRewardBal).to.be.greaterThan(+incentiveAmount * (4 / 100));
+      expect(+bobRewardBal).to.be.lessThan(+incentiveAmount * (5 / 100));
     });
   });
 });
