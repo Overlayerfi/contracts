@@ -1,9 +1,8 @@
 import { ethers } from "hardhat";
-import { ETH_RPC } from "../../rpc";
-import { USDC_ABI } from "../get_stables_from_uniswap_local/USDC_abi";
-import { USDC_ADDRESS, USDT_ADDRESS } from "../addresses";
+import { USDC_ABI } from "../abi/USDC_abi";
+import { USDT_ADDRESS } from "../addresses";
 
-export async function ethBalance(
+export async function tokenBalance(
   addr: string,
   target: string,
   rpc: string,
@@ -14,7 +13,7 @@ export async function ethBalance(
   return ethers.formatUnits(await contract.balanceOf(target), decimals);
 }
 
-ethBalance(
+tokenBalance(
   USDT_ADDRESS,
   "0x10fc45741bfE5D527c1b83Fe0BD70fC96D7ec30F",
   "http://127.0.0.1:8545/",

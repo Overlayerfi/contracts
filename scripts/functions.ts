@@ -3,11 +3,11 @@ import { Contract } from "ethers";
 import { USDC_ADDRESS, USDT_ADDRESS } from "./addresses";
 import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
 import LIQUIDITY_ABI from "../artifacts/contracts/liquidity/Liquidity.sol/Liquidity.json";
-import USDO_ABI from "../artifacts/contracts/token/USDOM.sol/USDOM.json";
+import USDO_ABI from "../artifacts/contracts/token/USDO.sol/USDO.json";
 import SUSDO_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
 import { ILiquidity } from "./types";
-import { USDC_ABI } from "./get_stables_from_uniswap_local/USDC_abi";
-import { USDT_ABI } from "./get_stables_from_uniswap_local/USDT_abi";
+import { USDC_ABI } from "./abi/USDC_abi";
+import { USDT_ABI } from "./abi/USDT_abi";
 
 export async function deploy_USDO(
   approveDeployerCollateral?: boolean
@@ -84,7 +84,7 @@ export async function deploy_AirdropOVAReceipt(usdo: string): Promise<void> {
 
   const ContractSource = await ethers.getContractFactory("AirdropOVAReceipt");
   const deployedContract = await ContractSource.deploy(usdo, deployer.address, {
-    maxFeePerGas: 6702346660 * 10
+    //maxFeePerGas: 6702346660 * 10
   });
   await deployedContract.waitForDeployment();
 
@@ -109,7 +109,7 @@ export async function deploy_LiquidityAirdropReward(
     "LiquidityAirdropReward"
   );
   const deployedContract = await ContractSource.deploy(admin, {
-    maxFeePerGas: 6702346660 * 10
+    //maxFeePerGas: 6702346660 * 10
   });
   await deployedContract.waitForDeployment();
 
@@ -314,7 +314,7 @@ export async function deploy_USDOBacking(
 
   const USDOBacking = await ethers.getContractFactory("USDOBacking");
   const usdobacking = await USDOBacking.deploy(admin, treasury, usdo, susdo, {
-    maxFeePerGas: 9702346660
+    //maxFeePerGas: 9702346660
   });
   await usdobacking.waitForDeployment();
 

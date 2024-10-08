@@ -10,7 +10,7 @@ import {
   AWETH_ADDRESS
 } from "../scripts/addresses";
 import ERC20_ABI from "./ERC20_ABI.json";
-import { swap } from "../scripts/get_stables_from_uniswap_local/swap";
+import { swap } from "../scripts/uniswap_swapper/proxy";
 import { Contract } from "ethers";
 import Big from "big.js";
 
@@ -32,7 +32,7 @@ describe("USDOBacking", function () {
     });
     if (!swapped) {
       //get usdc and usdt
-      await swap("50", "25");
+      await swap("75", "25");
       swapped = true;
     }
 
