@@ -22,7 +22,7 @@ import USDO_ABI from "../../artifacts/contracts/token/USDOM.sol/USDOM.json";
 import SUSDO_ABI from "../../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
 import liquidityConfig from "../../scripts/config/liquidity.config.json";
 import airdropLiquidityConfig from "../../scripts/config/airdropliquidity.config.json";
-import { swap } from "../get_stables_from_uniswap_local/swap";
+import { swap } from "../uniswap_swapper/proxy";
 import { getContractAddress } from "@ethersproject/address";
 import { USDC_ADDRESS, USDT_ADDRESS } from "../addresses";
 
