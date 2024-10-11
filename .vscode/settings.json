@@ -3,14 +3,17 @@
 		"dexrouter",
 		"Mintable",
 		"nomicfoundation",
+		"OVA",
+		"refundee",
 		"rewardlp",
 		"Strat",
-		"utilsoverride",
-		"USDO",
+		"susdo",
 		"sUSDO",
-		"OVA",
+		"unstake",
+		"Unstaked",
 		"usdo",
-		"susdo"
+		"USDO",
+		"utilsoverride"
 	],
 	"solidity.compileUsingRemoteVersion": "v0.8.20+commit.a1b79de6"
 }
