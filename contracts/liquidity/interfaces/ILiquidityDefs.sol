@@ -2,6 +2,7 @@
 pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../../token/interfaces/IOvaReferral.sol";
 
 interface ILiquidityDefs {
     /**
@@ -35,6 +36,30 @@ interface ILiquidityDefs {
         uint256 lastRewardTime; // Last timestamp that REWARD distribution occured.
         uint256 accRewardPerShare; // Accumulated REWARD per share, times 1e12. See below.
     }
+
+    event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
+
+    event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
+
+    event Harvest(address indexed user, uint256 indexed pid, uint256 amount);
+
+    event EmergencyWithdraw(
+        address indexed user,
+        uint256 indexed pid,
+        uint256 amount
+    );
+
+    event NewBonusMultiplier(uint256 multiplier);
+
+    event NewReferralBonus(uint8 bonus);
+
+    event NewSelfReferralBonus(uint16 bonus);
+
+    event NewReferral(IOvaReferral referral);
+
+    event BonusPayed(address indexed recipient, uint256 amount);
+
+    event SelfBonusPayed(address indexed recipient, uint256 amount);
 
     error InvalidAmount();
 
