@@ -13,6 +13,20 @@ import "./types/MintRedeemManagerTypes.sol";
  * @notice USDO The starting point...
  */
 contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
+    /// @notice blacklisted accounts
+    mapping(address => bool) public blacklist;
+
+    /// @notice role enabling to disable or enable ERC20 _update for a given address
+    bytes32 private constant CONTROLLER_ROLE =
+        keccak256("BLACKLIST_MANAGER_ROLE");
+
+    modifier notDisabled(address account) {
+        if (blacklist[account] == true) {
+            revert USDOAccountDisabled();
+        }
+        _;
+    }
+
     constructor(
         address admin,
         MintRedeemManagerTypes.StableCoin memory usdc_,
@@ -83,5 +97,36 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
             usdtBack,
             toBurn
         );
+    }
+
+    /// @notice Disable an account from performing transactions
+    /// @param account The account to be disabled
+    function disableAccount(
+        address account
+    ) external onlyRole(CONTROLLER_ROLE) {
+        blacklist[account] = true;
+        emit DisableAccount(account);
+    }
+
+    /// @notice Enable an account from performing transactions
+    /// @param account The account to be enabled
+    function enableAccount(address account) external onlyRole(CONTROLLER_ROLE) {
+        blacklist[account] = false;
+        emit EnableAccount(account);
+    }
+
+    /**
+     * @dev Transfers a `value` amount of tokens from `from` to `to`, or alternatively mints (or burns) if `from`
+     * (or `to`) is the zero address. All customizations to transfers, mints, and burns should be done by overriding
+     * this function.
+     *
+     * Emits a {Transfer} event.
+     */
+    function _update(
+        address from,
+        address to,
+        uint256 value
+    ) internal override notDisabled(from) notDisabled(to) {
+        super._update(from, to, value);
     }
 }
