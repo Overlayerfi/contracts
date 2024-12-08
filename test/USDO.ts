@@ -264,6 +264,38 @@ describe("USDO", function () {
         )
       ).to.equal(false);
     });
+
+    it("Should set blacklister", async function () {
+      const { usdo, gatekeeper, alice, bob } = await loadFixture(deployFixture);
+      const blacklisterAddress = await gatekeeper.getAddress();
+      const aliceAddress = await alice.getAddress();
+      const bobAddress = await bob.getAddress();
+      await usdo.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        blacklisterAddress
+      );
+      expect(
+        await usdo.hasRole(
+          ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+          blacklisterAddress
+        )
+      ).to.equal(true);
+      expect(
+        await usdo.hasRole(
+          ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+          aliceAddress
+        )
+      ).to.equal(false);
+
+      await expect(usdo.connect(alice).disableAccount(blacklisterAddress)).to.be
+        .eventually.rejected;
+
+      await usdo.connect(gatekeeper).disableAccount(bobAddress);
+      expect(await usdo.blacklist(bobAddress)).to.be.equal(true);
+
+      await usdo.connect(gatekeeper).enableAccount(bobAddress);
+      expect(await usdo.blacklist(bobAddress)).to.be.equal(false);
+    });
   });
 
   describe("Mint Redeem Per Block", function () {
@@ -347,6 +379,35 @@ describe("USDO", function () {
       expect(await usdc.balanceOf(contractAddr)).to.equal(
         ethers.parseUnits("110", await usdc.decimals())
       );
+    });
+
+    it("Should not mint if blacklisted", async function () {
+      const { usdc, usdt, usdo, admin, alice, gatekeeper, bob } =
+        await loadFixture(deployFixture);
+      const blacklisterAddress = await gatekeeper.getAddress();
+      await usdo.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        blacklisterAddress
+      );
+      // Test mint
+      await usdo.connect(gatekeeper).disableAccount(await alice.getAddress());
+      const order = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral_usdt: await usdt.getAddress(),
+        collateral_usdc: await usdc.getAddress(),
+        collateral_usdt_amount: ethers.parseUnits("10", await usdt.decimals()),
+        collateral_usdc_amount: ethers.parseUnits("10", await usdc.decimals()),
+        usdo_amount: ethers.parseEther("20")
+      };
+      await expect(usdo.connect(alice).mint(order)).to.be.eventually.rejected;
+
+      await usdo.connect(gatekeeper).enableAccount(await alice.getAddress());
+      // Test transfer
+      await usdo.connect(alice).mint(order);
+      await usdo.connect(gatekeeper).disableAccount(await bob.getAddress());
+      await expect(usdo.connect(alice).transfer(await bob.getAddress(), "1")).to
+        .be.eventually.rejected;
     });
 
     it("Should not mint oh behalf of external benefactors", async function () {
