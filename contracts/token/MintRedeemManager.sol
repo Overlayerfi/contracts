@@ -15,7 +15,7 @@ import "./types/MintRedeemManagerTypes.sol";
 
 /**
  * @title MintRedeemManager
- * @notice This contract mints and redeems the parent USDO that inherits this contract
+ * @notice This contract mints and redeems the USDO contract that inherits this contract
  */
 abstract contract MintRedeemManager is
     IMintRedeemManagerDefs,
@@ -26,7 +26,7 @@ abstract contract MintRedeemManager is
 
     /* --------------- CONSTANTS --------------- */
 
-    /// @notice role enabling to disable mint and redeem and remove minters and redeemers in an emergency
+    /// @notice role enabling to disable mint and redeem
     bytes32 private constant GATEKEEPER_ROLE = keccak256("GATEKEEPER_ROLE");
 
     /// @notice address denoting native ether
