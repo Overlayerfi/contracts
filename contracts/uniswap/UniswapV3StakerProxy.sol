@@ -15,6 +15,17 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+library IncentiveId {
+    /// @notice Calculate the key for a staking incentive
+    /// @param key The components used to compute the incentive identifier
+    /// @return incentiveId The identifier for the incentive
+    function compute(
+        IUniswapV3Staker.IncentiveKey memory key
+    ) internal pure returns (bytes32 incentiveId) {
+        return keccak256(abi.encode(key));
+    }
+}
+
 // eth mainnet
 // fix the fee for now
 uint24 constant FEE = 100;
@@ -193,7 +204,7 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
             );
     }
 
-    /// @notice Unstake, collect and withraw the token
+    /// @notice Unstake, collect and withdraw the token
     /// @dev The token owner must have called `transferDeposit` before (https://github.com/Uniswap/v3-staker/blob/6d06fe4034e4eec53e1e587fc4770286466f4b35/contracts/UniswapV3Staker.sol#L179C14-L179C29)
     /// @dev If user has being referred, the referral source will gain the referral bonus
     /// and the current user will gain the self referral bonus
@@ -281,6 +292,15 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
         address owner_
     ) external view returns (uint256) {
         return IUniswapV3Staker(UNIV3_STAKER).rewards(reward, owner_);
+    }
+
+    /// @notice Retrieve the hash related to an incentive key
+    /// @param key The incentive key
+    /// @return The hash
+    function incentiveId(
+        IUniswapV3Staker.IncentiveKey memory key
+    ) public pure returns (bytes32) {
+        return IncentiveId.compute(key);
     }
 
     /// @notice Retrieve a pool address
