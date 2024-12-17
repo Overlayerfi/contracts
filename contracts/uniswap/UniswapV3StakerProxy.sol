@@ -309,6 +309,7 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
         // Pay only if the referral source do exist (is not address(0))
         if (bonus > 0 && recipient != address(0)) {
             IRewardAsset(rewardAsset).mint(recipient, bonus);
+            referral.track(recipient, bonus);
             emit UniswapV3StakerReferralBonusPayed(recipient, bonus);
 
             // Pay also the self referral bonus (for having consumed a referral)
