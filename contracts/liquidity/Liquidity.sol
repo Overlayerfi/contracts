@@ -121,7 +121,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
 
     /**
      * @notice Update the referral contract.
-     * @param referral_ the bonus amount.
+     * @param referral_ the referral contract.
      */
     function updateReferral(IOvaReferral referral_) external onlyOwner {
         referral = referral_;
@@ -505,8 +505,8 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         address recipient = referral.referredFrom(msg.sender);
         if (bonus > 0 && recipient != address(0)) {
             _payReward(asset, recipient, bonus);
-            emit BonusPayed(recipient, bonus);
             referral.track(recipient, bonus);
+            emit BonusPayed(recipient, bonus);
 
             // Pay also the self referral bonus (for having consumed a referral)
             uint256 selfBonus = originalAmount.mulDiv(selfReferralBonus, 1000);
