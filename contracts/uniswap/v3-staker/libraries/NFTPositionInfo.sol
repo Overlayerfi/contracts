@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity =0.7.6;
 
-import '../uniswap/INonfungiblePositionManager.sol';
-import '../uniswap/IUniswapV3Factory.sol';
-import '../uniswap/IUniswapV3Pool.sol';
+import "../uniswap/INonfungiblePositionManager.sol";
+import "../uniswap/IUniswapV3Factory.sol";
+import "../uniswap/IUniswapV3Pool.sol";
 
-import '../uniswap/PoolAddress.sol';
+import "../uniswap/PoolAddress.sol";
 
 /// @notice Encapsulates the logic for getting info about a NFT token ID
 library NFTPositionInfo {
@@ -33,9 +33,20 @@ library NFTPositionInfo {
         address token0;
         address token1;
         uint24 fee;
-        (, , token0, token1, fee, tickLower, tickUpper, liquidity, , , , ) = nonfungiblePositionManager.positions(
-            tokenId
-        );
+        (
+            ,
+            ,
+            token0,
+            token1,
+            fee,
+            tickLower,
+            tickUpper,
+            liquidity,
+            ,
+            ,
+            ,
+
+        ) = nonfungiblePositionManager.positions(tokenId);
 
         pool = IUniswapV3Pool(
             PoolAddress.computeAddress(

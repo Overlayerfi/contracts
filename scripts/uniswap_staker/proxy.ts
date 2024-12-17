@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 import ProxyAbi from "../../artifacts/contracts/uniswap/UniswapV3StakerProxy.sol/UniswapV3StakerProxy.json";
 import RewardAbi from "../../artifacts/contracts/mock_ERC20/FixedSupplyERC20.sol/FixedSupplyERC20.json";
-import { UNIV3_NFT_POSITION_MANAGER, UNIV3_STAKER } from "../addresses";
+import { UNIV3_NFT_POSITION_MANAGER } from "../addresses";
 import { UNIV3_NFT_POSITION_MANAGER_ABI } from "../abi/UNIV3_NFT_POSITION_MANAGER";
 import { UNIV3_STAKER_ABI } from "../abi/UNIV3_STAKER";
 import { Signer } from "ethers";
@@ -68,7 +68,11 @@ export async function unstake(
   return collected;
 }
 
-export async function transferDeposit(tokenId: string, to: string) {
+export async function transferDeposit(
+  UNIV3_STAKER: string,
+  tokenId: string,
+  to: string
+) {
   const [deployer] = await ethers.getSigners();
   const staker = new ethers.Contract(UNIV3_STAKER, UNIV3_STAKER_ABI, deployer);
 
@@ -89,7 +93,7 @@ export async function getOwnedRewardsInfo(
   return ethers.formatUnits(owned, rewardDecimals);
 }
 
-export async function getDepositInfo(tokenId: string) {
+export async function getDepositInfo(UNIV3_STAKER: string, tokenId: string) {
   const [deployer] = await ethers.getSigners();
   const staker = new ethers.Contract(UNIV3_STAKER, UNIV3_STAKER_ABI, deployer);
 
@@ -197,7 +201,12 @@ export async function createIncentive(
   console.log("Incentive created");
 }
 
-export async function deploy(rewardsToMint?: string) {
+export async function deployV3StakerAndReward(
+  factory: string,
+  staker: string,
+  nftpos: string,
+  rewardsToMint?: string
+) {
   const [deployer] = await ethers.getSigners();
   console.log(
     "Deploying UniswapV3StakerProxy contract with signer:",
@@ -220,6 +229,9 @@ export async function deploy(rewardsToMint?: string) {
   // deploy the uni proxy contract
   const uni = await stakerContract.deploy(
     deployer.address,
+    factory,
+    staker,
+    nftpos,
     defaultTransactionOptions
   );
   const token = await tokenContract.deploy(

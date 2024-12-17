@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity =0.7.6;
 
-import '../uniswap/TransferHelper.sol';
-import '../openzeppelin/Address.sol';
+import "../uniswap/TransferHelper.sol";
+import "../openzeppelin/Address.sol";
 
 library TransferHelperExtended {
     using Address for address;
@@ -19,7 +19,10 @@ library TransferHelperExtended {
         address to,
         uint256 value
     ) internal {
-        require(token.isContract(), 'TransferHelperExtended::safeTransferFrom: call to non-contract');
+        require(
+            token.isContract(),
+            "TransferHelperExtended::safeTransferFrom: call to non-contract"
+        );
         TransferHelper.safeTransferFrom(token, from, to, value);
     }
 
@@ -28,12 +31,11 @@ library TransferHelperExtended {
     /// @param token The contract address of the token which will be transferred
     /// @param to The recipient of the transfer
     /// @param value The value of the transfer
-    function safeTransfer(
-        address token,
-        address to,
-        uint256 value
-    ) internal {
-        require(token.isContract(), 'TransferHelperExtended::safeTransfer: call to non-contract');
+    function safeTransfer(address token, address to, uint256 value) internal {
+        require(
+            token.isContract(),
+            "TransferHelperExtended::safeTransfer: call to non-contract"
+        );
         TransferHelper.safeTransfer(token, to, value);
     }
 }
