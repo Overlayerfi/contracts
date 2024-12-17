@@ -5,7 +5,7 @@ import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { DAI_ADDRESS, WETH_MAINNET_ADDRESS } from "../scripts/addresses";
 import {
   createIncentive,
-  deploy,
+  deployV3StakerAndReward,
   depositAndStake,
   getDepositInfo,
   getPool,
@@ -16,6 +16,7 @@ import {
 import ProxyAbi from "../artifacts/contracts/uniswap/UniswapV3StakerProxy.sol/UniswapV3StakerProxy.json";
 import ReferralAbi from "../artifacts/contracts/token/OvaReferral.sol/OvaReferral.json";
 import { mintPosition } from "../scripts/uniswap_liquidity/proxy";
+import { deployV3Staker } from "../scripts/uniswap_staker/staker";
 
 describe("UniswapV3StakerProxy", function () {
   async function deployFixture() {
@@ -30,7 +31,17 @@ describe("UniswapV3StakerProxy", function () {
 
     // This will deploy the proxy contract and the referral token
     // From now on reward token and referral are the same contract
-    const ret = await deploy();
+    const v3stakerAddress = await deployV3Staker(
+      "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+      "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+      60 * 60 * 24 * 30,
+      60 * 60 * 24 * 30 * 40
+    );
+    const ret = await deployV3StakerAndReward(
+      "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+      v3stakerAddress,
+      "0xC36442b4a4522E871399CD717aBDD847Ab11FE88"
+    );
     const proxyAddress = ret.proxy;
     const referralAddress = ret.reward;
     // Create incentive
@@ -67,6 +78,7 @@ describe("UniswapV3StakerProxy", function () {
     };
 
     return {
+      v3stakerAddress,
       proxy,
       referral,
       token0,
@@ -84,6 +96,7 @@ describe("UniswapV3StakerProxy", function () {
   describe("UniV3 staking & referral bonus", function () {
     it("Should stake and unstake", async function () {
       const {
+        v3stakerAddress,
         proxy,
         bob,
         referral,
@@ -118,13 +131,20 @@ describe("UniswapV3StakerProxy", function () {
         await proxy.getAddress()
       );
 
-      const owner = await getDepositInfo(mintResult.tokenId.toString());
+      const owner = await getDepositInfo(
+        v3stakerAddress,
+        mintResult.tokenId.toString()
+      );
       expect(owner).to.be.equal(deployer.address);
 
       // Advance time
       await time.increaseTo(startTime + 60 * 60 * 10);
 
-      await transferDeposit(mintResult.tokenId, await proxy.getAddress());
+      await transferDeposit(
+        v3stakerAddress,
+        mintResult.tokenId,
+        await proxy.getAddress()
+      );
       await unstake(
         mintResult.tokenId.toString(),
         incentiveKey,
@@ -141,6 +161,7 @@ describe("UniswapV3StakerProxy", function () {
 
     it("Should stake with referral and collect bonus", async function () {
       const {
+        v3stakerAddress,
         proxy,
         referral,
         token0,
@@ -178,7 +199,10 @@ describe("UniswapV3StakerProxy", function () {
         await proxy.getAddress()
       );
 
-      let owner = await getDepositInfo(mintResultA.tokenId.toString());
+      let owner = await getDepositInfo(
+        v3stakerAddress,
+        mintResultA.tokenId.toString()
+      );
       expect(owner).to.be.equal(deployer.address);
 
       // Try another stake
@@ -206,7 +230,10 @@ describe("UniswapV3StakerProxy", function () {
         await proxy.getAddress()
       );
 
-      owner = await getDepositInfo(mintResultB.tokenId.toString());
+      owner = await getDepositInfo(
+        v3stakerAddress,
+        mintResultB.tokenId.toString()
+      );
       expect(owner).to.be.equal(deployer.address);
 
       // Unstake
@@ -214,7 +241,11 @@ describe("UniswapV3StakerProxy", function () {
 
       expect(await referral.balanceOf(bob.address)).to.be.equal(0);
       for (const t of [mintResultA, mintResultB]) {
-        await transferDeposit(t.tokenId, await proxy.getAddress());
+        await transferDeposit(
+          v3stakerAddress,
+          t.tokenId,
+          await proxy.getAddress()
+        );
         // Make deployer as recipient and check bob balance
         await unstake(
           t.tokenId.toString(),

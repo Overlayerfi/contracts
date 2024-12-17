@@ -19,13 +19,16 @@ import {Context} from "./Context.sol";
 abstract contract Ownable is Context {
     address private _owner;
 
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event OwnershipTransferred(
+        address indexed previousOwner,
+        address indexed newOwner
+    );
 
     /**
      * @dev Initializes the contract setting the address provided by the deployer as the initial owner.
      */
     constructor(address initialOwner) {
-				require(initialOwner != address(0), 'OwnableInvalidOwner');
+        require(initialOwner != address(0), "OwnableInvalidOwner");
         _transferOwnership(initialOwner);
     }
 
@@ -48,7 +51,7 @@ abstract contract Ownable is Context {
      * @dev Throws if the sender is not the owner.
      */
     function _checkOwner() internal view virtual {
-				require(owner() == _msgSender(), 'OwnableUnauthorizedAccount');
+        require(owner() == _msgSender(), "OwnableUnauthorizedAccount");
     }
 
     /**
@@ -67,7 +70,7 @@ abstract contract Ownable is Context {
      * Can only be called by the current owner.
      */
     function transferOwnership(address newOwner) public virtual onlyOwner {
-				require(newOwner != address(0), 'OwnableInvalidOwner');
+        require(newOwner != address(0), "OwnableInvalidOwner");
         _transferOwnership(newOwner);
     }
 

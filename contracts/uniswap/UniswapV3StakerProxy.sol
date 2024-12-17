@@ -16,9 +16,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // eth mainnet
-address constant UNIV3_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
-address constant UNIV3_STAKER = 0xe34139463bA50bD61336E0c446Bd8C0867c6fE65;
-address constant UNIV3_NFT_POSITION_MANAGER = 0xC36442b4a4522E871399CD717aBDD847Ab11FE88;
 // fix the fee for now
 uint24 constant FEE = 100;
 
@@ -42,6 +39,15 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
     /// @notice Ova referral contract
     IOvaReferral public referral;
 
+    /// @notice Uniswap V3 factory address
+    address immutable UNIV3_FACTORY;
+
+    /// @notice Uniswap V3 staker address
+    address immutable UNIV3_STAKER;
+
+    /// @notice Uniswap V3 NFT position manager address
+    address immutable UNIV3_NFT_POSITION_MANAGER;
+
     event UniswapV3StakerReferralUpdated(IOvaReferral referral);
 
     event UniswapV3StakerReferralBonusUpdated(uint8 bonus);
@@ -62,7 +68,16 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
 
     /// @notice Constructor
     /// @param admin The contract admin
-    constructor(address admin) Ownable(admin) {}
+    constructor(
+        address admin,
+        address univ3_factory,
+        address univ3_staker,
+        address univ3_nft_pos
+    ) Ownable(admin) {
+        UNIV3_FACTORY = univ3_factory;
+        UNIV3_STAKER = univ3_staker;
+        UNIV3_NFT_POSITION_MANAGER = univ3_nft_pos;
+    }
 
     /// @notice Update the referral contract
     /// @param referral_ The new referral contract
