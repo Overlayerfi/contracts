@@ -227,7 +227,7 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
     }
 
     /// @notice Recover a deposit who changed owner to this contract
-    /// @dev Can only be called from the origianl owner who did stake the token
+    /// @dev Can only be called from the original owner who did stake the token
     /// @param tokenId The token to recover
     function recoverDeposit(uint256 tokenId) external {
         (address depositOwner, , , ) = IUniswapV3Staker(UNIV3_STAKER).deposits(
@@ -244,7 +244,7 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
     /// @notice Visualize the accrued reward so far for a tokenId
     /// @param tokenId The position tokenId
     /// @param key The incentive key created inside the staker contract
-    /// @return amount The accurent amount for the given tokenid and incentive
+    /// @return amount The accrued amount for the given tokenid and incentive
     function getRewardInfo(
         uint256 tokenId,
         IUniswapV3Staker.IncentiveKey memory key
