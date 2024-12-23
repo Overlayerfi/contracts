@@ -39,7 +39,7 @@ contract UniswapV3LiquidityProxy is IERC721Receiver {
         return IERC721Receiver.onERC721Received.selector;
     }
 
-    /// @notice Mint a new liquidiyt position
+    /// @notice Mint a new liquidity position
     /// @param token0 The first liquidity token
     /// @param token1 The second liquidity token
     /// @param amount0ToAdd The amount of the first token
