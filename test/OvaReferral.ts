@@ -65,6 +65,12 @@ describe("OvaReferral", function () {
       expect(await ovaReferral.referralCodes("CODE")).to.be.equal(
         await alice.getAddress()
       );
+
+      await expect(
+        ovaReferral.connect(admin).addCode("CODE", await alice.getAddress())
+      ).to.be.eventually.rejected;
+
+      expect((await ovaReferral.allCodes())[0]).to.be.equal("CODE");
     });
   });
 
@@ -82,6 +88,13 @@ describe("OvaReferral", function () {
       await expect(
         await ovaReferral.connect(admin).consumeReferral("ALICE", bob.address)
       ).to.emit(ovaReferral, "Referral");
+
+      // Not refer self
+      await expect(
+        ovaReferral
+          .connect(admin)
+          .consumeReferral("ALICE", await alice.getAddress())
+      ).to.be.eventually.rejected;
 
       expect(await ovaReferral.referredFrom(bob.address)).to.be.equal(
         alice.address
@@ -105,7 +118,7 @@ describe("OvaReferral", function () {
         await ovaReferral.connect(admin).consumeReferral("ALICE", bob.address)
       ).to.emit(ovaReferral, "Referral");
       await expect(
-        ovaReferral.connect(admin).consumeReferral(minter.address, bob.address)
+        ovaReferral.connect(admin).consumeReferral("ALICE", bob.address)
       ).to.be.eventually.rejected;
     });
 
