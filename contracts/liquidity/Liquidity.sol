@@ -206,7 +206,10 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @param pid the pool identifier.
      * @param amount the amount to withdraw.
      */
-    function withdraw(uint256 pid, uint256 amount) external override nonReentrant {
+    function withdraw(
+        uint256 pid,
+        uint256 amount
+    ) external override nonReentrant {
         if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
@@ -520,7 +523,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @notice Update pool infos.
      * @param pid the pool identifier.
      */
-    function updatePool(uint256 pid) virtual internal {
+    function updatePool(uint256 pid) internal virtual {
         PoolInfo storage pool = poolInfo[pid];
         if (block.timestamp <= pool.lastRewardTime) {
             return;
