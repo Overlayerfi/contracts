@@ -343,9 +343,13 @@ describe("Liquidity", function () {
         .addPointsTracker(await liquidity.getAddress());
       await liquidity.connect(owner).updateReferral(referral);
 
+      await tokenRewardOneOvaReferral
+        .connect(owner)
+        .addCode("BOB", bob.address);
+
       // Test an increasing amount of bonus payed out
       await expect(
-        await liquidity.connect(alice).depositWithReferral(0, 2, bob.address)
+        await liquidity.connect(alice).depositWithReferral(0, 2, "BOB")
       ).to.emit(liquidity, "Deposit");
       expect(
         await tokenRewardOneOvaReferral.balanceOf(alice.address)
