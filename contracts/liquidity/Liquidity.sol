@@ -54,7 +54,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     /**
      * @notice A disabled flag.
      */
-    uint8 private constant NOT_ACTIVE = 0;
+    uint8 internal constant NOT_ACTIVE = 0;
 
     /**
      * @notice Referral bonus percentage.
