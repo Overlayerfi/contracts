@@ -189,16 +189,15 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @dev The referral must be consumed after the deposit otherwise the referral source will also gain past performances.
      * @param pid the pool identifier.
      * @param amount the amount to deposit.
-     * @param referralSource the referral source user
+     * @param code the referral source user
      */
     function depositWithReferral(
         uint256 pid,
         uint256 amount,
-        address referralSource
+        string memory code
     ) external {
         deposit(pid, amount);
-
-        referral.consumeReferral(referralSource, msg.sender);
+        referral.consumeReferral(code, msg.sender);
     }
 
     /**

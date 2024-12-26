@@ -54,6 +54,20 @@ describe("OvaReferral", function () {
     });
   });
 
+  describe("Code", function () {
+    it("Should add a new refarral code", async function () {
+      const { ovaReferral, admin, alice } = await loadFixture(deployFixture);
+      await expect(
+        await ovaReferral
+          .connect(admin)
+          .addCode("CODE", await alice.getAddress())
+      ).to.emit(ovaReferral, "NewCode");
+      expect(await ovaReferral.referralCodes("CODE")).to.be.equal(
+        await alice.getAddress()
+      );
+    });
+  });
+
   describe("Referrral", function () {
     it("Should add new referral", async function () {
       const { ovaReferral, admin, bob, alice } = await loadFixture(
@@ -63,7 +77,10 @@ describe("OvaReferral", function () {
       await expect(
         await ovaReferral
           .connect(admin)
-          .consumeReferral(alice.address, bob.address)
+          .addCode("ALICE", await alice.getAddress())
+      ).to.emit(ovaReferral, "NewCode");
+      await expect(
+        await ovaReferral.connect(admin).consumeReferral("ALICE", bob.address)
       ).to.emit(ovaReferral, "Referral");
 
       expect(await ovaReferral.referredFrom(bob.address)).to.be.equal(
@@ -82,7 +99,10 @@ describe("OvaReferral", function () {
       await expect(
         await ovaReferral
           .connect(admin)
-          .consumeReferral(alice.address, bob.address)
+          .addCode("ALICE", await alice.getAddress())
+      ).to.emit(ovaReferral, "NewCode");
+      await expect(
+        await ovaReferral.connect(admin).consumeReferral("ALICE", bob.address)
       ).to.emit(ovaReferral, "Referral");
       await expect(
         ovaReferral.connect(admin).consumeReferral(minter.address, bob.address)
@@ -93,9 +113,7 @@ describe("OvaReferral", function () {
       const { ovaReferral, admin, bob } = await loadFixture(deployFixture);
       await ovaReferral.connect(admin).addPointsTracker(admin.address);
       await expect(
-        ovaReferral
-          .connect(admin)
-          .consumeReferral(ethers.ZeroAddress, bob.address)
+        ovaReferral.connect(admin).addCode("ALICE", ethers.ZeroAddress)
       ).to.be.eventually.rejected;
     });
   });

@@ -3,12 +3,13 @@ pragma solidity 0.8.20;
 
 import "./GovernanceTokenBase.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./interfaces/IOvaReferral.sol";
 
 /**
  * @title OvaReferral
  * @notice This token tracks the referral points.
  */
-contract OvaReferral is GovernanceTokenBase, ReentrancyGuard {
+contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
     /// @notice Track the referral source for given address
     mapping(address => address) public referredFrom;
 
@@ -21,13 +22,18 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard {
     /// @notice External entities who can control the points tracking
     mapping(address => bool) public allowedPointsTrackers;
 
+    /// @notice Allowed referral codes
+    mapping(string => address) public referralCodes;
+
     event Referral(address indexed source, address consumer);
+    event NewCode(string code, address holder);
     event AddTracker(address tracker);
     event RemoveTracker(address tracker);
 
     error OvaReferralAlreadyReferred();
     error OvaReferralZeroAddress();
     error OvaReferralNotAllowed();
+    error OvaReferralCodeNotValid();
 
     modifier onlyTracker() {
         if (!allowedPointsTrackers[msg.sender]) {
@@ -40,17 +46,21 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard {
     ///@param admin The contract admin
     constructor(address admin) GovernanceTokenBase(admin, "AOVA", "AOVA") {}
 
-    /// @notice Create a new referral
-    /// @param source The referral source
+    /// @notice Consume a referral code
+    /// @param code The referral code
     /// @param consumer The referral consumer
     function consumeReferral(
-        address source,
+        string memory code,
         address consumer
-    ) external nonReentrant onlyTracker {
+    ) external override nonReentrant onlyTracker {
         if (referredFrom[consumer] != address(0)) {
             revert OvaReferralAlreadyReferred();
         }
+        if (referralCodes[code] == address(0)) {
+            revert OvaReferralCodeNotValid();
+        }
 
+        address source = referralCodes[code];
         if (source == address(0)) revert OvaReferralZeroAddress();
 
         referredFrom[consumer] = source;
@@ -62,7 +72,10 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard {
     /// @notice Track a new points update
     /// @param source The user address to track
     /// @param amount The amount of points to be tracked
-    function track(address source, uint256 amount) external onlyTracker {
+    function track(
+        address source,
+        uint256 amount
+    ) external override onlyTracker {
         generatedPoints[source] += amount;
     }
 
@@ -71,6 +84,17 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard {
     function addPointsTracker(address tracker) external onlyOwner {
         allowedPointsTrackers[tracker] = true;
         emit AddTracker(tracker);
+    }
+
+    /// @notice Add a new referral code
+    /// @param code The tracker address
+    /// @param holder The code owner
+    function addCode(string memory code, address holder) external onlyOwner {
+        if (holder == address(0)) {
+            revert OvaReferralZeroAddress();
+        }
+        referralCodes[code] = holder;
+        emit NewCode(code, holder);
     }
 
     /// @notice Remove a points tracker
@@ -85,7 +109,27 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard {
     /// @return All the referred user addresses
     function seeReferred(
         address source
-    ) external view returns (address[] memory) {
+    ) external view override returns (address[] memory) {
         return referredUsers[source];
+    }
+
+    /// @notice Retrieve all the referred user for a given address
+    /// @param code The query key
+    /// @return All the referred user addresses
+    function seeReferredByCode(
+        string memory code
+    ) external view returns (address[] memory) {
+        address source = referralCodes[code];
+        return referredUsers[source];
+    }
+
+    /// @notice Retrieve all points earned by a given code
+    /// @param code The referral code
+    /// @return The total points
+    function codeTotalPoints(
+        string memory code
+    ) external view returns (uint256) {
+        address source = referralCodes[code];
+        return generatedPoints[source];
     }
 }
