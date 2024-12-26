@@ -75,6 +75,8 @@ interface IUniswapV3Staker is IERC721Receiver, IMulticall {
             uint128 liquidity
         );
 
+    function stakedLiquidity(bytes32 h) external view returns (uint256);
+
     /// @notice Returns amounts of reward tokens owed to a given address according to the last time all stakes were updated
     /// @param rewardToken The token for which to check rewards
     /// @param owner The owner for which the rewards owed are checked

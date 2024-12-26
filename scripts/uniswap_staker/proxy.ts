@@ -1,9 +1,9 @@
 import { ethers } from "hardhat";
-import ProxyAbi from "../../artifacts/contracts/uniswap/UniswapV3StakerProxy.sol/UniswapV3StakerProxy.json";
+import ProxyAbi from "../../artifacts/contracts/uniswap/UniswapV3StakerFront.sol/UniswapV3StakerFront.json";
+import UNIV3_STAKER_ABI from "../../artifacts/contracts/uniswap/UniswapV3StakerFront.sol/UniswapV3StakerFront.json";
 import RewardAbi from "../../artifacts/contracts/mock_ERC20/FixedSupplyERC20.sol/FixedSupplyERC20.json";
 import { UNIV3_NFT_POSITION_MANAGER } from "../addresses";
 import { UNIV3_NFT_POSITION_MANAGER_ABI } from "../abi/UNIV3_NFT_POSITION_MANAGER";
-import { UNIV3_STAKER_ABI } from "../abi/UNIV3_STAKER";
 import { Signer } from "ethers";
 
 export interface IncentiveKey {
@@ -74,7 +74,11 @@ export async function transferDeposit(
   to: string
 ) {
   const [deployer] = await ethers.getSigners();
-  const staker = new ethers.Contract(UNIV3_STAKER, UNIV3_STAKER_ABI, deployer);
+  const staker = new ethers.Contract(
+    UNIV3_STAKER,
+    UNIV3_STAKER_ABI.abi,
+    deployer
+  );
 
   await staker.transferDeposit(tokenId, to);
   console.log(`Deposit ${tokenId} transferred to ${to}`);
@@ -95,7 +99,11 @@ export async function getOwnedRewardsInfo(
 
 export async function getDepositInfo(UNIV3_STAKER: string, tokenId: string) {
   const [deployer] = await ethers.getSigners();
-  const staker = new ethers.Contract(UNIV3_STAKER, UNIV3_STAKER_ABI, deployer);
+  const staker = new ethers.Contract(
+    UNIV3_STAKER,
+    UNIV3_STAKER_ABI.abi,
+    deployer
+  );
 
   const deposit = await staker.deposits(ethers.parseUnits(tokenId, 0));
   return deposit.owner;
@@ -162,11 +170,20 @@ export async function depositAndStake(
   );
 }
 
-export async function getPool(uni: string, token0: string, token1: string) {
+export async function getPool(
+  uni: string,
+  token0: string,
+  token1: string,
+  fee?: number
+) {
   const [deployer] = await ethers.getSigners();
   const proxyContract = new ethers.Contract(uni, ProxyAbi.abi, deployer);
 
-  return await proxyContract.getPool(token0, token1);
+  return await proxyContract.getPool(
+    token0,
+    token1,
+    fee !== undefined ? fee : 100
+  );
 }
 
 export async function createIncentive(
@@ -203,8 +220,9 @@ export async function createIncentive(
 
 export async function deployV3StakerAndReward(
   factory: string,
-  staker: string,
   nftpos: string,
+  maxLeadTime: number,
+  maxTime: number,
   rewardsToMint?: string
 ) {
   const [deployer] = await ethers.getSigners();
@@ -214,7 +232,7 @@ export async function deployV3StakerAndReward(
   );
 
   const stakerContract = await ethers.getContractFactory(
-    "UniswapV3StakerProxy"
+    "UniswapV3StakerFront"
   );
   const tokenContract = await ethers.getContractFactory("OvaReferral");
 
@@ -230,8 +248,9 @@ export async function deployV3StakerAndReward(
   const uni = await stakerContract.deploy(
     deployer.address,
     factory,
-    staker,
     nftpos,
+    maxLeadTime,
+    maxTime,
     defaultTransactionOptions
   );
   const token = await tokenContract.deploy(
@@ -241,16 +260,17 @@ export async function deployV3StakerAndReward(
   await uni.waitForDeployment();
   await token.waitForDeployment();
 
-  // mint some tokens
   await token.connect(deployer).setMinter(deployer.address);
-  await token
-    .connect(deployer)
-    .mint(
-      deployer.address,
-      ethers.parseEther(rewardsToMint !== undefined ? rewardsToMint : "1000000")
-    );
+  await token.connect(deployer).setMinter(await uni.getAddress());
 
-  console.log("Proxy contract deployed at:", await uni.getAddress());
+  // mint some tokens if needed
+  if (rewardsToMint !== undefined) {
+    await token
+      .connect(deployer)
+      .mint(deployer.address, ethers.parseEther(rewardsToMint));
+  }
+
+  console.log("Staker front contract deployed at:", await uni.getAddress());
   console.log("Reward token contract deployed at:", await token.getAddress());
 
   return { proxy: await uni.getAddress(), reward: await token.getAddress() };
