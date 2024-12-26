@@ -85,7 +85,7 @@ describe("CurveStableSwapLiquidityProxy", function () {
 
       const amount = "10";
 
-      // Approve curve contract
+      // Transfer funds to curve contract
       const token1Contract = new ethers.Contract(token1, token1Abi);
       const token0Contract = new ethers.Contract(token0, token0Abi);
       const token2Contract = new ethers.Contract(token2, token2Abi);
