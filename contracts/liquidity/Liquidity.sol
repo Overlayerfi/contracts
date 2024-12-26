@@ -206,7 +206,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @param pid the pool identifier.
      * @param amount the amount to withdraw.
      */
-    function withdraw(uint256 pid, uint256 amount) external nonReentrant {
+    function withdraw(uint256 pid, uint256 amount) external override nonReentrant {
         if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
@@ -254,7 +254,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @notice Harvest reward.
      * @param pid the pool identifier.
      */
-    function harvest(uint256 pid) external nonReentrant {
+    function harvest(uint256 pid) external override nonReentrant {
         if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
@@ -284,7 +284,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @notice Emergency withdraw all the deposited funds.
      * @param pid the pool identifier.
      */
-    function emergencyWithdraw(uint256 pid) external nonReentrant {
+    function emergencyWithdraw(uint256 pid) external override nonReentrant {
         PoolInfo storage pool = poolInfo[pid];
         UserInfo storage user = userInfo[pid][msg.sender];
 
@@ -323,7 +323,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @param pid the pool identifier.
      * @param amount the amount to deposit.
      */
-    function deposit(uint256 pid, uint256 amount) public nonReentrant {
+    function deposit(uint256 pid, uint256 amount) public override nonReentrant {
         if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
@@ -420,7 +420,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     function pendingReward(
         uint256 pid,
         address user
-    ) public view returns (uint256) {
+    ) public view virtual override returns (uint256) {
         if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
@@ -520,7 +520,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @notice Update pool infos.
      * @param pid the pool identifier.
      */
-    function updatePool(uint256 pid) internal {
+    function updatePool(uint256 pid) virtual internal {
         PoolInfo storage pool = poolInfo[pid];
         if (block.timestamp <= pool.lastRewardTime) {
             return;
