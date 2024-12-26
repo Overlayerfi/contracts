@@ -25,6 +25,9 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
     /// @notice Allowed referral codes
     mapping(string => address) public referralCodes;
 
+    /// @notice All the referral codes
+    string[] public codes;
+
     event Referral(address indexed source, address consumer);
     event NewCode(string code, address holder);
     event AddTracker(address tracker);
@@ -34,6 +37,7 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
     error OvaReferralZeroAddress();
     error OvaReferralNotAllowed();
     error OvaReferralCodeNotValid();
+    error OvaReferralCodeAlreadyUsed();
 
     modifier onlyTracker() {
         if (!allowedPointsTrackers[msg.sender]) {
@@ -59,8 +63,11 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
         if (referralCodes[code] == address(0)) {
             revert OvaReferralCodeNotValid();
         }
-
         address source = referralCodes[code];
+        // Can not refer self
+        if (source == consumer) {
+            revert OvaReferralNotAllowed();
+        }
         if (source == address(0)) revert OvaReferralZeroAddress();
 
         referredFrom[consumer] = source;
@@ -93,7 +100,11 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
         if (holder == address(0)) {
             revert OvaReferralZeroAddress();
         }
+        if (referralCodes[code] != address(0)) {
+            revert OvaReferralCodeAlreadyUsed();
+        }
         referralCodes[code] = holder;
+        codes.push(code);
         emit NewCode(code, holder);
     }
 
@@ -131,5 +142,17 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
     ) external view returns (uint256) {
         address source = referralCodes[code];
         return generatedPoints[source];
+    }
+
+    /// @notice Retrieve all the active referral codes
+    /// @return The active referral codes
+    function allCodes() external view returns (string[] memory) {
+        return codes;
+    }
+
+    /// @notice Retrieve referral codes count
+    /// @return The active referral codes count
+    function totalCodes() external view returns (uint256) {
+        return codes.length;
     }
 }
