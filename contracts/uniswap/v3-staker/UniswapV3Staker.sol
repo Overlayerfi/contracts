@@ -422,10 +422,7 @@ contract UniswapV3Staker is IUniswapV3Staker, Multicall {
     /// @notice Stakes a Uniswap V3 LP token
     /// @param key The key of the incentive for which to stake the NFT
     /// @param tokenId The ID of the token to stake
-    function stakeToken(
-        IncentiveKey memory key,
-        uint256 tokenId
-    ) internal {
+    function stakeToken(IncentiveKey memory key, uint256 tokenId) internal {
         revert("UniswapV3Staker::stakeToken: this function is disabled");
     }
 
