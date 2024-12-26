@@ -10,11 +10,20 @@ import "./interfaces/ILiquidityDefs.sol";
 import "./interfaces/IRewardAsset.sol";
 import "./Liquidity.sol";
 
+interface ICurvePool {
+    function balances(uint256 index) external view returns (uint256);
+    function coins(uint256 index) external view returns (address);
+}
+
+interface IERC20Decimals {
+    function decimals() external view returns (uint8);
+}
+
 /**
- * @notice Single stable coin staking contract implementation.
+ * @notice Curve finance stable swap pool lp staking contract implementation.
  * This contract supports multiple staking pools to be deployed in the same contract sharing the reward token.
  */
-contract SingleStableStake is Liquidity {
+contract CurveStableStake is Liquidity {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
@@ -27,6 +36,16 @@ contract SingleStableStake is Liquidity {
      * @notice The emitted amount of reward for each second multiplier denominator.
      */
     mapping(address => uint256) public rewardsPerSecondMultiplierDen;
+
+    /**
+     * @notice Track number of stable coins held inside Curve pools.
+     */
+    mapping(address => mapping(address => uint8)) public nCoinsTracker;
+
+    /**
+     * @notice Curve pools associated to Curve lps.
+     */
+    mapping(address => ICurvePool) public curvePools;
 
     /**
      * @notice The seconds in a year.
@@ -42,6 +61,33 @@ contract SingleStableStake is Liquidity {
         address admin,
         uint256 startTime_
     ) Liquidity(admin, startTime_) {}
+
+    /**
+     * @notice Add a new pool and track the total coins held inside the Curve pool.
+     * @dev It reverts if the starting time is set to zero
+     * @param stakedAsset the wanted lp token.
+     * @param rewardAsset the reward that will be payed out.
+     * @param allocationPoints the weight of the added pool.
+     * @param numCoins the total stable coins held inside the Curve pool.
+     * @param pool the Curve pool associated to this lp.
+     * @param update a boolean flag stating if update or not old pools.
+     */
+    function addWithNumCoinsAndPool(
+        IERC20 stakedAsset,
+        IERC20 rewardAsset,
+        uint256 allocationPoints,
+        uint8 numCoins,
+        ICurvePool pool,
+        bool update
+    ) external onlyOwner {
+        if (address(pool) == address(0)) {
+            revert InvalidZeroAddress();
+        }
+        super.add(stakedAsset, rewardAsset, allocationPoints, update);
+
+        nCoinsTracker[address(stakedAsset)][address(rewardAsset)] = numCoins;
+        curvePools[address(stakedAsset)] = pool;
+    }
 
     /**
      * @notice Set a reward rate.
@@ -159,15 +205,34 @@ contract SingleStableStake is Liquidity {
         IERC20 staked,
         IERC20 reward
     ) internal view returns (uint256) {
-        uint256 stakedAmount = staked.balanceOf(address(this));
+        uint8 nCoins = nCoinsTracker[address(staked)][address(reward)];
+        uint256 totalLiquidity = 0;
+
+        for (uint8 i = 0; i < nCoins; ) {
+            address addr = curvePools[address(staked)].coins(i);
+            uint8 dec = IERC20Decimals(addr).decimals();
+            uint256 bal = curvePools[address(staked)].balances(i);
+            uint8 k = 18 - dec;
+            bal = bal * (10 ** k);
+            totalLiquidity += bal;
+            unchecked {
+                i++;
+            }
+        }
+
+        uint256 stakedLp = staked.balanceOf(address(this));
+        uint256 totalLiquidityHeld = totalLiquidity.mulDiv(
+            stakedLp,
+            staked.totalSupply()
+        );
 
         // No liquidity
-        if (stakedAmount < 1 ether) {
+        if (totalLiquidityHeld < 1 ether) {
             return 0;
         }
 
         return
-            stakedAmount.mulDiv(
+            totalLiquidityHeld.mulDiv(
                 rewardsPerSecondMultiplierNum[address(reward)],
                 rewardsPerSecondMultiplierDen[address(reward)]
             ) / SECONDS_IN_YEAR;
