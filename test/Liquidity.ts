@@ -324,9 +324,14 @@ describe("Liquidity", function () {
       const latestTime: number = await time.latest();
       await time.increaseTo(latestTime + 1);
 
-      await stakedAsset.transfer(alice.getAddress(), 10);
+      await stakedAsset.transfer(alice.getAddress(), ethers.parseEther("10"));
 
-      await stakedAsset.connect(alice).approve(liquidity.getAddress(), 10);
+      await stakedAsset
+        .connect(alice)
+        .approve(liquidity.getAddress(), ethers.parseEther("10"));
+      await stakedAsset
+        .connect(owner)
+        .approve(liquidity.getAddress(), ethers.parseEther("10"));
 
       await liquidity.setReward(tokenRewardOneOvaReferral.getAddress(), 1);
       await liquidity.add(
@@ -349,7 +354,14 @@ describe("Liquidity", function () {
 
       // Test an increasing amount of bonus payed out
       await expect(
-        await liquidity.connect(alice).depositWithReferral(0, 2, "BOB")
+        await liquidity
+          .connect(alice)
+          .depositWithReferral(0, ethers.parseEther("2"), "BOB")
+      ).to.emit(liquidity, "Deposit");
+      await expect(
+        await liquidity
+          .connect(owner)
+          .depositWithReferral(0, ethers.parseEther("2"), "BOB")
       ).to.emit(liquidity, "Deposit");
       expect(
         await tokenRewardOneOvaReferral.balanceOf(alice.address)
@@ -357,21 +369,37 @@ describe("Liquidity", function () {
       expect(
         await tokenRewardOneOvaReferral.balanceOf(bob.address)
       ).to.be.equal(0);
+
       await time.increaseTo((await time.latest()) + 60 * 60 * 24 * 10);
-      await expect(await liquidity.connect(alice).deposit(0, 3)).to.emit(
-        liquidity,
-        "Deposit"
+
+      const pendingRewardsAlice = ethers.formatEther(
+        await liquidity.pendingReward(0, await alice.getAddress())
       );
+      const pendingRewardsOwner = ethers.formatEther(
+        await liquidity.pendingReward(0, await owner.getAddress())
+      );
+      const pendingRewardsRefBob = ethers.formatEther(
+        await liquidity.pendingRewardsReferral("BOB", 0, 0, 0)
+      );
+      expect(+pendingRewardsRefBob).to.be.greaterThanOrEqual(
+        0.99 * +pendingRewardsAlice + +pendingRewardsOwner
+      );
+      expect(+pendingRewardsRefBob).to.be.lessThanOrEqual(
+        1.01 * +pendingRewardsAlice + +pendingRewardsOwner
+      );
+
+      await expect(
+        await liquidity.connect(alice).deposit(0, ethers.parseEther("3"))
+      ).to.emit(liquidity, "Deposit");
       expect(
         await tokenRewardOneOvaReferral.balanceOf(alice.address)
       ).to.be.greaterThan(0);
       let bobBonus = await tokenRewardOneOvaReferral.balanceOf(bob.address);
       expect(bobBonus).to.be.greaterThan(0);
       await time.increaseTo((await time.latest()) + 60 * 60 * 24 * 10);
-      await expect(await liquidity.connect(alice).deposit(0, 5)).to.emit(
-        liquidity,
-        "Deposit"
-      );
+      await expect(
+        await liquidity.connect(alice).deposit(0, ethers.parseEther("5"))
+      ).to.emit(liquidity, "Deposit");
       expect(
         await tokenRewardOneOvaReferral.balanceOf(bob.address)
       ).to.be.greaterThan(bobBonus);
@@ -395,10 +423,9 @@ describe("Liquidity", function () {
 
       // Check withdraw do generate bonuses
       await time.increaseTo((await time.latest()) + 60 * 60 * 24 * 10);
-      expect(await liquidity.connect(alice).withdraw(0, 10)).to.emit(
-        liquidity,
-        "BonusPayed"
-      );
+      expect(
+        await liquidity.connect(alice).withdraw(0, ethers.parseEther("10"))
+      ).to.emit(liquidity, "BonusPayed");
       expect(
         await tokenRewardOneOvaReferral.balanceOf(bob.address)
       ).to.be.greaterThan(bobBonus);

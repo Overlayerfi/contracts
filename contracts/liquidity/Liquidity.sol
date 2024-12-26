@@ -459,6 +459,36 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     }
 
     /**
+     * @notice Retrieve all the pending rewards under a given referral code.
+     * @param code The referral code
+     * @param pid The pool id
+     * @param startIndex The start referred array index to query from
+     * @param endIndex The end referred array index to query from
+     * @return The total pending rewards
+     */
+    function pendingRewardsReferral(
+        string memory code,
+        uint256 pid,
+        uint256 startIndex,
+        uint256 endIndex
+    ) public view returns (uint256) {
+        if (address(referral) == address(0)) {
+            return 0;
+        }
+        address refSource = referral.referralCodes(code);
+        address[] memory referredUsers = referral.seeReferred(refSource);
+        if (startIndex == 0 && endIndex == 0) {
+            endIndex = referredUsers.length;
+        }
+
+        uint256 total = 0;
+        for (uint256 i = startIndex; i < endIndex; ++i) {
+            total += pendingReward(pid, referredUsers[i]);
+        }
+        return total;
+    }
+
+    /**
      * @notice Update all the pools.
      */
     function _massUpdatePools() internal {
