@@ -72,7 +72,9 @@ interface IUniswapV3Staker is IERC721Receiver, IMulticall {
             address owner,
             uint48 numberOfStakes,
             int24 tickLower,
-            int24 tickUpper
+            int24 tickUpper,
+            uint256 amount0,
+            uint256 amount1
         );
 
     /// @notice Returns information about a staked liquidity NFT
@@ -99,54 +101,6 @@ interface IUniswapV3Staker is IERC721Receiver, IMulticall {
         IERC20Minimal rewardToken,
         address owner
     ) external view returns (uint256 rewardsOwed);
-
-    /// @notice Creates a new liquidity mining incentive program
-    /// @param key Details of the incentive to create
-    /// @param reward The amount of reward tokens to be distributed
-    function createIncentive(IncentiveKey memory key, uint256 reward) external;
-
-    /// @notice Ends an incentive after the incentive end time has passed and all stakes have been withdrawn
-    /// @param key Details of the incentive to end
-    /// @return refund The remaining reward tokens when the incentive is ended
-    function endIncentive(
-        IncentiveKey memory key
-    ) external returns (uint256 refund);
-
-    /// @notice Transfers ownership of a deposit from the sender to the given recipient
-    /// @param tokenId The ID of the token (and the deposit) to transfer
-    /// @param to The new owner of the deposit
-    function transferDeposit(uint256 tokenId, address to) external;
-
-    /// @notice Withdraws a Uniswap V3 LP token `tokenId` from this contract to the recipient `to`
-    /// @param tokenId The unique identifier of an Uniswap V3 LP token
-    /// @param to The address where the LP token will be sent
-    /// @param data An optional data array that will be passed along to the `to` address via the NFT safeTransferFrom
-    function withdrawToken(
-        uint256 tokenId,
-        address to,
-        bytes memory data
-    ) external;
-
-    /// @notice Stakes a Uniswap V3 LP token
-    /// @param key The key of the incentive for which to stake the NFT
-    /// @param tokenId The ID of the token to stake
-    function stakeToken(IncentiveKey memory key, uint256 tokenId) external;
-
-    /// @notice Unstakes a Uniswap V3 LP token
-    /// @param key The key of the incentive for which to unstake the NFT
-    /// @param tokenId The ID of the token to unstake
-    function unstakeToken(IncentiveKey memory key, uint256 tokenId) external;
-
-    /// @notice Transfers `amountRequested` of accrued `rewardToken` rewards from the contract to the recipient `to`
-    /// @param rewardToken The token being distributed as a reward
-    /// @param to The address where claimed rewards will be sent to
-    /// @param amountRequested The amount of reward tokens to claim. Claims entire reward amount if set to 0.
-    /// @return reward The amount of reward tokens claimed
-    function claimReward(
-        IERC20Minimal rewardToken,
-        address to,
-        uint256 amountRequested
-    ) external returns (uint256 reward);
 
     /// @notice Calculates the reward amount that will be received for the given stake
     /// @param key The key of the incentive

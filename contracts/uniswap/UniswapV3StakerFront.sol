@@ -1,47 +1,48 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity =0.7.6;
 pragma abicoder v2;
 
-import "@uniswap/v3-core/contracts/interfaces/IERC20Minimal.sol";
-import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
-import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {INonfungiblePositionManager} from "./interfaces/INonfungiblePositionManager.sol";
-import {IOvaReferral} from "../token/interfaces/IOvaReferral.sol";
-import {IRewardAsset} from "../liquidity/interfaces/IRewardAsset.sol";
-import {IUniswapV3Staker} from "./interfaces/IUniswapV3Staker.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./v3-staker/libraries/IncentiveId.sol";
+import "./v3-staker/openzeppelin/IERC20.sol";
+import "./v3-staker/openzeppelin/Ownable.sol";
+import "./v3-staker/openzeppelin/ReentrancyGuard.sol";
+import "./v3-staker/openzeppelin/SafeMath.sol";
+import "./v3-staker/uniswap/IERC20Minimal.sol";
+import "./v3-staker/uniswap/INonfungiblePositionManager.sol";
+import "./v3-staker/uniswap/INonfungiblePositionManager.sol";
+import "./v3-staker/uniswap/IUniswapV3Factory.sol";
+import "./v3-staker/uniswap/IUniswapV3Factory.sol";
+import "./v3-staker/uniswap/IUniswapV3Pool.sol";
+import "./v3-staker/uniswap/FullMath.sol";
+import {UniswapV3Staker} from "./v3-staker/UniswapV3Staker.sol";
 
-library IncentiveId {
-    /// @notice Calculate the key for a staking incentive
-    /// @param key The components used to compute the incentive identifier
-    /// @return incentiveId The identifier for the incentive
-    function compute(
-        IUniswapV3Staker.IncentiveKey memory key
-    ) internal pure returns (bytes32 incentiveId) {
-        return keccak256(abi.encode(key));
-    }
+interface IOvaReferral {
+    function referredFrom(address user) external view returns (address);
+    function seeReferred(address user) external view returns (address[] memory);
+    function generatePoints(address user) external view returns (uint256);
+    function track(address user, uint256 amount) external;
+    function consumeReferral(address source, address consumer) external;
+}
+
+interface IRewardAsset {
+    function mint(address to, uint256 amount) external;
 }
 
 // eth mainnet
 // fix the fee for now
 uint24 constant FEE = 100;
 
-/// @title Uniswap V3 staker contract proxy
+/// @title Uniswap V3 staker front end
 /// @notice It handles user stakings by integrating all the bonus points obtained by referrals
-contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
-    using SafeERC20 for IERC20;
-    using Math for uint256;
+contract UniswapV3StakerFront is Ownable, ReentrancyGuard, UniswapV3Staker {
+    using SafeMath for uint256;
 
     /// @notice Cache of original token owners
     mapping(uint256 => address) public originalOwners;
 
     /// @notice Referral bonus amount
     /// @dev 5%
-    uint8 public referralBonus = 5;
+    uint8 public referralBonus = 50;
 
     /// @notice Self referral bonus amount
     /// @dev 1.5%
@@ -49,15 +50,6 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
 
     /// @notice Ova referral contract
     IOvaReferral public referral;
-
-    /// @notice Uniswap V3 factory address
-    address immutable UNIV3_FACTORY;
-
-    /// @notice Uniswap V3 staker address
-    address immutable UNIV3_STAKER;
-
-    /// @notice Uniswap V3 NFT position manager address
-    address immutable UNIV3_NFT_POSITION_MANAGER;
 
     event UniswapV3StakerReferralUpdated(IOvaReferral referral);
 
@@ -75,20 +67,23 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
         uint256 amount
     );
 
-    error UniswapV3StakerProxyZeroAddress();
-
     /// @notice Constructor
     /// @param admin The contract admin
     constructor(
         address admin,
-        address univ3_factory,
-        address univ3_staker,
-        address univ3_nft_pos
-    ) Ownable(admin) {
-        UNIV3_FACTORY = univ3_factory;
-        UNIV3_STAKER = univ3_staker;
-        UNIV3_NFT_POSITION_MANAGER = univ3_nft_pos;
-    }
+        IUniswapV3Factory factory,
+        INonfungiblePositionManager nonfungiblePositionManager,
+        uint256 maxIncentiveStartLeadTime,
+        uint256 maxIncentiveDuration
+    )
+        Ownable(admin)
+        UniswapV3Staker(
+            factory,
+            nonfungiblePositionManager,
+            maxIncentiveStartLeadTime,
+            maxIncentiveDuration
+        )
+    {}
 
     /// @notice Update the referral contract
     /// @param referral_ The new referral contract
@@ -99,11 +94,11 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
 
     /**
      * @notice Update the referral bonus amount.
-     * @dev It can not be over 100 (100%).
+     * @dev It can not be over 1000 (100%).
      * @param referralBonus_ the bonus amount.
      */
     function updateReferralBonus(uint8 referralBonus_) external onlyOwner {
-        if (referralBonus_ <= 100) {
+        if (referralBonus_ <= 1000) {
             referralBonus = referralBonus_;
             emit UniswapV3StakerReferralBonusUpdated(referralBonus_);
         }
@@ -141,30 +136,18 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
         uint256 endTime,
         address refundee
     ) external onlyOwner {
-        if (reward == address(0)) {
-            revert UniswapV3StakerProxyZeroAddress();
-        }
-        if (refundee == address(0)) {
-            revert UniswapV3StakerProxyZeroAddress();
-        }
+        require(reward != address(0), "UniswapV3StakerProxyZeroAddress");
+        require(refundee != address(0), "UniswapV3StakerProxyZeroAddress");
 
-        IUniswapV3Staker.IncentiveKey memory key = IUniswapV3Staker
-            .IncentiveKey(
-                IERC20Minimal(reward),
-                getPool(token0, token1),
-                startTime,
-                endTime,
-                refundee != address(0) ? refundee : owner()
-            );
-
-        IERC20(reward).safeTransferFrom(
-            msg.sender,
-            address(this),
-            rewardAmount
+        IncentiveKey memory key = IncentiveKey(
+            IERC20Minimal(reward),
+            getPool(token0, token1, FEE),
+            startTime,
+            endTime,
+            refundee != address(0) ? refundee : owner()
         );
-        IERC20(reward).safeIncreaseAllowance(UNIV3_STAKER, rewardAmount);
 
-        IUniswapV3Staker(UNIV3_STAKER).createIncentive(key, rewardAmount);
+        super.createIncentive(key, rewardAmount);
     }
 
     /// @notice Deposit a token into the staker contract
@@ -176,7 +159,7 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
     /// @param referralSource Any referral source
     function stake(
         uint256 tokenId,
-        IUniswapV3Staker.IncentiveKey memory key,
+        IncentiveKey memory key,
         address referralSource
     ) external nonReentrant {
         address tokenOwner = msg.sender;
@@ -195,13 +178,12 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
         }
 
         // Deposit and stake
-        INonfungiblePositionManager(UNIV3_NFT_POSITION_MANAGER)
-            .safeTransferFrom(
-                tokenOwner,
-                UNIV3_STAKER,
-                tokenId,
-                computeUnhashedKey(key)
-            );
+        nonfungiblePositionManager.safeTransferFrom(
+            tokenOwner,
+            address(this),
+            tokenId,
+            computeUnhashedKey(key)
+        );
     }
 
     /// @notice Unstake, collect and withdraw the token
@@ -216,33 +198,35 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
     /// @return The collected reward amount
     function unstake(
         uint256 tokenId,
-        IUniswapV3Staker.IncentiveKey memory key,
+        IncentiveKey memory key,
         IERC20Minimal reward,
         address rewardRecipient,
         address tokenRecipient
     ) external nonReentrant returns (uint256) {
-        if (rewardRecipient == address(0))
-            revert UniswapV3StakerProxyZeroAddress();
-        if (tokenRecipient == address(0))
-            revert UniswapV3StakerProxyZeroAddress();
-        if (address(reward) == address(0))
-            revert UniswapV3StakerProxyZeroAddress();
+        require(
+            rewardRecipient != address(0),
+            "UniswapV3StakerProxyZeroAddress"
+        );
+        require(
+            tokenRecipient != address(0),
+            "UniswapV3StakerProxyZeroAddress"
+        );
+        require(
+            address(reward) != address(0),
+            "UniswapV3StakerProxyZeroAddress"
+        );
 
         // Unstake the token
-        IUniswapV3Staker(UNIV3_STAKER).unstakeToken(key, tokenId);
+        super.unstakeToken(key, tokenId);
         // Collect reward
-        uint256 collected = IUniswapV3Staker(UNIV3_STAKER).claimReward(
+        uint256 collected = super.claimReward(
             reward,
             rewardRecipient,
             0 //claim alll
         );
-        // Withraw token
+        // Withdraw token
         bytes memory data = new bytes(0);
-        IUniswapV3Staker(UNIV3_STAKER).withdrawToken(
-            tokenId,
-            tokenRecipient,
-            data
-        );
+        super.withdrawToken(tokenId, tokenRecipient, data);
 
         // Referral bonus
         if (address(referral) != address(0)) {
@@ -256,14 +240,9 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
     /// @dev Can only be called from the original owner who did stake the token
     /// @param tokenId The token to recover
     function recoverDeposit(uint256 tokenId) external {
-        (address depositOwner, , , ) = IUniswapV3Staker(UNIV3_STAKER).deposits(
-            tokenId
-        );
-        if (
-            depositOwner == address(this) &&
-            originalOwners[tokenId] == msg.sender
-        ) {
-            IUniswapV3Staker(UNIV3_STAKER).transferDeposit(tokenId, msg.sender);
+        Deposit memory d = deposits[tokenId];
+        if (d.owner == address(this) && originalOwners[tokenId] == msg.sender) {
+            super.transferDeposit(tokenId, msg.sender);
         }
     }
 
@@ -273,12 +252,9 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
     /// @return amount The accrued amount for the given tokenid and incentive
     function getRewardInfo(
         uint256 tokenId,
-        IUniswapV3Staker.IncentiveKey memory key
+        IncentiveKey memory key
     ) external view returns (uint256) {
-        (uint256 amount, ) = IUniswapV3Staker(UNIV3_STAKER).getRewardInfo(
-            key,
-            tokenId
-        );
+        (uint256 amount, ) = super.getRewardInfo(key, tokenId);
         return amount;
     }
 
@@ -291,40 +267,31 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
         IERC20Minimal reward,
         address owner_
     ) external view returns (uint256) {
-        return IUniswapV3Staker(UNIV3_STAKER).rewards(reward, owner_);
+        return rewards[reward][owner_];
     }
 
     /// @notice Retrieve the hash related to an incentive key
     /// @param key The incentive key
     /// @return The hash
     function incentiveId(
-        IUniswapV3Staker.IncentiveKey memory key
+        IncentiveKey memory key
     ) public pure returns (bytes32) {
         return IncentiveId.compute(key);
-    }
-
-    /// @notice Retrieve a pool address
-    /// @dev Fee amount is fixed for now
-    /// @param token0 The first token
-    /// @param token1 The second token
-    /// @return The pool address as interface
-    function getPool(
-        address token0,
-        address token1
-    ) public view returns (IUniswapV3Pool) {
-        return
-            IUniswapV3Pool(
-                IUniswapV3Factory(UNIV3_FACTORY).getPool(token0, token1, FEE)
-            );
     }
 
     /// @notice Compute the packed struct
     /// @param key The incentive key to be packed
     /// @return The packed key
     function computeUnhashedKey(
-        IUniswapV3Staker.IncentiveKey memory key
+        IncentiveKey memory key
     ) public pure returns (bytes memory) {
         return abi.encode(key);
+    }
+
+    function stakedLiquidityStableCoins(
+        IncentiveKey memory key
+    ) public view returns (uint256) {
+        return totalStakedStableCoins[incentiveId(key)];
     }
 
     /**
@@ -339,7 +306,7 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
         uint256 amount,
         address selfBonusRecipient
     ) internal {
-        uint256 bonus = amount.mulDiv(referralBonus, 100);
+        uint256 bonus = FullMath.mulDiv(amount, referralBonus, 1000);
         address recipient = referral.referredFrom(msg.sender);
         // Pay only if the referral source do exist (is not address(0))
         if (bonus > 0 && recipient != address(0)) {
@@ -348,7 +315,11 @@ contract UniswapV3StakerProxy is Ownable, ReentrancyGuard {
             emit UniswapV3StakerReferralBonusPayed(recipient, bonus);
 
             // Pay also the self referral bonus (for having consumed a referral)
-            uint256 selfBonus = amount.mulDiv(selfReferralBonus, 1000);
+            uint256 selfBonus = FullMath.mulDiv(
+                amount,
+                selfReferralBonus,
+                1000
+            );
             // Self bonus is not zero
             IRewardAsset(rewardAsset).mint(selfBonusRecipient, selfBonus);
             emit UniswapV3StakerSelfReferralBonusPayed(
