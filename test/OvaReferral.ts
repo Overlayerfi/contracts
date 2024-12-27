@@ -65,6 +65,13 @@ describe("OvaReferral", function () {
       expect(await ovaReferral.referralCodes("CODE")).to.be.equal(
         await alice.getAddress()
       );
+      expect(
+        await ovaReferral.referralCodesRev(await alice.getAddress())
+      ).to.be.equal("CODE");
+
+      await expect(
+        ovaReferral.connect(admin).addCode("CODE2", await alice.getAddress())
+      ).to.be.eventually.rejected;
 
       await expect(
         ovaReferral.connect(admin).addCode("CODE", await alice.getAddress())
@@ -102,6 +109,26 @@ describe("OvaReferral", function () {
       const referred = await ovaReferral.seeReferred(alice.address);
       expect(referred.length).to.be.equal(1);
       expect(referred[0]).to.be.equal(bob.address);
+    });
+
+    it("Should not use referral if has given one", async function () {
+      const { ovaReferral, admin, minter, bob, alice } = await loadFixture(
+        deployFixture
+      );
+      await ovaReferral.connect(admin).addPointsTracker(admin.address);
+      await expect(
+        await ovaReferral
+          .connect(admin)
+          .addCode("ALICE", await alice.getAddress())
+      ).to.emit(ovaReferral, "NewCode");
+      await expect(
+        await ovaReferral.connect(admin).addCode("BOB", await bob.getAddress())
+      ).to.emit(ovaReferral, "NewCode");
+      await expect(
+        ovaReferral
+          .connect(admin)
+          .consumeReferral("BOB", await alice.getAddress())
+      ).to.be.eventually.rejected;
     });
 
     it("Should not be referred multiple times", async function () {
