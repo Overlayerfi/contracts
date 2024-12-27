@@ -22,8 +22,11 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
     /// @notice External entities who can control the points tracking
     mapping(address => bool) public allowedPointsTrackers;
 
-    /// @notice Allowed referral codes
+    /// @notice Referral code to its creator address
     mapping(string => address) public referralCodes;
+
+    /// @notice Referral code creator address to code
+    mapping(address => string) public referralCodesRev;
 
     /// @notice All the referral codes
     string[] public codes;
@@ -38,6 +41,7 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
     error OvaReferralNotAllowed();
     error OvaReferralCodeNotValid();
     error OvaReferralCodeAlreadyUsed();
+    error OvaReferralAlreadyCreatedACode();
 
     modifier onlyTracker() {
         if (!allowedPointsTrackers[msg.sender]) {
@@ -51,6 +55,7 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
     constructor(address admin) GovernanceTokenBase(admin, "AOVA", "AOVA") {}
 
     /// @notice Consume a referral code
+    /// @dev Code holders can not use any code
     /// @param code The referral code
     /// @param consumer The referral consumer
     function consumeReferral(
@@ -63,12 +68,18 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
         if (referralCodes[code] == address(0)) {
             revert OvaReferralCodeNotValid();
         }
+        // Code providers can not use any referral
+        if (bytes(referralCodesRev[consumer]).length > 0) {
+            revert OvaReferralNotAllowed();
+        }
         address source = referralCodes[code];
         // Can not refer self
         if (source == consumer) {
             revert OvaReferralNotAllowed();
         }
-        if (source == address(0)) revert OvaReferralZeroAddress();
+        if (source == address(0)) {
+            revert OvaReferralZeroAddress();
+        }
 
         referredFrom[consumer] = source;
         referredUsers[source].push(consumer);
@@ -103,7 +114,11 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
         if (referralCodes[code] != address(0)) {
             revert OvaReferralCodeAlreadyUsed();
         }
+        if (bytes(referralCodesRev[holder]).length > 0) {
+            revert OvaReferralAlreadyCreatedACode();
+        }
         referralCodes[code] = holder;
+        referralCodesRev[holder] = code;
         codes.push(code);
         emit NewCode(code, holder);
     }
