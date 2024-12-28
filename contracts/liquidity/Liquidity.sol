@@ -9,6 +9,8 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "./interfaces/ILiquidityDefs.sol";
 import "./interfaces/IRewardAsset.sol";
 
+//TODO: add fn to stop pool + handle pool with withdraw at the end and harvest
+
 /**
  * @notice Liquidity contract implementation.
  */
@@ -64,9 +66,9 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
 
     /**
      * @notice Referral bonus percentage.
-     * @dev 1.5%
+     * @dev 2.5%
      */
-    uint16 public selfReferralBonus = 15;
+    uint16 public selfReferralBonus = 25;
 
     /**
      * @notice Referral contract.
@@ -219,6 +221,10 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         if (amount > currentUser.amount) {
             revert InvalidAmount();
         }
+        // Vesting pool
+        if (pool.vesting && block.timestamp < pool.endTimeStamp) {
+            revert VestingPool();
+        }
 
         // update the pool up to date
         updatePool(pid);
@@ -264,17 +270,21 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         // Get pool and user
         PoolInfo memory pool = poolInfo[pid];
         UserInfo storage currentUser = userInfo[pid][msg.sender];
+        // Vesting pool
+        if (pool.vesting && block.timestamp < pool.endTimeStamp) {
+            revert VestingPool();
+        }
 
         // Compute pending rewards
         uint256 pending = pendingReward(pid, msg.sender);
-        // update reward debt
+        // Update reward debt
         currentUser.rewardDebt = currentUser.rewardDebt + pending;
 
-        // pay rewards
+        // Pay rewards
         if (pending > 0) {
             _payReward(pool.rewardAsset, msg.sender, pending);
         }
-        // pay bonus rewards
+        // Pay bonus rewards
         if (address(referral) != address(0)) {
             _payBonus(pending, pool.rewardAsset);
         }
@@ -330,9 +340,12 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
             revert InvalidPid();
         }
 
-        // Get pool and user
         PoolInfo storage pool = poolInfo[pid];
         UserInfo storage currentUser = userInfo[pid][msg.sender];
+
+        if (pool.endTimeStamp > 0 && pool.endTimeStamp < block.timestamp) {
+            revert PoolNotActive();
+        }
 
         // Cache old values
         uint256 oldDebt = currentUser.rewardDebt;
@@ -374,21 +387,29 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     }
 
     /**
-     * @notice Add a new pool.
+     * @notice Add a new pool
      * @dev It reverts if the starting time is set to zero
+     * @dev A vesting pool can not have endTime equal to 0
      * @param stakedAsset the wanted lp token.
      * @param rewardAsset the reward that will be payed out.
      * @param allocationPoints the weight of the added pool.
+     * @param endTime the ending time for this pool. 0 to ignore.
+     * @param vested a boolean flag stating if harvest and withdraw have to wait for the end of the pool.
      * @param update a boolean flag stating if update or not old pools.
      */
     function add(
         IERC20 stakedAsset,
         IERC20 rewardAsset,
         uint256 allocationPoints,
+        uint256 endTime,
+        bool vested,
         bool update
     ) public onlyOwner {
         if (startTime == NOT_ACTIVE) {
             revert LiquidityNotActive();
+        }
+        if (vested && endTime == 0) {
+            revert NotAllowed();
         }
         if (!activeRewards[address(rewardAsset)]) {
             revert InvactiveReward();
@@ -408,7 +429,9 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
                 rewardAsset: rewardAsset,
                 allocPoints: allocationPoints,
                 lastRewardTime: lastRewardTime,
-                accRewardPerShare: 0
+                accRewardPerShare: 0,
+                endTimeStamp: endTime,
+                vesting: vested
             })
         );
     }

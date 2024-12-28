@@ -67,6 +67,8 @@ contract CurveStableStake is Liquidity {
      * @param allocationPoints the weight of the added pool.
      * @param numCoins the total stable coins held inside the Curve pool.
      * @param pool the Curve pool associated to this lp.
+     * @param endTime the ending time for this pool. 0 to ignore.
+     * @param vested a boolean flag stating if harvest and withdraw have to wait for the end of the pool.
      * @param update a boolean flag stating if update or not old pools.
      */
     function addWithNumCoinsAndPool(
@@ -75,12 +77,21 @@ contract CurveStableStake is Liquidity {
         uint256 allocationPoints,
         uint8 numCoins,
         ICurvePool pool,
+        uint256 endTime,
+        bool vested,
         bool update
     ) external onlyOwner {
         if (address(pool) == address(0)) {
             revert InvalidZeroAddress();
         }
-        super.add(stakedAsset, rewardAsset, allocationPoints, update);
+        super.add(
+            stakedAsset,
+            rewardAsset,
+            allocationPoints,
+            endTime,
+            vested,
+            update
+        );
 
         nCoinsTracker[address(stakedAsset)][address(rewardAsset)] = numCoins;
         curvePools[address(stakedAsset)] = pool;
