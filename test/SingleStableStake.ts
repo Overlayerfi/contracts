@@ -120,6 +120,8 @@ describe("SingleStableStake", function () {
           stakedAsset.getAddress(),
           tokenRewardOneOvaReferral.getAddress(),
           1,
+          0,
+          false,
           true
         )
       ).to.be.eventually.rejected;
@@ -137,6 +139,8 @@ describe("SingleStableStake", function () {
         stakedAsset.getAddress(),
         tokenRewardOneOvaReferral.getAddress(),
         1,
+        0,
+        false,
         true
       );
       expect(await liquidity.poolLength()).to.equal(1);
@@ -158,6 +162,8 @@ describe("SingleStableStake", function () {
         stakedAsset.getAddress(),
         tokenRewardOneOvaReferral.getAddress(),
         1,
+        0,
+        false,
         true
       );
       expect(await liquidity.poolLength()).to.equal(1);
@@ -166,6 +172,8 @@ describe("SingleStableStake", function () {
         tokenRewardOneOvaReferral.getAddress(),
         stakedAsset.getAddress(),
         10,
+        0,
+        false,
         true
       );
       expect(await liquidity.poolLength()).to.equal(2);
@@ -173,6 +181,8 @@ describe("SingleStableStake", function () {
         tokenRewardTwo.getAddress(),
         stakedAsset.getAddress(),
         100,
+        0,
+        false,
         true
       );
       expect(await liquidity.poolLength()).to.equal(3);
@@ -201,6 +211,8 @@ describe("SingleStableStake", function () {
             stakedAsset.getAddress(),
             tokenRewardOneOvaReferral.getAddress(),
             1,
+            0,
+            false,
             false
           )
       ).to.be.eventually.rejected;
@@ -273,6 +285,8 @@ describe("SingleStableStake", function () {
         stakedAsset.getAddress(),
         tokenRewardOneOvaReferral.getAddress(),
         1,
+        0,
+        false,
         true
       );
 
@@ -309,6 +323,8 @@ describe("SingleStableStake", function () {
         stakedAsset.getAddress(),
         tokenRewardOneOvaReferral.getAddress(),
         1,
+        0,
+        false,
         true
       );
 
@@ -430,6 +446,8 @@ describe("SingleStableStake", function () {
         stakedAsset.getAddress(),
         tokenRewardOneOvaReferral.getAddress(),
         1,
+        0,
+        false,
         true
       );
 

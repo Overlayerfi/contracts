@@ -30,11 +30,13 @@ interface ILiquidityDefs {
      * @notice Info on each pool.
      */
     struct PoolInfo {
-        IERC20 stakedAsset; // Address of staked token contract.
-        IERC20 rewardAsset; // REward token.
+        IERC20 stakedAsset; // Address of staked token contract
+        IERC20 rewardAsset; // REward token
         uint256 allocPoints; // Pool weight
-        uint256 lastRewardTime; // Last timestamp that REWARD distribution occured.
-        uint256 accRewardPerShare; // Accumulated REWARD per share, times 1e12. See below.
+        uint256 lastRewardTime; // Last timestamp that REWARD distribution occured
+        uint256 accRewardPerShare; // Accumulated REWARD per share, times 1e12. See below
+        uint256 endTimeStamp; // If the pool is active or not
+        bool vesting; // If harvest and withraw are allowed only at the end of the pool
     }
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
@@ -61,6 +63,10 @@ interface ILiquidityDefs {
 
     event SelfBonusPayed(address indexed recipient, uint256 amount);
 
+    error NotAllowed();
+
+    error VestingPool();
+
     error InvalidAmount();
 
     error InvalidPid();
@@ -72,6 +78,8 @@ interface ILiquidityDefs {
     error LiquidityNotActive();
 
     error InvalidTimeRange();
+
+    error PoolNotActive();
 
     function deposit(uint256 pid, uint256 amount) external;
 
