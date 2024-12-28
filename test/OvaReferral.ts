@@ -112,7 +112,7 @@ describe("OvaReferral", function () {
     });
 
     it("Should not use referral if has given one", async function () {
-      const { ovaReferral, admin, minter, bob, alice } = await loadFixture(
+      const { ovaReferral, admin, bob, alice } = await loadFixture(
         deployFixture
       );
       await ovaReferral.connect(admin).addPointsTracker(admin.address);
@@ -132,7 +132,7 @@ describe("OvaReferral", function () {
     });
 
     it("Should not be referred multiple times", async function () {
-      const { ovaReferral, admin, minter, bob, alice } = await loadFixture(
+      const { ovaReferral, admin, bob, alice } = await loadFixture(
         deployFixture
       );
       await ovaReferral.connect(admin).addPointsTracker(admin.address);
@@ -150,7 +150,7 @@ describe("OvaReferral", function () {
     });
 
     it("Should not be referred from zero address", async function () {
-      const { ovaReferral, admin, bob } = await loadFixture(deployFixture);
+      const { ovaReferral, admin } = await loadFixture(deployFixture);
       await ovaReferral.connect(admin).addPointsTracker(admin.address);
       await expect(
         ovaReferral.connect(admin).addCode("ALICE", ethers.ZeroAddress)
