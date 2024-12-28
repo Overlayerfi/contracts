@@ -176,6 +176,8 @@ describe("CurveStableStake", function () {
           1,
           3,
           CURVE_DAI_USDC_USDT_POOL,
+          0,
+          false,
           true
         )
       ).to.be.eventually.rejected;
@@ -195,6 +197,8 @@ describe("CurveStableStake", function () {
         1,
         3,
         CURVE_DAI_USDC_USDT_POOL,
+        0,
+        false,
         true
       );
       expect(await liquidity.poolLength()).to.equal(1);
@@ -214,6 +218,8 @@ describe("CurveStableStake", function () {
         1,
         3,
         CURVE_DAI_USDC_USDT_POOL,
+        0,
+        false,
         true
       );
       expect(await liquidity.poolLength()).to.equal(1);
@@ -224,6 +230,8 @@ describe("CurveStableStake", function () {
         10,
         3,
         CURVE_DAI_USDC_USDT_POOL,
+        0,
+        false,
         true
       );
       expect(await liquidity.poolLength()).to.equal(2);
@@ -332,6 +340,8 @@ describe("CurveStableStake", function () {
         1,
         3,
         CURVE_DAI_USDC_USDT_POOL,
+        0,
+        false,
         true
       );
 
@@ -372,6 +382,8 @@ describe("CurveStableStake", function () {
         1,
         3,
         CURVE_DAI_USDC_USDT_POOL,
+        0,
+        false,
         true
       );
 
@@ -497,6 +509,8 @@ describe("CurveStableStake", function () {
         1,
         3,
         CURVE_DAI_USDC_USDT_POOL,
+        0,
+        false,
         true
       );
 

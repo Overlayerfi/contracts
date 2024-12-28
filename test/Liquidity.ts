@@ -118,6 +118,8 @@ describe("Liquidity", function () {
           stakedAsset.getAddress(),
           tokenRewardOneOvaReferral.getAddress(),
           1,
+          0,
+          false,
           true
         )
       ).to.be.eventually.rejected;
@@ -131,6 +133,8 @@ describe("Liquidity", function () {
         stakedAsset.getAddress(),
         tokenRewardOneOvaReferral.getAddress(),
         1,
+        0,
+        false,
         true
       );
       expect(await liquidity.poolLength()).to.equal(1);
@@ -139,6 +143,8 @@ describe("Liquidity", function () {
         tokenRewardOneOvaReferral.getAddress(),
         stakedAsset.getAddress(),
         1,
+        0,
+        false,
         true
       );
       expect(await liquidity.poolLength()).to.equal(2);
@@ -156,6 +162,8 @@ describe("Liquidity", function () {
         stakedAsset.getAddress(),
         tokenRewardOneOvaReferral.getAddress(),
         1,
+        0,
+        false,
         true
       );
       expect(await liquidity.poolLength()).to.equal(1);
@@ -164,6 +172,8 @@ describe("Liquidity", function () {
         tokenRewardOneOvaReferral.getAddress(),
         stakedAsset.getAddress(),
         10,
+        0,
+        false,
         true
       );
       expect(await liquidity.poolLength()).to.equal(2);
@@ -171,6 +181,8 @@ describe("Liquidity", function () {
         tokenRewardTwo.getAddress(),
         stakedAsset.getAddress(),
         100,
+        0,
+        false,
         true
       );
       expect(await liquidity.poolLength()).to.equal(3);
@@ -195,6 +207,8 @@ describe("Liquidity", function () {
             stakedAsset.getAddress(),
             tokenRewardOneOvaReferral.getAddress(),
             1,
+            0,
+            false,
             false
           )
       ).to.be.eventually.rejected;
@@ -244,6 +258,8 @@ describe("Liquidity", function () {
         tokenRewardOneOvaReferral.getAddress(),
         stakedAsset.getAddress(),
         1,
+        0,
+        false,
         true
       );
       expect(await liquidity.poolLength()).to.equal(1);
@@ -265,6 +281,8 @@ describe("Liquidity", function () {
         tokenRewardOneOvaReferral.getAddress(),
         stakedAsset.getAddress(),
         1,
+        0,
+        false,
         true
       );
       await expect(liquidity.connect(notOwner).setPoolAllocPoints(0, 10, true))
@@ -298,6 +316,8 @@ describe("Liquidity", function () {
         stakedAsset.getAddress(),
         tokenRewardOneOvaReferral.getAddress(),
         1,
+        0,
+        false,
         true
       );
 
@@ -308,6 +328,43 @@ describe("Liquidity", function () {
       await expect(await liquidity.connect(bob).deposit(0, 5)).to.emit(
         liquidity,
         "Deposit"
+      );
+    });
+
+    it("Should not harvest or withraw before end time if vesting", async function () {
+      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice } =
+        await loadFixture(deployFixture);
+      const amount = ethers.parseEther("10");
+      await stakedAsset.transfer(alice.getAddress(), amount);
+
+      await stakedAsset.connect(alice).approve(liquidity.getAddress(), amount);
+
+      const latestTime: number = await time.latest();
+
+      await liquidity.setReward(tokenRewardOneOvaReferral.getAddress(), 1);
+      await liquidity.add(
+        stakedAsset.getAddress(),
+        tokenRewardOneOvaReferral.getAddress(),
+        1,
+        latestTime + 60 * 60 * 24 * 10,
+        true,
+        true
+      );
+
+      await expect(await liquidity.connect(alice).deposit(0, amount)).to.emit(
+        liquidity,
+        "Deposit"
+      );
+
+      await expect(liquidity.connect(alice).harvest(0)).to.be.eventually
+        .rejected;
+      await time.increaseTo(latestTime + 60 * 60 * 24 * 8);
+      await expect(liquidity.connect(alice).withdraw(0, amount)).to.be
+        .eventually.rejected;
+      await time.increaseTo(latestTime + 60 * 60 * 24 * 10 + 1);
+      await expect(await liquidity.connect(alice).withdraw(0, amount)).to.emit(
+        liquidity,
+        "Withdraw"
       );
     });
 
@@ -338,6 +395,8 @@ describe("Liquidity", function () {
         stakedAsset.getAddress(),
         tokenRewardOneOvaReferral.getAddress(),
         1,
+        0,
+        false,
         true
       );
 
@@ -451,6 +510,8 @@ describe("Liquidity", function () {
         stakedAsset.getAddress(),
         tokenRewardOneOvaReferral.getAddress(),
         1,
+        0,
+        false,
         true
       );
 
@@ -575,12 +636,16 @@ describe("Liquidity", function () {
         stakedAsset.getAddress(),
         tokenRewardOneOvaReferral.getAddress(),
         1000,
+        0,
+        false,
         true
       );
       await liquidity.add(
         tokenRewardTwo.getAddress(),
         tokenRewardOneOvaReferral.getAddress(),
         2000,
+        0,
+        false,
         true
       );
 
@@ -698,6 +763,8 @@ describe("Liquidity", function () {
         stakedAsset.getAddress(),
         tokenRewardOneOvaReferral.getAddress(),
         1,
+        0,
+        false,
         true
       );
 
@@ -815,6 +882,8 @@ describe("Liquidity", function () {
         stakedAsset.getAddress(),
         tokenRewardOneOvaReferral.getAddress(),
         1,
+        0,
+        false,
         true
       );
 
@@ -946,6 +1015,8 @@ describe("Liquidity", function () {
         stakedAsset.getAddress(),
         tokenRewardOneOvaReferral.getAddress(),
         1,
+        0,
+        false,
         true
       );
 
@@ -1084,6 +1155,8 @@ describe("Liquidity", function () {
         stakedAsset.getAddress(),
         tokenRewardOneOvaReferral.getAddress(),
         1,
+        0,
+        false,
         true
       );
 
