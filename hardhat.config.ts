@@ -75,6 +75,7 @@ const config: HardhatUserConfig = {
         blockNumber: 19709557,
       },
       accounts: testAccounts,
+      allowUnlimitedContractSize: true,
     },
     ova: {
       url: OVA_BETA_RPC,
