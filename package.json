@@ -7,7 +7,7 @@
     "configure": "git submodule update --init --recursive && npm ci",
     "compile": "npx hardhat compile",
     "node": "npx hardhat node",
-    "exec-obsidia": "npx hardhat --network obsidia run",
+    "exec-ova": "npx hardhat --network ova run",
     "exec-local": "npx hardhat --network localhost run",
     "prettier-sol": "prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'",
     "prettier-check-sol": "prettier --check --plugin=prettier-plugin-solidity 'contracts/**/*.sol'",
