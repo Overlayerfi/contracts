@@ -14,9 +14,9 @@ export async function deploy_USDO(
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
-  console.log("Deploying USDOM contract with signer:", deployer.address);
+  console.log("Deploying USDO contract with signer:", deployer.address);
 
-  const ContractSource = await ethers.getContractFactory("USDOM");
+  const ContractSource = await ethers.getContractFactory("USDO");
   const deployedContract = await ContractSource.deploy(
     deployer.address,
     {
@@ -29,9 +29,6 @@ export async function deploy_USDO(
     },
     ethers.parseEther("100000000"),
     ethers.parseEther("100000000")
-    //{
-    //  maxFeePerGas: 6702346660 * 10
-    //}
   );
   await deployedContract.waitForDeployment();
 
@@ -64,9 +61,6 @@ export async function deploy_StakedUSDO(usdo: string): Promise<string> {
     deployer.address,
     deployer.address,
     0
-    //{
-    //  maxFeePerGas: 6702346660 * 10
-    //}
   );
   await deployedContract.waitForDeployment();
 
@@ -83,12 +77,30 @@ export async function deploy_AirdropOVAReceipt(usdo: string): Promise<void> {
   );
 
   const ContractSource = await ethers.getContractFactory("AirdropOVAReceipt");
-  const deployedContract = await ContractSource.deploy(usdo, deployer.address, {
-    //maxFeePerGas: 6702346660 * 10
-  });
+  const deployedContract = await ContractSource.deploy(usdo, deployer.address);
   await deployedContract.waitForDeployment();
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
+}
+
+export async function deploy_AirdropReward(admin: string): Promise<string> {
+  const [deployer] = await ethers.getSigners();
+
+  if (!ethers.isAddress(admin)) {
+    throw new Error("admin is not an address");
+  }
+
+  console.log(
+    "Deploying Airdrop::Reward contract with signer:",
+    deployer.address
+  );
+
+  const ContractSource = await ethers.getContractFactory("OvaReferral");
+  const deployedContract = await ContractSource.deploy(admin);
+  await deployedContract.waitForDeployment();
+
+  console.log("Contract deployed at:", await deployedContract.getAddress());
+  return await deployedContract.getAddress();
 }
 
 export async function deploy_LiquidityAirdropReward(
@@ -108,9 +120,7 @@ export async function deploy_LiquidityAirdropReward(
   const ContractSource = await ethers.getContractFactory(
     "LiquidityAirdropReward"
   );
-  const deployedContract = await ContractSource.deploy(admin, {
-    //maxFeePerGas: 6702346660 * 10
-  });
+  const deployedContract = await ContractSource.deploy(admin);
   await deployedContract.waitForDeployment();
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
@@ -129,6 +139,60 @@ export async function StakedUSDO_setCooldownStaking(
   await (contract.connect(deployer) as Contract).setCooldownDuration(seconds);
 
   console.log("Operation passed");
+}
+
+export async function deploy_AirdropPoolCurveStableStake(
+  admin: string,
+  startingTimeStampSeconds: number
+): Promise<string> {
+  const [deployer] = await ethers.getSigners();
+
+  if (!ethers.isAddress(admin)) {
+    throw new Error("admin is not ad address");
+  }
+
+  console.log(
+    "Deploying Airdrop::CurveStableStake contract with signer:",
+    deployer.address
+  );
+
+  const ContractSource = await ethers.getContractFactory("CurveStableStake");
+  const deployedContract = await ContractSource.deploy(
+    admin,
+    startingTimeStampSeconds
+  );
+
+  await deployedContract.waitForDeployment();
+
+  console.log("Contract deployed at:", await deployedContract.getAddress());
+  return await deployedContract.getAddress();
+}
+
+export async function deploy_AirdropSingleStableStake(
+  admin: string,
+  startingTimeStampSeconds: number
+): Promise<string> {
+  const [deployer] = await ethers.getSigners();
+
+  if (!ethers.isAddress(admin)) {
+    throw new Error("admin is not ad address");
+  }
+
+  console.log(
+    "Deploying Airdrop::SingleStableStake contract with signer:",
+    deployer.address
+  );
+
+  const ContractSource = await ethers.getContractFactory("SingleStableStake");
+  const deployedContract = await ContractSource.deploy(
+    admin,
+    startingTimeStampSeconds
+  );
+
+  await deployedContract.waitForDeployment();
+
+  console.log("Contract deployed at:", await deployedContract.getAddress());
+  return await deployedContract.getAddress();
 }
 
 export async function deploy_Liquidity(
@@ -168,6 +232,101 @@ export async function deploy_OVA(admin: string): Promise<string> {
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
   return await deployedContract.getAddress();
+}
+
+export async function CurveStableStake_setRewardForStakedAssets(
+  contract: any, // ether contract
+  signer: any, // hardhat ether signer
+  rewardAddr: string,
+  rateNum: number,
+  rateDen: number
+): Promise<void> {
+  console.log(
+    "Airdrop::CurveStableStake adding reward",
+    rewardAddr,
+    "with rate",
+    rateNum / rateDen,
+    "for dollar liquidity (year)"
+  );
+  await contract
+    .connect(signer)
+    .setRewardForStakedAssets(rewardAddr, rateNum, rateDen);
+  console.log("Airdrop::CurveStableStake reward added");
+}
+
+export async function SingleStableStake_setRewardForStakedAssets(
+  contract: any, // ether contract
+  signer: any, // hardhat ether signer
+  rewardAddr: string,
+  rateNum: number,
+  rateDen: number
+): Promise<void> {
+  console.log(
+    "Airdrop::SingleStableStake adding reward",
+    rewardAddr,
+    "with rate",
+    rateNum / rateDen,
+    "for dollar liquidity (year)"
+  );
+  await contract
+    .connect(signer)
+    .setRewardForStakedAssets(rewardAddr, rateNum, rateDen);
+  console.log("Airdrop::SingleStableStake reward added");
+}
+
+export async function CurveStableStake_addWithNumCoinsAndPool(
+  contract: any, // ether contract
+  signer: any, // hardhat ether signer
+  stakedAddr: string,
+  rewardAddr: string,
+  allocPoints: number,
+  numCoins: number,
+  pool: string,
+  endTime: number,
+  vested: boolean,
+  update: boolean
+): Promise<void> {
+  console.log(
+    "Airdrop::CurveStableStake adding pool. In",
+    stakedAddr,
+    "Out",
+    rewardAddr
+  );
+  await contract
+    .connect(signer)
+    .addWithNumCoinsAndPool(
+      stakedAddr,
+      rewardAddr,
+      allocPoints,
+      numCoins,
+      pool,
+      endTime,
+      vested,
+      update
+    );
+  console.log("Airdrop::CurveStableStake pool added");
+}
+
+export async function SingleStableStake_addPool(
+  contract: any, // ether contract
+  signer: any, // hardhat ether signer
+  stakedAddr: string,
+  rewardAddr: string,
+  allocPoints: number,
+  endTime: number,
+  vested: boolean,
+  update: boolean
+): Promise<void> {
+  console.log(
+    "Airdrop::SingleStableStake adding pool. In",
+    stakedAddr,
+    "Out",
+    rewardAddr
+  );
+  await contract
+    .connect(signer)
+    .add(stakedAddr, rewardAddr, allocPoints, endTime, vested, update);
+  console.log("Airdrop::SingleStableStake pool added");
 }
 
 export async function Liquidity_addReward(
@@ -313,9 +472,7 @@ export async function deploy_USDOBacking(
   console.log("Deploying USDOBacking contract with signer:", deployer.address);
 
   const USDOBacking = await ethers.getContractFactory("USDOBacking");
-  const usdobacking = await USDOBacking.deploy(admin, treasury, usdo, susdo, {
-    //maxFeePerGas: 9702346660
-  });
+  const usdobacking = await USDOBacking.deploy(admin, treasury, usdo, susdo);
   await usdobacking.waitForDeployment();
 
   console.log("Contract deployed at:", await usdobacking.getAddress());

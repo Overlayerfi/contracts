@@ -9,3 +9,4 @@ scripts/balanceChecker.ts
 .DS_Store
 .openzeppelin
 contracts/cowswap/*
+contracts/pancake/*
