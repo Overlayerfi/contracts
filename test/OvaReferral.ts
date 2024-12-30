@@ -81,7 +81,7 @@ describe("OvaReferral", function () {
     });
   });
 
-  describe("Referrral", function () {
+  describe("Referral", function () {
     it("Should add new referral", async function () {
       const { ovaReferral, admin, bob, alice } = await loadFixture(
         deployFixture
