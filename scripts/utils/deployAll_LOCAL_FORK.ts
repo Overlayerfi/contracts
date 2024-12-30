@@ -60,10 +60,10 @@ async function main() {
     console.log("Latest time", latestTime);
 
     // 1. Deploy USDO
-    const usdoAddr = await deploy_USDO(true);
+    const usdoAddr = await deploy_USDO(true, 2);
 
     // 2. Deploy sUSDO
-    const susdoAddr = await deploy_StakedUSDO(usdoAddr);
+    const susdoAddr = await deploy_StakedUSDO(usdoAddr, 2);
 
     // 3. Deploy airdrop points (also referral contract)
     const ovaReferralAddress = await deploy_AirdropReward(
