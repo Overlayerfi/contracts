@@ -9,12 +9,21 @@ import { ILiquidity } from "./types";
 import { USDC_ABI } from "./abi/USDC_abi";
 import { USDT_ABI } from "./abi/USDT_abi";
 
+
 export async function deploy_USDO(
-  approveDeployerCollateral?: boolean
+  approveDeployerCollateral?: boolean,
+  baseGasFeeMult?: number
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
   console.log("Deploying USDO contract with signer:", deployer.address);
+
+  const block = await deployer.provider.getBlock("latest");
+  const baseFee = block.baseFeePerGas;
+  const maxFee = baseFee * BigInt(baseGasFeeMult !== undefined ? baseGasFeeMult : 1);
+  const defaultTransactionOptions = {
+    maxFeePerGas: maxFee
+  };
 
   const ContractSource = await ethers.getContractFactory("USDO");
   const deployedContract = await ContractSource.deploy(
@@ -28,7 +37,8 @@ export async function deploy_USDO(
       decimals: 6
     },
     ethers.parseEther("100000000"),
-    ethers.parseEther("100000000")
+    ethers.parseEther("100000000"),
+    defaultTransactionOptions
   );
   await deployedContract.waitForDeployment();
 
@@ -50,8 +60,15 @@ export async function deploy_USDO(
   return await deployedContract.getAddress();
 }
 
-export async function deploy_StakedUSDO(usdo: string): Promise<string> {
+export async function deploy_StakedUSDO(usdo: string, baseGasFeeMult?: number): Promise<string> {
   const [deployer] = await ethers.getSigners();
+
+  const block = await deployer.provider.getBlock("latest");
+  const baseFee = block.baseFeePerGas;
+  const maxFee = baseFee * BigInt(baseGasFeeMult !== undefined ? baseGasFeeMult : 1);
+  const defaultTransactionOptions = {
+    maxFeePerGas: maxFee
+  };
 
   console.log("Deploying StakedUSDO contract with signer:", deployer.address);
 
@@ -60,7 +77,8 @@ export async function deploy_StakedUSDO(usdo: string): Promise<string> {
     usdo,
     deployer.address,
     deployer.address,
-    0
+    0,
+    defaultTransactionOptions
   );
   await deployedContract.waitForDeployment();
 
