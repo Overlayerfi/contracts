@@ -56,7 +56,7 @@ async function main() {
     console.log("Signer address:", admin.address);
     console.log("Treasury address:", treasuryAddr);
 
-    const latestTime: number = Math.floor(new Date().getTime() * 1000);
+    const latestTime: number = Math.floor(new Date().getTime() / 1000);
     console.log("Latest time", latestTime);
 
     // 1. Deploy USDO
@@ -145,6 +145,7 @@ async function main() {
     );
     // Fake USDT-USDO pool with tri pool DAI-USDC-USDT LP
     const endTimeStamp = latestTime + 60 * 60 * 24 * 30 * 6;
+    console.log(endTimeStamp)
     await CurveStableStake_addWithNumCoinsAndPool(
       curveStableStakeContract,
       admin,
