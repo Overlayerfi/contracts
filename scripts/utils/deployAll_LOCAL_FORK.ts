@@ -123,9 +123,9 @@ async function main() {
       curveStableStakeContract,
       admin,
       ovaReferralAddress,
-      17520 * 2,
+      17520 * 1,
       1
-    ); // *2 as we will have 2 pools
+    ); // * 1 as we will have 1 pools
     await SingleStableStake_setRewardForStakedAssets(
       singleStableStakeContract,
       admin,
