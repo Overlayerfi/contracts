@@ -12,13 +12,12 @@ describe("SingleStableStake", function () {
     const block = await owner.provider.getBlock("latest");
     const baseFee = block.baseFeePerGas;
     const defaultTransactionOptions = {
-      maxFeePerGas: baseFee * BigInt(10)
+      maxFeePerGas: baseFee * BigInt(2)
     };
 
     const Liquidity = await ethers.getContractFactory("SingleStableStake");
     const liquidity = await Liquidity.deploy(
       owner.getAddress(),
-      latestTime,
       defaultTransactionOptions
     );
 
@@ -65,11 +64,6 @@ describe("SingleStableStake", function () {
       const { liquidity, owner } = await loadFixture(deployFixture);
       expect(await liquidity.owner()).to.equal(await owner.getAddress());
     });
-
-    it("Should set the right start timestamp", async function () {
-      const { liquidity, latestTime } = await loadFixture(deployFixture);
-      expect(await liquidity.startTime()).to.equal(latestTime);
-    });
   });
 
   describe("ModifyParam", function () {
@@ -106,27 +100,6 @@ describe("SingleStableStake", function () {
   });
 
   describe("AddPool", function () {
-    it("Should not add a new pool if start timestamp for rewards is zero", async function () {
-      const { liquidity, stakedAsset, owner, tokenRewardOneOvaReferral } =
-        await loadFixture(deployFixture);
-      await liquidity.connect(owner).updateStartTime(0);
-      await liquidity.setRewardForStakedAssets(
-        tokenRewardOneOvaReferral.getAddress(),
-        1,
-        1
-      );
-      await expect(
-        liquidity.add(
-          stakedAsset.getAddress(),
-          tokenRewardOneOvaReferral.getAddress(),
-          1,
-          0,
-          false,
-          true
-        )
-      ).to.be.eventually.rejected;
-    });
-
     it("Should add a new pool", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral } =
         await loadFixture(deployFixture);

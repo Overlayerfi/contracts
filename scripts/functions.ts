@@ -9,7 +9,6 @@ import { ILiquidity } from "./types";
 import { USDC_ABI } from "./abi/USDC_abi";
 import { USDT_ABI } from "./abi/USDT_abi";
 
-
 export async function deploy_USDO(
   approveDeployerCollateral?: boolean,
   baseGasFeeMult?: number
@@ -20,7 +19,8 @@ export async function deploy_USDO(
 
   const block = await deployer.provider.getBlock("latest");
   const baseFee = block.baseFeePerGas;
-  const maxFee = baseFee * BigInt(baseGasFeeMult !== undefined ? baseGasFeeMult : 1);
+  const maxFee =
+    baseFee * BigInt(baseGasFeeMult !== undefined ? baseGasFeeMult : 1);
   const defaultTransactionOptions = {
     maxFeePerGas: maxFee
   };
@@ -60,12 +60,16 @@ export async function deploy_USDO(
   return await deployedContract.getAddress();
 }
 
-export async function deploy_StakedUSDO(usdo: string, baseGasFeeMult?: number): Promise<string> {
+export async function deploy_StakedUSDO(
+  usdo: string,
+  baseGasFeeMult?: number
+): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
   const block = await deployer.provider.getBlock("latest");
   const baseFee = block.baseFeePerGas;
-  const maxFee = baseFee * BigInt(baseGasFeeMult !== undefined ? baseGasFeeMult : 1);
+  const maxFee =
+    baseFee * BigInt(baseGasFeeMult !== undefined ? baseGasFeeMult : 1);
   const defaultTransactionOptions = {
     maxFeePerGas: maxFee
   };

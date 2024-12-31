@@ -54,11 +54,6 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     uint256 public bonusMultiplier = 1;
 
     /**
-     * @notice A disabled flag.
-     */
-    uint8 internal constant NOT_ACTIVE = 0;
-
-    /**
      * @notice Referral bonus percentage.
      * @dev 5%
      */
@@ -78,13 +73,12 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     /**
      * @notice Contract constructor.
      * @param admin The contract admin
-     * @param startTime_ The reward start time
      */
-    constructor(address admin, uint256 startTime_) Ownable(admin) {
+    constructor(address admin) Ownable(admin) {
         if (admin == address(0)) {
             revert InvalidZeroAddress();
         }
-        startTime = startTime_;
+        startTime = block.timestamp;
     }
 
     /**
@@ -92,6 +86,9 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @param startTime_ the new start time.
      */
     function updateStartTime(uint256 startTime_) external onlyOwner {
+        if (startTime_ < block.timestamp) {
+            revert InvalidAmount();
+        }
         startTime = startTime_;
     }
 
@@ -405,9 +402,6 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         bool vested,
         bool update
     ) public onlyOwner {
-        if (startTime == NOT_ACTIVE) {
-            revert LiquidityNotActive();
-        }
         if (vested && endTime == 0) {
             revert NotAllowed();
         }
