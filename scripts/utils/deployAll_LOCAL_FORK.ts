@@ -89,11 +89,9 @@ async function main() {
     // 5. Deploy airdrop pools: Single stable stake
     const singleStableStakeAddr = await deploy_AirdropSingleStableStake(
       AIRDROP_POOLS_ADMIN,
-      latestTime
     );
     const singleStableStakePremiumAddr = await deploy_AirdropSingleStableStake(
       AIRDROP_POOLS_ADMIN,
-      latestTime
     );
     const singleStableStakeContract = new ethers.Contract(
       singleStableStakeAddr,
