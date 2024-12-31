@@ -145,7 +145,7 @@ async function main() {
     );
     // Fake USDT-USDO pool with tri pool DAI-USDC-USDT LP
     const endTimeStamp = latestTime + 60 * 60 * 24 * 30 * 6;
-    console.log(endTimeStamp)
+    console.log(endTimeStamp);
     await CurveStableStake_addWithNumCoinsAndPool(
       curveStableStakeContract,
       admin,

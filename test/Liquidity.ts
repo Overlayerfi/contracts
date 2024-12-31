@@ -20,7 +20,6 @@ describe("Liquidity", function () {
     const Liquidity = await ethers.getContractFactory("Liquidity");
     const liquidity = await Liquidity.deploy(
       owner.getAddress(),
-      latestTime,
       defaultTransactionOptions
     );
 
@@ -67,11 +66,6 @@ describe("Liquidity", function () {
       const { liquidity, owner } = await loadFixture(deployFixture);
       expect(await liquidity.owner()).to.equal(await owner.getAddress());
     });
-
-    it("Should set the right start timestamp", async function () {
-      const { liquidity, latestTime } = await loadFixture(deployFixture);
-      expect(await liquidity.startTime()).to.equal(latestTime);
-    });
   });
 
   describe("ModifyParam", function () {
@@ -108,23 +102,6 @@ describe("Liquidity", function () {
   });
 
   describe("AddPool", function () {
-    it("Should not add a new pool if start timestamp for rewards is zero", async function () {
-      const { liquidity, stakedAsset, owner, tokenRewardOneOvaReferral } =
-        await loadFixture(deployFixture);
-      await liquidity.connect(owner).updateStartTime(0);
-      await liquidity.setReward(tokenRewardOneOvaReferral.getAddress(), 1);
-      await expect(
-        liquidity.add(
-          stakedAsset.getAddress(),
-          tokenRewardOneOvaReferral.getAddress(),
-          1,
-          0,
-          false,
-          true
-        )
-      ).to.be.eventually.rejected;
-    });
-
     it("Should add a new pool", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral } =
         await loadFixture(deployFixture);
