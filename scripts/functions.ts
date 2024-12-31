@@ -165,7 +165,6 @@ export async function StakedUSDO_setCooldownStaking(
 
 export async function deploy_AirdropPoolCurveStableStake(
   admin: string,
-  startingTimeStampSeconds: number
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
@@ -181,7 +180,6 @@ export async function deploy_AirdropPoolCurveStableStake(
   const ContractSource = await ethers.getContractFactory("CurveStableStake");
   const deployedContract = await ContractSource.deploy(
     admin,
-    startingTimeStampSeconds
   );
 
   await deployedContract.waitForDeployment();
@@ -192,7 +190,6 @@ export async function deploy_AirdropPoolCurveStableStake(
 
 export async function deploy_AirdropSingleStableStake(
   admin: string,
-  startingTimeStampSeconds: number
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
@@ -208,7 +205,6 @@ export async function deploy_AirdropSingleStableStake(
   const ContractSource = await ethers.getContractFactory("SingleStableStake");
   const deployedContract = await ContractSource.deploy(
     admin,
-    startingTimeStampSeconds
   );
 
   await deployedContract.waitForDeployment();
@@ -219,7 +215,6 @@ export async function deploy_AirdropSingleStableStake(
 
 export async function deploy_Liquidity(
   admin: string,
-  startingBlock: number
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
@@ -230,7 +225,7 @@ export async function deploy_Liquidity(
   console.log("Deploying Liquidity contract with signer:", deployer.address);
 
   const ContractSource = await ethers.getContractFactory("Liquidity");
-  const deployedContract = await ContractSource.deploy(admin, startingBlock);
+  const deployedContract = await ContractSource.deploy(admin);
 
   await deployedContract.waitForDeployment();
 
