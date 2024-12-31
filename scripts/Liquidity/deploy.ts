@@ -1,5 +1,5 @@
 import { deploy_Liquidity } from "../functions";
 
-deploy_Liquidity("", 0).catch((error) => {
+deploy_Liquidity("").catch((error) => {
   console.error("Deployment failed ->", error);
 });
