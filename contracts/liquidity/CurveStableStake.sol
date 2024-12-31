@@ -52,12 +52,8 @@ contract CurveStableStake is Liquidity {
     /**
      * @notice Contract constructor.
      * @param admin The contract admin
-     * @param startTime_ The reward start time
      */
-    constructor(
-        address admin,
-        uint256 startTime_
-    ) Liquidity(admin, startTime_) {}
+    constructor(address admin) Liquidity(admin) {}
 
     /**
      * @notice Add a new pool and track the total coins held inside the Curve pool.
