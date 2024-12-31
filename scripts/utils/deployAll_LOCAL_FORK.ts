@@ -78,7 +78,6 @@ async function main() {
     // 4. Deploy airdrop pool: Curve stable stake
     const curveStableStakeAddr = await deploy_AirdropPoolCurveStableStake(
       AIRDROP_POOLS_ADMIN,
-      latestTime
     );
     const curveStableStakeContract = new ethers.Contract(
       curveStableStakeAddr,
