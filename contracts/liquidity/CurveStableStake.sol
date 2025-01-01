@@ -157,9 +157,11 @@ contract CurveStableStake is Liquidity {
                 accRewardPerShare +
                 rewards.mulDiv(1e18, stakedAssetSupply);
 
-            return
-                currentUser.amount.mulDiv(accRewardPerShare, 1e18) -
-                currentUser.rewardDebt;
+            uint256 pending = currentUser.amount.mulDiv(
+                accRewardPerShare,
+                1e18
+            ) - currentUser.rewardDebt;
+            return pending;
         } else {
             return 0;
         }

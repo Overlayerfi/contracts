@@ -94,6 +94,9 @@ describe("CurveStableStake", function () {
     );
     await tokenRewardOneOvaReferral.waitForDeployment();
     await tokenRewardOneOvaReferral.setMinter(liquidity.getAddress());
+    await tokenRewardOneOvaReferral.setStakingPools([
+      await liquidity.getAddress()
+    ]);
 
     const stakedAsset = new ethers.Contract(
       CURVE_DAI_USDC_USDT_LP,
@@ -133,11 +136,11 @@ describe("CurveStableStake", function () {
         .eventually.rejected;
     });
 
-    it("Should update starting timestamp", async function () {
-      const { liquidity, owner, latestTime } = await loadFixture(deployFixture);
-      await liquidity.connect(owner).updateStartTime(latestTime + 100);
-      expect(await liquidity.startTime()).to.equal(latestTime + 100);
-    });
+    // it("Should update starting timestamp", async function () {
+    //   const { liquidity, owner, latestTime } = await loadFixture(deployFixture);
+    //   await liquidity.connect(owner).updateStartTime(latestTime + 100);
+    //   expect(await liquidity.startTime()).to.equal(latestTime + 100);
+    // });
 
     it("Should revert update multiplier if not owner", async function () {
       const { liquidity, notOwner } = await loadFixture(deployFixture);

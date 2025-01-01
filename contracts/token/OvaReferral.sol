@@ -4,10 +4,11 @@ pragma solidity 0.8.20;
 import "./GovernanceTokenBase.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./interfaces/IOvaReferral.sol";
+import {ILiquidityDefs} from "../liquidity/interfaces/ILiquidityDefs.sol";
 
 /**
  * @title OvaReferral
- * @notice This token tracks the referral points.
+ * @notice This token tracks the referral points for OVA airdrop.
  */
 contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
     /// @notice Track the referral source for given address
@@ -31,6 +32,9 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
     /// @notice All the referral codes
     string[] public codes;
 
+    /// @notice All staking pools where this token is emitted from
+    address[] public stakingPools;
+
     event Referral(address indexed source, address consumer);
     event NewCode(string code, address holder);
     event AddTracker(address tracker);
@@ -42,9 +46,10 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
     error OvaReferralCodeNotValid();
     error OvaReferralCodeAlreadyUsed();
     error OvaReferralAlreadyCreatedACode();
+    error OvaReferralStakingPoolsNotSet();
 
     modifier onlyTracker() {
-        if (!allowedPointsTrackers[msg.sender]) {
+        if (!allowedPointsTrackers[msg.sender] && msg.sender != address(this)) {
             revert OvaReferralNotAllowed();
         }
         _;
@@ -54,14 +59,23 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
     ///@param admin The contract admin
     constructor(address admin) GovernanceTokenBase(admin, "AOVA", "AOVA") {}
 
-    /// @notice Consume a referral code
+    function getStakingPools() external view returns (address[] memory) {
+        return stakingPools;
+    }
+
+    function setStakingPools(address[] memory pools_) external onlyOwner {
+        stakingPools = pools_;
+    }
+
+    /// @notice Consume a referral code. This action will harvest all the user positions in the staking pools
     /// @dev Code holders can not use any code
+    /// @dev Staking pools must be set
     /// @param code The referral code
     /// @param consumer The referral consumer
     function consumeReferral(
         string memory code,
         address consumer
-    ) external override nonReentrant onlyTracker {
+    ) external override {
         if (referredFrom[consumer] != address(0)) {
             revert OvaReferralAlreadyReferred();
         }
@@ -79,6 +93,29 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
         }
         if (source == address(0)) {
             revert OvaReferralZeroAddress();
+        }
+
+        if (stakingPools.length == 0) {
+            revert OvaReferralStakingPoolsNotSet();
+        }
+        for (uint256 i = 0; i < stakingPools.length; ) {
+            ILiquidityDefs stakingPool = ILiquidityDefs(stakingPools[i]);
+            uint256 stakingPoolLen = stakingPool.poolLength();
+            for (uint256 j = 0; j < stakingPoolLen; ) {
+                (uint256 userAmount, uint256 userDebt) = stakingPool.userInfo(
+                    j,
+                    consumer
+                );
+                if (userAmount > 0) {
+                    stakingPool.harvestFor(j, consumer);
+                }
+                unchecked {
+                    j++;
+                }
+            }
+            unchecked {
+                i++;
+            }
         }
 
         referredFrom[consumer] = source;
@@ -108,6 +145,25 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
     /// @param code The tracker address
     /// @param holder The code owner
     function addCode(string memory code, address holder) external onlyOwner {
+        if (holder == address(0)) {
+            revert OvaReferralZeroAddress();
+        }
+        if (referralCodes[code] != address(0)) {
+            revert OvaReferralCodeAlreadyUsed();
+        }
+        if (bytes(referralCodesRev[holder]).length > 0) {
+            revert OvaReferralAlreadyCreatedACode();
+        }
+        referralCodes[code] = holder;
+        referralCodesRev[holder] = code;
+        codes.push(code);
+        emit NewCode(code, holder);
+    }
+
+    /// @notice Add a new referral code for the caller
+    /// @param code The tracker address
+    function addCodeSelf(string memory code) external {
+        address holder = msg.sender;
         if (holder == address(0)) {
             revert OvaReferralZeroAddress();
         }
