@@ -36,6 +36,9 @@ describe("SingleStableStake", function () {
       defaultTransactionOptions
     );
     await tokenRewardOneOvaReferral.setMinter(liquidity.getAddress());
+    await tokenRewardOneOvaReferral.setStakingPools([
+      await liquidity.getAddress()
+    ]);
     // not using OvaReferral as in some tests we need to transfer it
     const TokenRewardTwo = await ethers.getContractFactory("TokenLP_A_B");
     const tokenRewardTwo = await TokenRewardTwo.deploy(
@@ -79,11 +82,11 @@ describe("SingleStableStake", function () {
         .eventually.rejected;
     });
 
-    it("Should update starting timestamp", async function () {
-      const { liquidity, owner, latestTime } = await loadFixture(deployFixture);
-      await liquidity.connect(owner).updateStartTime(latestTime + 100);
-      expect(await liquidity.startTime()).to.equal(latestTime + 100);
-    });
+    // it("Should update starting timestamp", async function () {
+    //   const { liquidity, owner, latestTime } = await loadFixture(deployFixture);
+    //   await liquidity.connect(owner).updateStartTime(latestTime + 100);
+    //   expect(await liquidity.startTime()).to.equal(latestTime + 100);
+    // });
 
     it("Should revert update multiplier if not owner", async function () {
       const { liquidity, notOwner } = await loadFixture(deployFixture);

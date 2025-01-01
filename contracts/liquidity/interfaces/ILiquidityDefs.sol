@@ -81,11 +81,15 @@ interface ILiquidityDefs {
 
     error PoolNotActive();
 
+    function poolLength() external view returns (uint256);
+
     function deposit(uint256 pid, uint256 amount) external;
 
     function withdraw(uint256 pid, uint256 amount) external;
 
     function harvest(uint256 pid) external;
+
+    function harvestFor(uint256 pid, address target) external;
 
     function pendingReward(
         uint256 pid,
