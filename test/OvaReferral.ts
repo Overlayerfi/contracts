@@ -18,6 +18,14 @@ describe("OvaReferral", function () {
       defaultTransactionOptions
     );
 
+    const Liquidity = await ethers.getContractFactory("Liquidity");
+    const liquidity = await Liquidity.deploy(
+      admin.address,
+      defaultTransactionOptions
+    );
+
+    await ovaReferral.setStakingPools([await liquidity.getAddress()]);
+
     await ovaReferral.waitForDeployment();
     await ovaReferral.connect(admin).setMinter(minter.address);
 
@@ -34,6 +42,19 @@ describe("OvaReferral", function () {
     it("Should set the minter role", async function () {
       const { ovaReferral, minter } = await loadFixture(deployFixture);
       expect(await ovaReferral.minter(minter.address)).to.equal(true);
+    });
+  });
+
+  describe("StakingPools", function () {
+    it("Should add staking pools", async function () {
+      const { ovaReferral, admin, bob, alice } = await loadFixture(
+        deployFixture
+      );
+      await ovaReferral
+        .connect(admin)
+        .setStakingPools([alice.address, bob.address]);
+      const pools = await ovaReferral.getStakingPools();
+      expect(pools).to.deep.equal([alice.address, bob.address]);
     });
   });
 

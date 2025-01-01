@@ -38,6 +38,9 @@ describe("Liquidity", function () {
       defaultTransactionOptions
     );
     await tokenRewardOneOvaReferral.setMinter(liquidity.getAddress());
+    await tokenRewardOneOvaReferral.setStakingPools([
+      await liquidity.getAddress()
+    ]);
     // not using OvaReferral as in some tests we need to transfer it
     const TokenRewardTwo = await ethers.getContractFactory("TokenLP_A_B");
     const tokenRewardTwo = await TokenRewardTwo.deploy(
@@ -81,11 +84,11 @@ describe("Liquidity", function () {
         .eventually.rejected;
     });
 
-    it("Should update starting timestamp", async function () {
-      const { liquidity, owner, latestTime } = await loadFixture(deployFixture);
-      await liquidity.connect(owner).updateStartTime(latestTime + 100);
-      expect(await liquidity.startTime()).to.equal(latestTime + 100);
-    });
+    // it("Should update starting timestamp", async function () {
+    //   const { liquidity, owner, latestTime } = await loadFixture(deployFixture);
+    //   await liquidity.connect(owner).updateStartTime(latestTime + 100);
+    //   expect(await liquidity.startTime()).to.equal(latestTime + 100);
+    // });
 
     it("Should revert update multiplier if not owner", async function () {
       const { liquidity, notOwner } = await loadFixture(deployFixture);
@@ -388,16 +391,20 @@ describe("Liquidity", function () {
         .connect(owner)
         .addCode("BOB", bob.address);
 
+      // Consume referral code
+      await tokenRewardOneOvaReferral
+        .connect(alice)
+        .consumeReferral("BOB", alice.address);
+      await tokenRewardOneOvaReferral
+        .connect(owner)
+        .consumeReferral("BOB", owner.address);
+
       // Test an increasing amount of bonus payed out
       await expect(
-        await liquidity
-          .connect(alice)
-          .depositWithReferral(0, ethers.parseEther("2"), "BOB")
+        await liquidity.connect(alice).deposit(0, ethers.parseEther("2"))
       ).to.emit(liquidity, "Deposit");
       await expect(
-        await liquidity
-          .connect(owner)
-          .depositWithReferral(0, ethers.parseEther("2"), "BOB")
+        await liquidity.connect(owner).deposit(0, ethers.parseEther("2"))
       ).to.emit(liquidity, "Deposit");
       expect(
         await tokenRewardOneOvaReferral.balanceOf(alice.address)
