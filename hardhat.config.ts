@@ -5,6 +5,7 @@ import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { ETH_RPC, GOERLI_RPC, OVA_BETA_RPC, PRIVATE_ETH_RPC_PREFIX } from './rpc';
+import 'solidity-docgen';
 
 dotenv.config({ path: process.cwd() + "/process.env"});
 
@@ -32,6 +33,10 @@ const testAccounts = [
 ];
 
 const config: HardhatUserConfig = {
+  docgen: {
+    output: 'docs',
+    exclude: ['mock_ERC20', 'pancake', 'uniswap', 'curve']
+  },
   solidity: {
     compilers: [
       {
