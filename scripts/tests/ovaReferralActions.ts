@@ -16,8 +16,6 @@ const stakedCurveLpAddress = CURVE_DAI_USDC_USDT_LP;
 const curveStableStakingPoolAddress = "0xF8FF4fD5f485CE0FDAA0043f1Db283d9CB691A9F"
 const pid = 0;
 
-
-
 async function giveFunds(amount: string, to: string) {
   console.log(`Giving funds from ${owner.address} to ${to}`)
   const tx = {
@@ -129,7 +127,7 @@ async function main() {
       // console.log(`Transaction Receipt: ${JSON.stringify(tx, null, 2)}`);
     }
 
-    delta = 60 * 60 * 2 // 2 days
+    delta = 60 * 60 * 2 // 2 hours
     await provider.send("evm_increaseTime", [delta]);
     await provider.send("evm_mine");
 
