@@ -21,7 +21,8 @@ import {
   CurveStableStake_setRewardForStakedAssets,
   SingleStableStake_setRewardForStakedAssets,
   CurveStableStake_addWithNumCoinsAndPool,
-  SingleStableStake_addPool
+  SingleStableStake_addPool,
+  AirdropReward_setStakingPools
 } from "../functions";
 import OVA_ABI from "../../artifacts/contracts/token/OVA.sol/OVA.json";
 import USDO_ABI from "../../artifacts/contracts/token/USDO.sol/USDO.json";
@@ -292,6 +293,10 @@ async function main() {
       ethers.MaxUint256
     );
     await StakedUSDO_deposit(susdoAddr, "1", admin.address);
+
+
+    // 14. Set staking pools inside the referral contract
+    await AirdropReward_setStakingPools(ovaReferralAddress, [curveStableStakeAddr, singleStableStakePremiumAddr, singleStableStakeAddr]);
   } catch (err) {
     console.error("Batch deployment failed ->", err);
   }
