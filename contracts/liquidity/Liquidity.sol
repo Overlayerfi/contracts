@@ -9,8 +9,6 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "./interfaces/ILiquidityDefs.sol";
 import "./interfaces/IRewardAsset.sol";
 
-//TODO: add fn to stop pool + handle pool with withdraw at the end and harvest
-
 /**
  * @notice Liquidity contract implementation.
  */
