@@ -4,6 +4,7 @@ import { USDC_ADDRESS, USDT_ADDRESS } from "./addresses";
 import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
 import LIQUIDITY_ABI from "../artifacts/contracts/liquidity/Liquidity.sol/Liquidity.json";
 import USDO_ABI from "../artifacts/contracts/token/USDO.sol/USDO.json";
+import OVAREFERRAL_ABI from "../artifacts/contracts/token/OvaReferral.sol/OvaReferral.json";
 import SUSDO_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
 import { ILiquidity } from "./types";
 import { USDC_ABI } from "./abi/USDC_abi";
@@ -123,6 +124,20 @@ export async function deploy_AirdropReward(admin: string): Promise<string> {
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
   return await deployedContract.getAddress();
+}
+
+export async function AirdropReward_setStakingPools(
+  addr: string,
+  pools: string[]
+): Promise<void> {
+  const [deployer] = await ethers.getSigners();
+
+  console.log("Setting ova referral token staking pools:", deployer.address);
+
+  const contract = new ethers.Contract(addr, OVAREFERRAL_ABI.abi, deployer);
+  await (contract.connect(deployer) as Contract).setStakingPools(pools);
+
+  console.log("Operation passed");
 }
 
 export async function deploy_LiquidityAirdropReward(
