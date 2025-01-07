@@ -296,17 +296,27 @@ async function main() {
     );
     await StakedUSDO_deposit(susdoAddr, "1", admin.address);
 
-
     // 14. Set staking pools inside the referral contract
-    await AirdropReward_setStakingPools(ovaReferralAddress, [curveStableStakeAddr, singleStableStakePremiumAddr, singleStableStakeAddr]);
+    await AirdropReward_setStakingPools(ovaReferralAddress, [
+      curveStableStakeAddr,
+      singleStableStakePremiumAddr,
+      singleStableStakeAddr
+    ]);
 
     // 15. Add points trackers
-    await AirdropReward_addTrackers(ovaReferralAddress, [curveStableStakeAddr, singleStableStakePremiumAddr, singleStableStakeAddr]);
+    await AirdropReward_addTrackers(ovaReferralAddress, [
+      curveStableStakeAddr,
+      singleStableStakePremiumAddr,
+      singleStableStakeAddr
+    ]);
 
     // 16. Update referral contract address
     await Liquidity_updateReferral(curveStableStakeAddr, ovaReferralAddress);
     await Liquidity_updateReferral(singleStableStakeAddr, ovaReferralAddress);
-    await Liquidity_updateReferral(singleStableStakePremiumAddr, ovaReferralAddress);
+    await Liquidity_updateReferral(
+      singleStableStakePremiumAddr,
+      ovaReferralAddress
+    );
   } catch (err) {
     console.error("Batch deployment failed ->", err);
   }
