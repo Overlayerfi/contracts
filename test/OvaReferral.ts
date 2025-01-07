@@ -130,6 +130,13 @@ describe("OvaReferral", function () {
       const referred = await ovaReferral.seeReferred(alice.address);
       expect(referred.length).to.be.equal(1);
       expect(referred[0]).to.be.equal(bob.address);
+      
+      // Add self code
+      await expect(
+        await ovaReferral
+          .connect(bob)
+          .addCodeSelf("BOB")
+      ).to.emit(ovaReferral, "NewCode");
     });
 
     it("Should not use referral if has given one", async function () {
