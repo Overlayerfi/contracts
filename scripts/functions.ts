@@ -132,11 +132,30 @@ export async function AirdropReward_setStakingPools(
 ): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
-  console.log("Setting ova referral token staking pools:", deployer.address);
+  console.log("Setting ova referral token staking pools with:", deployer.address);
+  console.log('Address:', addr,)
+  console.log('Pools:', pools,)
 
   const contract = new ethers.Contract(addr, OVAREFERRAL_ABI.abi, deployer);
   await (contract.connect(deployer) as Contract).setStakingPools(pools);
 
+  console.log("Operation passed");
+}
+
+export async function AirdropReward_addTrackers(
+  addr: string,
+  trackers: string[]
+): Promise<void> {
+  const [deployer] = await ethers.getSigners();
+
+  console.log("Setting ova referral token trackers with:", deployer.address);
+  console.log('Address:', addr,)
+  console.log('Trackers:', trackers,)
+
+  const contract = new ethers.Contract(addr, OVAREFERRAL_ABI.abi, deployer);
+  for (const t of trackers) {
+    await (contract.connect(deployer) as Contract).addPointsTracker(t);
+  }
   console.log("Operation passed");
 }
 
@@ -240,6 +259,20 @@ export async function deploy_Liquidity(admin: string): Promise<string> {
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
   return await deployedContract.getAddress();
+}
+
+export async function Liquidity_updateReferral(
+  addr: string,
+  ref: string
+): Promise<void> {
+  const [deployer] = await ethers.getSigners();
+
+  console.log("Setting ova referral address to staking pool with:", deployer.address);
+
+  const contract = new ethers.Contract(addr, LIQUIDITY_ABI.abi, deployer);
+  await (contract.connect(deployer) as Contract).updateReferral(ref);
+
+  console.log("Operation passed");
 }
 
 export async function deploy_OVA(admin: string): Promise<string> {
@@ -503,4 +536,18 @@ export async function deploy_USDOBacking(
 
   console.log("Contract deployed at:", await usdobacking.getAddress());
   return await usdobacking.getAddress();
+}
+
+export function decodeCustomError(error: any, abi: any) {
+  const iface = new ethers.Interface(abi);
+  if (error.data) {
+    try {
+      const decodedError = iface.parseError(error.data);
+      console.log("Custom error decoded:", decodedError);
+    } catch (e) {
+      console.error("Unable to decode custom error:", e);
+    }
+  } else {
+    console.error("No return data in error:", error);
+  }
 }

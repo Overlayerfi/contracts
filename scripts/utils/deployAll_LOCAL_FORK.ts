@@ -22,7 +22,9 @@ import {
   SingleStableStake_setRewardForStakedAssets,
   CurveStableStake_addWithNumCoinsAndPool,
   SingleStableStake_addPool,
-  AirdropReward_setStakingPools
+  AirdropReward_setStakingPools,
+  AirdropReward_addTrackers,
+  Liquidity_updateReferral
 } from "../functions";
 import OVA_ABI from "../../artifacts/contracts/token/OVA.sol/OVA.json";
 import USDO_ABI from "../../artifacts/contracts/token/USDO.sol/USDO.json";
@@ -297,6 +299,14 @@ async function main() {
 
     // 14. Set staking pools inside the referral contract
     await AirdropReward_setStakingPools(ovaReferralAddress, [curveStableStakeAddr, singleStableStakePremiumAddr, singleStableStakeAddr]);
+
+    // 15. Add points trackers
+    await AirdropReward_addTrackers(ovaReferralAddress, [curveStableStakeAddr, singleStableStakePremiumAddr, singleStableStakeAddr]);
+
+    // 16. Update referral contract address
+    await Liquidity_updateReferral(curveStableStakeAddr, ovaReferralAddress);
+    await Liquidity_updateReferral(singleStableStakeAddr, ovaReferralAddress);
+    await Liquidity_updateReferral(singleStableStakePremiumAddr, ovaReferralAddress);
   } catch (err) {
     console.error("Batch deployment failed ->", err);
   }
