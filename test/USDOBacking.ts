@@ -592,17 +592,8 @@ describe("USDOBacking", function () {
     });
 
     it("adminSwapPosition - should move stable coins position into WETH position", async function () {
-      const {
-        usdc,
-        usdt,
-        usdo,
-        ausdc,
-        ausdt,
-        usdobacking,
-        admin,
-        alice,
-        aweth
-      } = await loadFixture(deployFixture);
+      const { usdc, usdt, usdo, usdobacking, admin, alice, aweth } =
+        await loadFixture(deployFixture);
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
@@ -626,14 +617,20 @@ describe("USDOBacking", function () {
 
       await time.increase(12 * 30 * 24 * 60 * 60); //12 months
 
+      await usdobacking.connect(admin).proposeEmergencyTime();
+      await time.increase(0.5 * 30 * 24 * 60 * 60); //0.5 months
+      await expect(usdobacking.connect(admin).adminSwapPosition()).to.be
+        .eventually.rejected;
+      await time.increase(0.5 * 30 * 24 * 60 * 60 + 1); //0.5 months
       await usdobacking.connect(admin).adminSwapPosition();
-      const backingAddr = await usdobacking.getAddress();
-      const beforeBalance = await aweth.balanceOf(backingAddr);
+      const beforeBalance = await aweth.balanceOf(admin.address);
       expect(beforeBalance).is.greaterThan(0);
 
       // Try some rewards
       await time.increase(12 * 30 * 24 * 60 * 60); //12 months
-      expect(await aweth.balanceOf(backingAddr)).is.greaterThan(beforeBalance);
+      expect(await aweth.balanceOf(admin.address)).is.greaterThan(
+        beforeBalance
+      );
     });
   });
 });
