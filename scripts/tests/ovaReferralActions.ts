@@ -9,6 +9,7 @@ import { CURVE_DAI_USDC_USDT_LP } from "../addresses";
 
 dotenv.config({ path: process.cwd() + "/process.env" });
 
+// const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545/");
 const provider = new ethers.JsonRpcProvider(OVA_BETA_RPC);
 const owner = new ethers.Wallet(process.env.ADMIN_WALLET_KEY!, provider);
 const ovaReferralAddress = "0x00D15604415907AAE09e5454Ca299f2Ee93fA941";
@@ -36,9 +37,9 @@ async function main() {
   const block = await provider.getBlock("latest");
   const baseFee = block.baseFeePerGas;
   const defaultTransactionOptions = {
-    maxFeePerGas: baseFee * BigInt(2)
+    maxFeePerGas: baseFee * BigInt(1)
   };
-  const signerNum = 2;
+  const signerNum = 100;
   if (signerNum % 2 !== 0) {
     throw new Error("Must give an even number");
   }
