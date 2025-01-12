@@ -55,6 +55,10 @@ abstract contract AaveHandler is
     uint256 public totalSuppliedUSDT;
     /// @notice the proposed new spender
     address public proposedAave;
+    /// @notice emergency withdraw address after a position swap
+    address private emergencyWithdrawRecipient;
+    /// @notice the last emergency withdraw time
+    uint256 public emergencyWithdrawProposalTime;
     /// @notice the last aave proposal time
     uint256 public aaveProposalTime;
     /// @notice the last team allocation proposal time
@@ -97,6 +101,7 @@ abstract contract AaveHandler is
         TREASURY = treasury;
         USDO = usdo;
         sUSDO = susdo;
+        emergencyWithdrawRecipient = treasury;
 
         //approve AAVE
         approveAave(type(uint256).max);
@@ -274,6 +279,21 @@ abstract contract AaveHandler is
         aaveProposalTime = block.timestamp;
     }
 
+    ///@notice A new emergency withdraw recipient
+    ///@dev Can not be zero address
+    ///@param recipient The new recipient
+    function setEmergencyWithdrawRecipient(
+        address recipient
+    ) external onlyOwner nonReentrant {
+        if (recipient == address(0)) revert AaveHandlerZeroAddressException();
+        emergencyWithdrawRecipient = recipient;
+    }
+
+    ///@notice Propose a emergency withdraw time
+    function proposeEmergencyTime() external onlyOwner {
+        emergencyWithdrawProposalTime = block.timestamp + 30 days;
+    }
+
     ///@notice Propose a new AAVE contract
     ///@dev Can not be zero address
     ///@param proposedTeamAllocation_ The new proposed team allocation
@@ -332,6 +352,12 @@ abstract contract AaveHandler is
 
     ///@notice Swap the current stable coins position into a blue chip (WETH)
     function adminSwapPosition() external onlyOwner {
+        if (
+            block.timestamp < emergencyWithdrawProposalTime ||
+            emergencyWithdrawProposalTime == 0
+        ) {
+            revert AaveHandlerOperationNotAllowed();
+        }
         uint256 amountUsdc = IERC20(AUSDC).balanceOf(address(this));
         uint256 amountUsdt = IERC20(AUSDT).balanceOf(address(this));
         PositionSwapperParams memory params = PositionSwapperParams(
@@ -345,7 +371,7 @@ abstract contract AaveHandler is
             UNI_QUOTER_V2,
             amountUsdc,
             amountUsdt,
-            address(this),
+            emergencyWithdrawRecipient,
             AAVE_REFERRAL_CODE
         );
         uint256 swapped = _swap(params);
