@@ -53,8 +53,6 @@ From repository root:
 slither --include-paths contracts/ .
 ```
 
-Note: Currently `high` and `medium` severities for `Liquidity.sol` are ignored as we plan to deprecate that contract.
-
 ## Run `prettier`
 ```
 npm run prettier-ts
