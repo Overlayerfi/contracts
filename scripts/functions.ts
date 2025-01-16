@@ -9,8 +9,36 @@ import SUSDO_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUS
 import { ILiquidity } from "./types";
 import { USDC_ABI } from "./abi/USDC_abi";
 import { USDT_ABI } from "./abi/USDT_abi";
+import { sign } from "crypto";
+
+export async function deploy_ERC20(
+  name: string,
+  initialSupply: string,
+  baseGasFeeMult?: number
+): Promise<string> {
+  const [deployer] = await ethers.getSigners();
+
+  console.log(`Deploying ${name} contract with signer: ${deployer.address}`);
+
+  const ContractSource = await ethers.getContractFactory("TestToken");
+  const deployedContract = await ContractSource.deploy(
+    ethers.parseEther(initialSupply),
+    name,
+    name,
+    { gasLimit: 10000000 }
+  );
+  await deployedContract.waitForDeployment();
+
+  console.log("Contract deployed at:", await deployedContract.getAddress());
+
+  return await deployedContract.getAddress();
+}
 
 export async function deploy_USDO(
+  usdc: string,
+  usdcDecimals: number,
+  usdt: string,
+  usdtDecimals: number,
   approveDeployerCollateral?: boolean,
   baseGasFeeMult?: number
 ): Promise<string> {
@@ -18,44 +46,43 @@ export async function deploy_USDO(
 
   console.log("Deploying USDO contract with signer:", deployer.address);
 
-  const block = await deployer.provider.getBlock("latest");
-  const baseFee = block.baseFeePerGas;
-  const maxFee =
-    baseFee * BigInt(baseGasFeeMult !== undefined ? baseGasFeeMult : 1);
-  const defaultTransactionOptions = {
-    maxFeePerGas: maxFee
-  };
-
   const ContractSource = await ethers.getContractFactory("USDO");
   const deployedContract = await ContractSource.deploy(
     deployer.address,
     {
-      addr: USDC_ADDRESS,
-      decimals: 6
+      addr: usdc,
+      decimals: usdcDecimals
     },
     {
-      addr: USDT_ADDRESS,
-      decimals: 6
+      addr: usdt,
+      decimals: usdtDecimals
     },
     ethers.parseEther("100000000"),
     ethers.parseEther("100000000"),
-    defaultTransactionOptions
+    { gasLimit: 10000000 }
   );
   await deployedContract.waitForDeployment();
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
 
   if (approveDeployerCollateral) {
-    const usdc = new ethers.Contract(USDC_ADDRESS, USDC_ABI, deployer);
-    const usdt = new ethers.Contract(USDT_ADDRESS, USDT_ABI, deployer);
-    await (usdc.connect(deployer) as Contract).approve(
+    const usdcContract = new ethers.Contract(usdc, USDC_ABI, deployer);
+    const usdtContract = new ethers.Contract(usdt, USDT_ABI, deployer);
+    let tx = await (usdcContract.connect(deployer) as Contract).approve(
       await deployedContract.getAddress(),
-      ethers.MaxUint256
+      ethers.MaxUint256,
+      { gasLimit: 10000000 }
     );
-    await (usdt.connect(deployer) as Contract).approve(
+    let receipt = await tx.wait();
+    console.log(`Approved deployer spender <USDO, USDC> hash = ${tx.hash}`);
+
+    tx = await (usdtContract.connect(deployer) as Contract).approve(
       await deployedContract.getAddress(),
-      ethers.MaxUint256
+      ethers.MaxUint256,
+      { gasLimit: 10000000 }
     );
+    receipt = await tx.wait();
+    console.log(`Approved deployer spender <USDO, USDT> hash = ${tx.hash}`);
   }
 
   return await deployedContract.getAddress();
@@ -67,14 +94,6 @@ export async function deploy_StakedUSDO(
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
-  const block = await deployer.provider.getBlock("latest");
-  const baseFee = block.baseFeePerGas;
-  const maxFee =
-    baseFee * BigInt(baseGasFeeMult !== undefined ? baseGasFeeMult : 1);
-  const defaultTransactionOptions = {
-    maxFeePerGas: maxFee
-  };
-
   console.log("Deploying StakedUSDO contract with signer:", deployer.address);
 
   const ContractSource = await ethers.getContractFactory("StakedUSDOFront");
@@ -83,7 +102,9 @@ export async function deploy_StakedUSDO(
     deployer.address,
     deployer.address,
     0,
-    defaultTransactionOptions
+    {
+      gasLimit: 10000000
+    }
   );
   await deployedContract.waitForDeployment();
 
@@ -106,7 +127,10 @@ export async function deploy_AirdropOVAReceipt(usdo: string): Promise<void> {
   console.log("Contract deployed at:", await deployedContract.getAddress());
 }
 
-export async function deploy_AirdropReward(admin: string): Promise<string> {
+export async function deploy_AirdropReward(
+  admin: string,
+  baseGasFeeMult?: number
+): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
   if (!ethers.isAddress(admin)) {
@@ -119,7 +143,9 @@ export async function deploy_AirdropReward(admin: string): Promise<string> {
   );
 
   const ContractSource = await ethers.getContractFactory("OvaReferral");
-  const deployedContract = await ContractSource.deploy(admin);
+  const deployedContract = await ContractSource.deploy(admin, {
+    gasLimit: 10000000
+  });
   await deployedContract.waitForDeployment();
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
@@ -128,7 +154,8 @@ export async function deploy_AirdropReward(admin: string): Promise<string> {
 
 export async function AirdropReward_setStakingPools(
   addr: string,
-  pools: string[]
+  pools: string[],
+  baseGasFeeMult?: number
 ): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
@@ -140,14 +167,21 @@ export async function AirdropReward_setStakingPools(
   console.log("Pools:", pools);
 
   const contract = new ethers.Contract(addr, OVAREFERRAL_ABI.abi, deployer);
-  await (contract.connect(deployer) as Contract).setStakingPools(pools);
+  const tx = await (contract.connect(deployer) as Contract).setStakingPools(
+    pools,
+    {
+      gasLimit: 10000000
+    }
+  );
+  const receipt = await tx.wait();
 
-  console.log("Operation passed");
+  console.log("Staking pools set to OvaReferral hash =", tx.hash);
 }
 
 export async function AirdropReward_addTrackers(
   addr: string,
-  trackers: string[]
+  trackers: string[],
+  baseGasFeeMult?: number
 ): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
@@ -157,9 +191,15 @@ export async function AirdropReward_addTrackers(
 
   const contract = new ethers.Contract(addr, OVAREFERRAL_ABI.abi, deployer);
   for (const t of trackers) {
-    await (contract.connect(deployer) as Contract).addPointsTracker(t);
+    const tx = await (contract.connect(deployer) as Contract).addPointsTracker(
+      t,
+      {
+        gasLimit: 10000000
+      }
+    );
+    const receipt = await tx.wait();
+    console.log("Set OvaReferral token tracker hash =", tx.hash);
   }
-  console.log("Operation passed");
 }
 
 export async function deploy_LiquidityAirdropReward(
@@ -188,16 +228,23 @@ export async function deploy_LiquidityAirdropReward(
 
 export async function StakedUSDO_setCooldownStaking(
   addr: string,
-  seconds: number
+  seconds: number,
+  baseGasFeeMult?: number
 ): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
   console.log("Setting cooldown to staking with account:", deployer.address);
 
   const contract = new ethers.Contract(addr, STAKED_USDX_ABI.abi, deployer);
-  await (contract.connect(deployer) as Contract).setCooldownDuration(seconds);
+  const tx = await (contract.connect(deployer) as Contract).setCooldownDuration(
+    seconds,
+    {
+      gasLimit: 10000000
+    }
+  );
+  const receipt = await tx.wait();
 
-  console.log("Operation passed");
+  console.log("sUSDO cooldown set hash =", tx.hash);
 }
 
 export async function deploy_AirdropPoolCurveStableStake(
@@ -224,7 +271,8 @@ export async function deploy_AirdropPoolCurveStableStake(
 }
 
 export async function deploy_AirdropSingleStableStake(
-  admin: string
+  admin: string,
+  baseGasFeeMult?: number
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
@@ -238,7 +286,9 @@ export async function deploy_AirdropSingleStableStake(
   );
 
   const ContractSource = await ethers.getContractFactory("SingleStableStake");
-  const deployedContract = await ContractSource.deploy(admin);
+  const deployedContract = await ContractSource.deploy(admin, {
+    gasLimit: 10000000
+  });
 
   await deployedContract.waitForDeployment();
 
@@ -266,7 +316,8 @@ export async function deploy_Liquidity(admin: string): Promise<string> {
 
 export async function Liquidity_updateReferral(
   addr: string,
-  ref: string
+  ref: string,
+  baseGasFeeMult?: number
 ): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
@@ -276,9 +327,15 @@ export async function Liquidity_updateReferral(
   );
 
   const contract = new ethers.Contract(addr, LIQUIDITY_ABI.abi, deployer);
-  await (contract.connect(deployer) as Contract).updateReferral(ref);
+  const tx = await (contract.connect(deployer) as Contract).updateReferral(
+    ref,
+    {
+      gasLimit: 10000000
+    }
+  );
+  const receipt = await tx.wait();
 
-  console.log("Operation passed");
+  console.log("Liquidity referral updated hash =", tx.hash);
 }
 
 export async function deploy_OVA(admin: string): Promise<string> {
@@ -324,7 +381,8 @@ export async function SingleStableStake_setRewardForStakedAssets(
   signer: any, // hardhat ether signer
   rewardAddr: string,
   rateNum: number,
-  rateDen: number
+  rateDen: number,
+  baseGasFeeMult?: number
 ): Promise<void> {
   console.log(
     "Airdrop::SingleStableStake adding reward",
@@ -333,10 +391,14 @@ export async function SingleStableStake_setRewardForStakedAssets(
     rateNum / rateDen,
     "for dollar liquidity (year)"
   );
-  await contract
+
+  const tx = await contract
     .connect(signer)
-    .setRewardForStakedAssets(rewardAddr, rateNum, rateDen);
-  console.log("Airdrop::SingleStableStake reward added");
+    .setRewardForStakedAssets(rewardAddr, rateNum, rateDen, {
+      gasLimit: 10000000
+    });
+  const receipt = await tx.hash;
+  console.log("Airdrop::SingleStableStake reward added hash =", tx.hash);
 }
 
 export async function CurveStableStake_addWithNumCoinsAndPool(
@@ -380,7 +442,8 @@ export async function SingleStableStake_addPool(
   allocPoints: number,
   endTime: number,
   vested: boolean,
-  update: boolean
+  update: boolean,
+  baseGasFeeMult?: number
 ): Promise<void> {
   console.log(
     "Airdrop::SingleStableStake adding pool. In",
@@ -388,10 +451,14 @@ export async function SingleStableStake_addPool(
     "Out",
     rewardAddr
   );
-  await contract
+
+  const tx = await contract
     .connect(signer)
-    .add(stakedAddr, rewardAddr, allocPoints, endTime, vested, update);
-  console.log("Airdrop::SingleStableStake pool added");
+    .add(stakedAddr, rewardAddr, allocPoints, endTime, vested, update, {
+      gasLimit: 10000000
+    });
+  const receipt = await tx.wait();
+  console.log("Airdrop::SingleStableStake pool added hash =", tx.hash);
 }
 
 export async function Liquidity_addReward(
@@ -471,73 +538,101 @@ export async function grantRole(
   addr: string,
   abi: any,
   role: string,
-  to: string
+  to: string,
+  baseGasFeeMult?: number
 ) {
   const [admin] = await ethers.getSigners();
+
+  const defaultTransactionOptions = {
+    gasLimit: 10000000
+  };
   const contract = new ethers.Contract(addr, abi, admin);
   console.log("Granting role:", role, "with address:", admin.address);
-  await (contract.connect(admin) as Contract).grantRole(
+  const tx = await (contract.connect(admin) as Contract).grantRole(
     ethers.keccak256(ethers.toUtf8Bytes(role)),
-    to
+    to,
+    defaultTransactionOptions
   );
+  const receipt = await tx.wait();
 
-  console.log("Role granted");
+  console.log("Role granted hash =", tx.hash);
 }
 
 export async function USDO_proposeNewCollateralSpender(
   addr: string,
-  spender: string
+  spender: string,
+  baseGasFeeMult?: number
 ) {
   const [admin] = await ethers.getSigners();
+
+  const defaultTransactionOptions = {
+    gasLimit: 10000000
+  };
+
   const contract = new ethers.Contract(addr, USDO_ABI.abi, admin);
   console.log("Proposing new collateral spender:", spender);
-  await (contract.connect(admin) as Contract).proposeNewCollateralSpender(
-    spender
-  );
-  console.log("Spender proposed");
+  const tx = await (
+    contract.connect(admin) as Contract
+  ).proposeNewCollateralSpender(spender, defaultTransactionOptions);
+  const receipt = await tx.wait();
+  console.log("Spender proposed hash =", tx.hash);
 }
 
-export async function USDO_mint(addr: string, order: any) {
+export async function USDO_mint(
+  addr: string,
+  order: any,
+  baseGasFeeMult?: number
+) {
   const [admin] = await ethers.getSigners();
+
   const contract = new ethers.Contract(addr, USDO_ABI.abi, admin);
   console.log("Minting USDO with account:", admin.address);
-  await (contract.connect(admin) as Contract).mint(order);
-  console.log("USDO minted");
+  const tx = await (contract.connect(admin) as Contract).mint(order, {
+    gasLimit: 10000000
+  });
+  const receipt = await tx.wait();
+  console.log("USDO minted hash =", tx.hash);
 }
 
 export async function StakedUSDO_deposit(
   addr: string,
   amount: string,
-  recipient: string
+  recipient: string,
+  baseGasFeeMult?: number
 ) {
   const [admin] = await ethers.getSigners();
+
   const contract = new ethers.Contract(addr, SUSDO_ABI.abi, admin);
   console.log(
     "Depositing USDO into staking account with singer:",
     admin.address
   );
-  await (contract.connect(admin) as Contract).deposit(
+  const tx = await (contract.connect(admin) as Contract).deposit(
     ethers.parseEther(amount),
-    recipient
+    recipient,
+    {
+      gasLimit: 10000000
+    }
   );
-  console.log(
-    "USDO staked, sUSDO balance:",
-    ethers.formatEther(await contract.balanceOf(admin.address))
-  );
+  const receipt = await tx.wait();
+  console.log("USDO staked hash =", tx.hash);
 }
 
 export async function deploy_USDOBacking(
   admin: string,
   treasury: string,
   usdo: string,
-  susdo: string
+  susdo: string,
+  baseGasFeeMult?: number
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
   console.log("Deploying USDOBacking contract with signer:", deployer.address);
 
   const USDOBacking = await ethers.getContractFactory("USDOBacking");
-  const usdobacking = await USDOBacking.deploy(admin, treasury, usdo, susdo);
+  const usdobacking = await USDOBacking.deploy(admin, treasury, usdo, susdo, {
+    gasLimit: 10000000
+  });
   await usdobacking.waitForDeployment();
 
   console.log("Contract deployed at:", await usdobacking.getAddress());

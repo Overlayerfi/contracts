@@ -4,8 +4,9 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { ETH_RPC, GOERLI_RPC, OVA_BETA_RPC, PRIVATE_ETH_RPC_PREFIX } from './rpc';
+import { PRIVATE_ETH_SEPOLIA_RPC_PREFIX, ETH_RPC, GOERLI_RPC, OVA_BETA_RPC, PRIVATE_ETH_RPC_PREFIX } from './rpc';
 import 'solidity-docgen';
+import "hardhat-gas-reporter";
 
 dotenv.config({ path: process.cwd() + "/process.env"});
 
@@ -36,6 +37,10 @@ const config: HardhatUserConfig = {
   docgen: {
     output: 'docs',
     exclude: ['mock_ERC20', 'pancake', 'uniswap', 'curve']
+  },
+  gasReporter: {
+    currency: 'USD',
+    L1: "ethereum",
   },
   solidity: {
     compilers: [
@@ -93,7 +98,6 @@ const config: HardhatUserConfig = {
     eth: {
       url: ETH_RPC,
       chainId: 0x1,
-      accounts: [process.env.ADMIN_WALLET_KEY!, process.env.TEAM_WALLET_KEY!],
       gas: "auto",
       gasPrice: "auto",
       allowUnlimitedContractSize: true,
@@ -101,9 +105,16 @@ const config: HardhatUserConfig = {
     goerli: {
       url: GOERLI_RPC,
       chainId: 0x5,
-      accounts: [process.env.ADMIN_WALLET_KEY!, process.env.TEAM_WALLET_KEY!],
       gas: "auto",
       gasPrice: "auto",
+      allowUnlimitedContractSize: true,
+    },
+    sepolia: {
+      url: PRIVATE_ETH_SEPOLIA_RPC_PREFIX + process.env.ALCHEMY_KEY!,
+      chainId: 0xAA36A7,
+      accounts: [process.env.OVA_SEPOLIA_DEPLOYER_KEY!, process.env.OVA_SEPOLIA_TREASURY_KEY!],
+      gasPrice: "auto",
+      gas: "auto",
       allowUnlimitedContractSize: true,
     }
   },
