@@ -25,14 +25,14 @@ contract CurveStableStake is Liquidity {
     using Math for uint256;
 
     /**
-     * @notice The emitted amount of reward for each second multiplier numerator.
+     * @notice The emitted amount of reward for each year multiplier numerator.
      */
-    mapping(address => uint256) public rewardsPerSecondMultiplierNum;
+    mapping(address => uint256) public rewardsPerYearMultiplierNum;
 
     /**
-     * @notice The emitted amount of reward for each second multiplier denominator.
+     * @notice The emitted amount of reward for each year multiplier denominator.
      */
-    mapping(address => uint256) public rewardsPerSecondMultiplierDen;
+    mapping(address => uint256) public rewardsPerYearMultiplierDen;
 
     /**
      * @notice Track number of stable coins held inside Curve pools.
@@ -108,14 +108,14 @@ contract CurveStableStake is Liquidity {
             activeRewards[address(rewardAsset)] = true;
         }
         if (
-            rewardsPerSecondMultiplierNum[address(rewardAsset)] != rewardRateNum
+            rewardsPerYearMultiplierNum[address(rewardAsset)] != rewardRateNum
         ) {
-            rewardsPerSecondMultiplierNum[address(rewardAsset)] = rewardRateNum;
+            rewardsPerYearMultiplierNum[address(rewardAsset)] = rewardRateNum;
         }
         if (
-            rewardsPerSecondMultiplierDen[address(rewardAsset)] != rewardRateDen
+            rewardsPerYearMultiplierDen[address(rewardAsset)] != rewardRateDen
         ) {
-            rewardsPerSecondMultiplierDen[address(rewardAsset)] = rewardRateDen;
+            rewardsPerYearMultiplierDen[address(rewardAsset)] = rewardRateDen;
         }
     }
 
@@ -239,8 +239,8 @@ contract CurveStableStake is Liquidity {
 
         return
             totalLiquidityHeld.mulDiv(
-                rewardsPerSecondMultiplierNum[address(reward)],
-                rewardsPerSecondMultiplierDen[address(reward)]
+                rewardsPerYearMultiplierNum[address(reward)],
+                rewardsPerYearMultiplierDen[address(reward)]
             ) / SECONDS_IN_YEAR;
     }
 }
