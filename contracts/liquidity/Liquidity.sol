@@ -218,7 +218,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         uint256 pending = rewards - currentUser.rewardDebt;
         // Update user info
         currentUser.amount = currentUser.amount - amount;
-        // update reward debt, there is harvest on deposit so at every deposit the debt will be updated with the new amount the user has.
+        // update reward debt, there is harvest on withdraw so at every withdraw the debt will be updated with the new amount the user has.
         currentUser.rewardDebt = currentUser.amount.mulDiv(
             pool.accRewardPerShare,
             1e18
@@ -375,22 +375,30 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
 
         // Update user info
         currentUser.amount = currentUser.amount + amount;
-        // update reward debt, there is harvest on deposit so at every deposit the debt will be updated with the new amount the user has.
-        currentUser.rewardDebt = currentUser.amount.mulDiv(
-            pool.accRewardPerShare,
-            1e18
-        );
 
-        // harvest up to date rewards
-        uint256 pending = oldAmount.mulDiv(pool.accRewardPerShare, 1e18) -
-            oldDebt;
-        if (pending > 0) {
-            _payReward(pool.rewardAsset, msg.sender, pending);
-        }
+        // If not vesting pool, harvest now. Else harvest at the end of the vesting period (endTimestamp). If it's the second case
+        // harvest here is unlikely to happen as user is not allowed to deposit after the endTimestamp
+        if (
+            !pool.vesting ||
+            (pool.vesting && pool.endTimeStamp < block.timestamp)
+        ) {
+            // update reward debt, there is harvest on deposit so at every deposit the debt will be updated with the new amount the user has.
+            currentUser.rewardDebt = currentUser.amount.mulDiv(
+                pool.accRewardPerShare,
+                1e18
+            );
 
-        // harvest referral bonus and track gained point from the referral source
-        if (address(referral) != address(0)) {
-            _payBonus(pending, pool.rewardAsset, msg.sender);
+            // harvest up to date rewards
+            uint256 pending = oldAmount.mulDiv(pool.accRewardPerShare, 1e18) -
+                oldDebt;
+            if (pending > 0) {
+                _payReward(pool.rewardAsset, msg.sender, pending);
+            }
+
+            // harvest referral bonus and track gained point from the referral source
+            if (address(referral) != address(0)) {
+                _payBonus(pending, pool.rewardAsset, msg.sender);
+            }
         }
 
         // collect collateral

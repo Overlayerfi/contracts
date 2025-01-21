@@ -314,10 +314,16 @@ describe("Liquidity", function () {
     it("Should not harvest or withraw before end time if vesting", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice } =
         await loadFixture(deployFixture);
-      const amount = ethers.parseEther("10");
-      await stakedAsset.transfer(alice.getAddress(), amount);
+      const n = "5";
+      const amount = ethers.parseEther(n);
+      await stakedAsset.transfer(
+        alice.getAddress(),
+        ethers.parseEther((+n * 2).toFixed(1))
+      );
 
-      await stakedAsset.connect(alice).approve(liquidity.getAddress(), amount);
+      await stakedAsset
+        .connect(alice)
+        .approve(liquidity.getAddress(), ethers.MaxUint256);
 
       const latestTime: number = await time.latest();
 
@@ -331,14 +337,28 @@ describe("Liquidity", function () {
         true
       );
 
+      expect(
+        await tokenRewardOneOvaReferral.balanceOf(alice.address)
+      ).to.be.equal(0);
       await expect(await liquidity.connect(alice).deposit(0, amount)).to.emit(
         liquidity,
         "Deposit"
       );
+      expect(
+        await tokenRewardOneOvaReferral.balanceOf(alice.address)
+      ).to.be.equal(0);
 
       await expect(liquidity.connect(alice).harvest(0)).to.be.eventually
         .rejected;
-      await time.increaseTo(latestTime + 60 * 60 * 24 * 8);
+      await time.increaseTo(latestTime + 60 * 60 * 24 * 3);
+      await expect(await liquidity.connect(alice).deposit(0, amount)).to.emit(
+        liquidity,
+        "Deposit"
+      );
+      // Sequental deposits should not harvest before endTimestamp
+      expect(
+        await tokenRewardOneOvaReferral.balanceOf(alice.address)
+      ).to.be.equal(0);
       await expect(liquidity.connect(alice).withdraw(0, amount)).to.be
         .eventually.rejected;
       await time.increaseTo(latestTime + 60 * 60 * 24 * 10 + 1);
