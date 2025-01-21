@@ -256,11 +256,11 @@ describe("CurveStableStake", function () {
         await liquidity.activeRewards(stakedAsset.getAddress())
       ).to.be.equal(true);
       expect(
-        await liquidity.rewardsPerSecondMultiplierNum(stakedAsset.getAddress())
+        await liquidity.rewardsPerYearMultiplierNum(stakedAsset.getAddress())
       ).to.be.equal(1);
       await liquidity.setRewardForStakedAssets(stakedAsset.getAddress(), 10, 1);
       expect(
-        await liquidity.rewardsPerSecondMultiplierNum(stakedAsset.getAddress())
+        await liquidity.rewardsPerYearMultiplierNum(stakedAsset.getAddress())
       ).to.be.equal(10);
     });
 
