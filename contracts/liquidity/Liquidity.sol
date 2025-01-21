@@ -650,9 +650,6 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         }
 
         uint256 delta = to - from;
-        if (delta == 0) {
-            return bonusMultiplier;
-        }
         return delta * bonusMultiplier;
     }
 }
