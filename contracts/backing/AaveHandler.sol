@@ -202,7 +202,7 @@ abstract contract AaveHandler is
         uint256 usdcWithdrawAmount = minAmountBetween / usdcMultiplier;
         uint256 usdtWithdrawAmount = minAmountBetween / usdtMultiplier;
 
-        _withdrawInternal(
+        _withdrawInternalAave(
             usdcWithdrawAmount,
             usdtWithdrawAmount,
             address(this)
@@ -418,7 +418,7 @@ abstract contract AaveHandler is
 
     //########################################## INTERNAL FUNCTIONS ##########################################
 
-    ///@notice Withraw funds to AAVE protocol
+    ///@notice Withraw funds to AAVE protocol with status change
     ///@param amountUsdc The amount to withdraw intended as USDC
     ///@param amountUsdt The amount to withdraw intended as USDCT
     ///@param recipient The collateral recipient
@@ -427,6 +427,37 @@ abstract contract AaveHandler is
         uint256 amountUsdt,
         address recipient
     ) internal {
+        (uint256 usdcReceived, uint256 usdtReceived) = _withdrawInternalAave(
+            amountUsdc,
+            amountUsdt,
+            recipient
+        );
+
+        if (usdcReceived > totalSuppliedUSDC) {
+            totalSuppliedUSDC = 0;
+        } else {
+            unchecked {
+                totalSuppliedUSDC -= usdcReceived;
+            }
+        }
+        if (usdtReceived > totalSuppliedUSDT) {
+            totalSuppliedUSDT = 0;
+        } else {
+            unchecked {
+                totalSuppliedUSDT -= usdtReceived;
+            }
+        }
+    }
+
+    ///@notice Withraw funds to AAVE protocol
+    ///@param amountUsdc The amount to withdraw intended as USDC
+    ///@param amountUsdt The amount to withdraw intended as USDCT
+    ///@param recipient The collateral recipient
+    function _withdrawInternalAave(
+        uint256 amountUsdc,
+        uint256 amountUsdt,
+        address recipient
+    ) internal returns (uint256, uint256) {
         if (IERC20(AUSDC).balanceOf(address(this)) < amountUsdc)
             revert AaveHandlerInsufficientBalance();
         if (IERC20(AUSDT).balanceOf(address(this)) < amountUsdt)
@@ -444,21 +475,8 @@ abstract contract AaveHandler is
             revert AaveHandlerAaveWithrawFailed();
         }
 
-        if (amountUsdc > totalSuppliedUSDC) {
-            totalSuppliedUSDC = 0;
-        } else {
-            unchecked {
-                totalSuppliedUSDC -= amountUsdc;
-            }
-        }
-        if (amountUsdt > totalSuppliedUSDT) {
-            totalSuppliedUSDT = 0;
-        } else {
-            unchecked {
-                totalSuppliedUSDT -= amountUsdt;
-            }
-        }
+        emit AaveWithdraw(usdcReceived, usdtReceived);
 
-        emit AaveWithdraw(amountUsdc, amountUsdt);
+        return (usdcReceived, usdtReceived);
     }
 }
