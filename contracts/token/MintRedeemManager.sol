@@ -272,9 +272,17 @@ abstract contract MintRedeemManager is
             uint256 usdcBal = IERC20(usdc.addr).balanceOf(address(this));
             uint256 usdtBal = IERC20(usdt.addr).balanceOf(address(this));
 
-            if (needAmountUsdc > usdcBal || needAmountUsdt > usdtBal) {
-                uint256 amountFromBackingUsdc = needAmountUsdc - usdcBal;
-                uint256 amountFromBackingUsdt = needAmountUsdt - usdtBal;
+            // Compute the needed amount from backing contract
+            uint256 amountFromBackingUsdc = 0;
+            uint256 amountFromBackingUsdt = 0;
+            if (needAmountUsdc > usdcBal) {
+                amountFromBackingUsdc = needAmountUsdc - usdcBal;
+            }
+            if (needAmountUsdt > usdtBal) {
+                amountFromBackingUsdt = needAmountUsdt - usdtBal;
+            }
+            // Retrive funds from backing only if needed
+            if (amountFromBackingUsdc > 0 || amountFromBackingUsdt > 0) {
                 IUSDOBacking(approvedCollateralSpender).withdraw(
                     amountFromBackingUsdc,
                     amountFromBackingUsdt
