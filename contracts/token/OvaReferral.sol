@@ -39,6 +39,7 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
     event NewCode(string code, address holder);
     event AddTracker(address tracker);
     event RemoveTracker(address tracker);
+    event StakingPoolSet(address[] pools);
 
     error OvaReferralAlreadyReferred();
     error OvaReferralZeroAddress();
@@ -57,7 +58,7 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
 
     ///@notice The constructor
     ///@param admin The contract admin
-    constructor(address admin) GovernanceTokenBase(admin, "AOVA", "AOVA") {}
+    constructor(address admin) GovernanceTokenBase(admin, "Airdrop OVA", "AOVA") {}
 
     function getStakingPools() external view returns (address[] memory) {
         return stakingPools;
@@ -65,6 +66,7 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
 
     function setStakingPools(address[] memory pools_) external onlyOwner {
         stakingPools = pools_;
+        emit StakingPoolSet(pools_);
     }
 
     /// @notice Consume a referral code. This action will harvest all the user positions in the staking pools
