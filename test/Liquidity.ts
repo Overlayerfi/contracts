@@ -392,12 +392,8 @@ describe("Liquidity", function () {
         .addCode("BOB", bob.address);
 
       // Consume referral code
-      await tokenRewardOneOvaReferral
-        .connect(alice)
-        .consumeReferral("BOB");
-      await tokenRewardOneOvaReferral
-        .connect(owner)
-        .consumeReferral("BOB");
+      await tokenRewardOneOvaReferral.connect(alice).consumeReferral("BOB");
+      await tokenRewardOneOvaReferral.connect(owner).consumeReferral("BOB");
 
       // Test an increasing amount of bonus payed out
       await expect(
