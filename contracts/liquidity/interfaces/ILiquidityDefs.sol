@@ -81,6 +81,8 @@ interface ILiquidityDefs {
 
     error PoolNotActive();
 
+    error AlreadyUsedStakedAsset();
+
     function poolLength() external view returns (uint256);
 
     function deposit(uint256 pid, uint256 amount) external;

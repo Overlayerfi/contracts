@@ -47,6 +47,11 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     mapping(address => uint256) public totalAllocPointsPerReward;
 
     /**
+     * @notice The staking assets already present.
+     */
+    mapping(address => bool) private usedStakingAssets;
+
+    /**
      * @notice The bonus multiplier.
      */
     uint256 public bonusMultiplier = 1;
@@ -417,7 +422,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @notice Add a new pool
      * @dev It reverts if the starting time is set to zero
      * @dev A vesting pool can not have endTime equal to 0
-     * @param stakedAsset the wanted lp token.
+     * @param stakedAsset the wanted token.
      * @param rewardAsset the reward that will be payed out.
      * @param allocationPoints the weight of the added pool.
      * @param endTime the ending time for this pool. 0 to ignore.
@@ -432,6 +437,9 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         bool vested,
         bool update
     ) public onlyOwner {
+        if (usedStakingAssets[address(stakedAsset)]) {
+            revert AlreadyUsedStakedAsset();
+        }
         if (vested && endTime == 0) {
             revert NotAllowed();
         }
@@ -441,6 +449,9 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         if (update) {
             _massUpdatePools();
         }
+
+        usedStakingAssets[address(stakedAsset)] = true;
+
         uint256 lastRewardTime = block.timestamp > startTime
             ? block.timestamp
             : startTime;
