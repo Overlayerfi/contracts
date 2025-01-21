@@ -150,7 +150,7 @@ abstract contract PositionSwapper {
         }
         if (params.amountUsdt > 0) {
             uint160 sqrtLimitPrice = _getSqrtPriceLimitX96();
-            IERC20(params.usdt).forceApprove(params.router, params.amountUsdc);
+            IERC20(params.usdt).forceApprove(params.router, params.amountUsdt);
             _swapExactInputSingleHop(
                 params.router,
                 params.amountUsdt,
