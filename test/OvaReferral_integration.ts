@@ -222,9 +222,7 @@ describe("CurveStableStake", function () {
       expect(
         await tokenRewardOneOvaReferral.balanceOf(alice.address)
       ).to.be.equal(0);
-      await tokenRewardOneOvaReferral
-        .connect(alice)
-        .consumeReferral("2025", alice.address);
+      await tokenRewardOneOvaReferral.connect(alice).consumeReferral("2025");
 
       // By using a referral we harvest all the previous amounts
       expect(await curveLiquidity.pendingReward(0, alice.address)).to.be.equal(

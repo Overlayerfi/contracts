@@ -7,5 +7,5 @@ interface IOvaReferral {
     function seeReferred(address user) external view returns (address[] memory);
     function generatedPoints(address user) external view returns (uint256);
     function track(address user, uint256 amount) external;
-    function consumeReferral(string memory code, address consumer) external;
+    function consumeReferral(string memory code) external;
 }

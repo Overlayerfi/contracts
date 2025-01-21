@@ -114,15 +114,12 @@ describe("OvaReferral", function () {
           .addCode("ALICE", await alice.getAddress())
       ).to.emit(ovaReferral, "NewCode");
       await expect(
-        await ovaReferral.connect(admin).consumeReferral("ALICE", bob.address)
+        await ovaReferral.connect(bob).consumeReferral("ALICE")
       ).to.emit(ovaReferral, "Referral");
 
       // Not refer self
-      await expect(
-        ovaReferral
-          .connect(admin)
-          .consumeReferral("ALICE", await alice.getAddress())
-      ).to.be.eventually.rejected;
+      await expect(ovaReferral.connect(alice).consumeReferral("ALICE")).to.be
+        .eventually.rejected;
 
       expect(await ovaReferral.referredFrom(bob.address)).to.be.equal(
         alice.address
@@ -151,11 +148,8 @@ describe("OvaReferral", function () {
       await expect(
         await ovaReferral.connect(admin).addCode("BOB", await bob.getAddress())
       ).to.emit(ovaReferral, "NewCode");
-      await expect(
-        ovaReferral
-          .connect(admin)
-          .consumeReferral("BOB", await alice.getAddress())
-      ).to.be.eventually.rejected;
+      await expect(ovaReferral.connect(alice).consumeReferral("BOB")).to.be
+        .eventually.rejected;
     });
 
     it("Should not be referred multiple times", async function () {
@@ -169,11 +163,10 @@ describe("OvaReferral", function () {
           .addCode("ALICE", await alice.getAddress())
       ).to.emit(ovaReferral, "NewCode");
       await expect(
-        await ovaReferral.connect(admin).consumeReferral("ALICE", bob.address)
+        await ovaReferral.connect(bob).consumeReferral("ALICE")
       ).to.emit(ovaReferral, "Referral");
-      await expect(
-        ovaReferral.connect(admin).consumeReferral("ALICE", bob.address)
-      ).to.be.eventually.rejected;
+      await expect(ovaReferral.connect(bob).consumeReferral("ALICE")).to.be
+        .eventually.rejected;
     });
 
     it("Should not be referred from zero address", async function () {
