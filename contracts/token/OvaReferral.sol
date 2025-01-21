@@ -71,11 +71,8 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
     /// @dev Code holders can not use any code
     /// @dev Staking pools must be set
     /// @param code The referral code
-    /// @param consumer The referral consumer
-    function consumeReferral(
-        string memory code,
-        address consumer
-    ) external override {
+    function consumeReferral(string memory code) external override {
+        address consumer = msg.sender;
         if (referredFrom[consumer] != address(0)) {
             revert OvaReferralAlreadyReferred();
         }
