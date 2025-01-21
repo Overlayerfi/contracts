@@ -29,10 +29,6 @@ abstract contract MintRedeemManager is
     /// @notice role enabling to disable mint and redeem
     bytes32 private constant GATEKEEPER_ROLE = keccak256("GATEKEEPER_ROLE");
 
-    /// @notice address denoting native ether
-    address private constant NATIVE_TOKEN =
-        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
     /// @notice the minimum amount to trigger the backing collateral
     /// @dev it has to be multiplied to the base (token decimal)
     uint256 private constant BACKING_MIN_AMOUNT_TO_BE_MULTIPLIED_BY_BASE = 1000;
