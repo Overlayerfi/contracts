@@ -17,8 +17,6 @@ contract GovernanceTokenBase is Ownable2Step, ERC20Burnable, ERC20Permit {
 
     error CantRenounceOwnership();
 
-    error OperationNotAllowed();
-
     event MinterStateChanged(address indexed minter_, bool _event);
 
     /// @notice The allowed minter

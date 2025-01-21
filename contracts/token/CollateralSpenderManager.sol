@@ -12,8 +12,6 @@ import "./Collateral.sol";
 abstract contract CollateralSpenderManager is Collateral, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    error CollateralSpenderManagerInvalidAdminAddress();
-
     error CollateralSpenderManagerInvalidSpenderAddress();
 
     error CollateralSpenderManagerIntervalNotRespected();
