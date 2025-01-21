@@ -58,7 +58,9 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
 
     ///@notice The constructor
     ///@param admin The contract admin
-    constructor(address admin) GovernanceTokenBase(admin, "Airdrop OVA", "AOVA") {}
+    constructor(
+        address admin
+    ) GovernanceTokenBase(admin, "Airdrop OVA", "AOVA") {}
 
     function getStakingPools() external view returns (address[] memory) {
         return stakingPools;
