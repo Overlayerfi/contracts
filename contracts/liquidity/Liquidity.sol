@@ -650,7 +650,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     ) internal view returns (uint256) {
         // Sould never happen.
         if (to < from) {
-            return bonusMultiplier;
+            return 0;
         }
 
         uint256 delta = to - from;
