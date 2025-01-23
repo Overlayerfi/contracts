@@ -60,6 +60,7 @@ contract SingleStableStake is Liquidity {
         ) {
             rewardsPerSecondMultiplierDen[address(rewardAsset)] = rewardRateDen;
         }
+        _massUpdatePools();
     }
 
     /**

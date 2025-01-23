@@ -117,6 +117,7 @@ contract CurveStableStake is Liquidity {
         ) {
             rewardsPerYearMultiplierDen[address(rewardAsset)] = rewardRateDen;
         }
+        _massUpdatePools();
     }
 
     /**
