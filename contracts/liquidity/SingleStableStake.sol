@@ -50,6 +50,7 @@ contract SingleStableStake is Liquidity {
         if (!activeRewards[address(rewardAsset)]) {
             activeRewards[address(rewardAsset)] = true;
         }
+        _massUpdatePools();
         if (
             rewardsPerSecondMultiplierNum[address(rewardAsset)] != rewardRateNum
         ) {
@@ -60,7 +61,6 @@ contract SingleStableStake is Liquidity {
         ) {
             rewardsPerSecondMultiplierDen[address(rewardAsset)] = rewardRateDen;
         }
-        _massUpdatePools();
     }
 
     /**

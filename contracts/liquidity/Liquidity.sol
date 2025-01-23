@@ -135,8 +135,8 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @param bonusMultiplier_ the new multiplier value.
      */
     function updateMultiplier(uint256 bonusMultiplier_) external onlyOwner {
-        bonusMultiplier = bonusMultiplier_;
         _massUpdatePools();
+        bonusMultiplier = bonusMultiplier_;
         emit NewBonusMultiplier(bonusMultiplier_);
     }
 
