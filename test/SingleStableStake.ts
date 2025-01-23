@@ -276,6 +276,54 @@ describe("SingleStableStake", function () {
       );
     });
 
+    it("Pools with endtimestamp should compute rewards uo to the end time stamp", async function () {
+      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
+        await loadFixture(deployFixture);
+
+      const amount = ethers.parseEther("1");
+      await stakedAsset.transfer(alice.getAddress(), amount);
+      await stakedAsset.connect(alice).approve(liquidity.getAddress(), amount);
+
+      await liquidity.setReward(
+        tokenRewardOneOvaReferral.getAddress(),
+        ethers.parseEther("1")
+      );
+      await liquidity.setRewardForStakedAssets(
+        tokenRewardOneOvaReferral.getAddress(),
+        1,
+        1
+      );
+      const latestTime: number = await time.latest();
+      await liquidity.add(
+        stakedAsset.getAddress(),
+        tokenRewardOneOvaReferral.getAddress(),
+        1,
+        latestTime + 60 * 60,
+        false,
+        true
+      );
+
+      await expect(await liquidity.connect(alice).deposit(0, amount)).to.emit(
+        liquidity,
+        "Deposit"
+      );
+
+      const expected = (1 / (60 * 60 * 24 * 365)) * (60 * 60);
+
+      await time.increase(60 * 60 * 100);
+
+      await expect(await liquidity.connect(alice).withdraw(0, amount)).to.emit(
+        liquidity,
+        "Withdraw"
+      );
+
+      const rewardsBal = ethers.formatEther(
+        await tokenRewardOneOvaReferral.balanceOf(alice.address)
+      );
+      expect(+rewardsBal).to.be.greaterThan(expected * 0.99);
+      expect(+rewardsBal).to.be.lessThan(expected * 1.01);
+    });
+
     it("Rewards for staked liquidity", async function () {
       const {
         owner,

@@ -82,10 +82,7 @@ contract SingleStableStake is Liquidity {
         uint256 accRewardPerShare = pool.accRewardPerShare;
         uint256 stakedAssetSupply = pool.stakedAsset.balanceOf(address(this));
         if (block.timestamp > pool.lastRewardTime && stakedAssetSupply != 0) {
-            uint256 multiplier = _getMultiplier(
-                pool.lastRewardTime,
-                block.timestamp
-            );
+            uint256 multiplier = _getMultiplier(pid);
 
             // This is the same computation made in the updatePool function. Just a view version.
             uint256 rewards = multiplier *
@@ -122,10 +119,7 @@ contract SingleStableStake is Liquidity {
             pool.lastRewardTime = block.timestamp;
             return;
         }
-        uint256 multiplier = _getMultiplier(
-            pool.lastRewardTime,
-            block.timestamp
-        );
+        uint256 multiplier = _getMultiplier(pid);
         uint256 rewards = multiplier *
             (
                 rewardsForStakedAssets(pool.stakedAsset, pool.rewardAsset)
@@ -138,7 +132,10 @@ contract SingleStableStake is Liquidity {
             pool.accRewardPerShare +
             rewards.mulDiv(1e18, stakedAssetSupply);
 
-        pool.lastRewardTime = block.timestamp;
+        pool.lastRewardTime = Math.min(
+            block.timestamp,
+            pool.endTimeStamp != 0 ? pool.endTimeStamp : block.timestamp
+        );
     }
 
     /**

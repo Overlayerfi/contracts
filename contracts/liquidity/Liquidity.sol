@@ -478,13 +478,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         uint256 accRewardPerShare = pool.accRewardPerShare;
         uint256 stakedAssetSupply = pool.stakedAsset.balanceOf(address(this));
         if (block.timestamp > pool.lastRewardTime && stakedAssetSupply != 0) {
-            uint256 multiplier = _getMultiplier(
-                pool.lastRewardTime,
-                Math.min(
-                    block.timestamp,
-                    pool.endTimeStamp != 0 ? pool.endTimeStamp : block.timestamp
-                )
-            );
+            uint256 multiplier = _getMultiplier(pid);
 
             // This is the same computation made in the updatePool function. Just a view version.
             uint256 rewards = multiplier *
@@ -617,13 +611,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
             pool.lastRewardTime = block.timestamp;
             return;
         }
-        uint256 multiplier = _getMultiplier(
-            pool.lastRewardTime,
-            Math.min(
-                block.timestamp,
-                pool.endTimeStamp != 0 ? pool.endTimeStamp : block.timestamp
-            )
-        );
+        uint256 multiplier = _getMultiplier(pid);
         uint256 rewards = multiplier *
             (
                 rewardsPerSecond[address(pool.rewardAsset)].mulDiv(
@@ -635,19 +623,24 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
             pool.accRewardPerShare +
             rewards.mulDiv(1e18, stakedAssetSupply);
 
-        pool.lastRewardTime = block.timestamp;
+        pool.lastRewardTime = Math.min(
+            block.timestamp,
+            pool.endTimeStamp != 0 ? pool.endTimeStamp : block.timestamp
+        );
     }
 
     /**
      * @notice Get the multiplier value calculated between two times.
-     * @param from the starting time.
-     * @param to the ending time.
+     * @param pid the pool id.
      * @return The difference between the two sides multiplied for the bonus.
      */
-    function _getMultiplier(
-        uint256 from,
-        uint256 to
-    ) internal view returns (uint256) {
+    function _getMultiplier(uint256 pid) internal view returns (uint256) {
+        PoolInfo storage pool = poolInfo[pid];
+        uint256 from = pool.lastRewardTime;
+        uint256 to = Math.min(
+            block.timestamp,
+            pool.endTimeStamp != 0 ? pool.endTimeStamp : block.timestamp
+        );
         // Sould never happen.
         if (to < from) {
             return 0;
