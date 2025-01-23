@@ -107,6 +107,7 @@ contract CurveStableStake is Liquidity {
         if (!activeRewards[address(rewardAsset)]) {
             activeRewards[address(rewardAsset)] = true;
         }
+        _massUpdatePools();
         if (
             rewardsPerYearMultiplierNum[address(rewardAsset)] != rewardRateNum
         ) {
@@ -117,7 +118,6 @@ contract CurveStableStake is Liquidity {
         ) {
             rewardsPerYearMultiplierDen[address(rewardAsset)] = rewardRateDen;
         }
-        _massUpdatePools();
     }
 
     /**
