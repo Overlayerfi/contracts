@@ -1,8 +1,7 @@
 import { ethers } from "hardhat";
 import abi from "../../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
-import { OVA_BETA_RPC } from "../../rpc";
 
-const addr = "0xeEeC6A1A9D9ec3Ab5223987c1a57476Ca871c8a0";
+const addr = "0x00D15604415907AAE09e5454Ca299f2Ee93fA941";
 
 async function main() {
   const [signer] = await ethers.getSigners();

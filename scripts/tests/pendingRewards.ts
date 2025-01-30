@@ -4,7 +4,7 @@ import { OVA_BETA_RPC } from "../../rpc";
 
 const from = "0x10fc45741bfE5D527c1b83Fe0BD70fC96D7ec30F";
 const to = "0xa1F55cE218ef2f7c47D8c0Fb0a238a76eE419626";
-const stakingAddress = "0xF8FF4fD5f485CE0FDAA0043f1Db283d9CB691A9F";
+const stakingAddress = "0xC040135dFad78636013ADb0d437DaA123B6A8f74";
 
 async function main() {
   const delta = 24 * 60 * 60; //1 days
