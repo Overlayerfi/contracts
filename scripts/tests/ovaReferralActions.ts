@@ -12,10 +12,10 @@ dotenv.config({ path: process.cwd() + "/process.env" });
 // const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545/");
 const provider = new ethers.JsonRpcProvider(OVA_BETA_RPC);
 const owner = new ethers.Wallet(process.env.ADMIN_WALLET_KEY!, provider);
-const ovaReferralAddress = "0x00D15604415907AAE09e5454Ca299f2Ee93fA941";
+const ovaReferralAddress = "0xF8FF4fD5f485CE0FDAA0043f1Db283d9CB691A9F";
 const stakedCurveLpAddress = CURVE_DAI_USDC_USDT_LP;
 const curveStableStakingPoolAddress =
-  "0xF8FF4fD5f485CE0FDAA0043f1Db283d9CB691A9F";
+  "0xC040135dFad78636013ADb0d437DaA123B6A8f74";
 const pid = 0;
 
 async function giveFunds(amount: string, to: string) {
