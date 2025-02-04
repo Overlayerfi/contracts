@@ -6,4 +6,5 @@ import "../../token/types/MintRedeemManagerTypes.sol";
 interface IUSDO {
     function acceptProposedCollateralSpender() external;
     function mint(MintRedeemManagerTypes.Order calldata order) external;
+    function emergencyMode() external returns (bool);
 }
