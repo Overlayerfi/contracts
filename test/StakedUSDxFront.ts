@@ -1,6 +1,7 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
+import { AUSDC_ADDRESS, AUSDT_ADDRESS } from "../scripts/addresses";
 
 describe("StakedUSDOFront", function () {
   async function deployFixture() {
@@ -33,6 +34,14 @@ describe("StakedUSDOFront", function () {
       {
         addr: await usdt.getAddress(),
         decimals: await usdt.decimals()
+      },
+      {
+        addr: AUSDC_ADDRESS,
+        decimals: 6
+      },
+      {
+        addr: AUSDT_ADDRESS,
+        decimals: 6
       },
       ethers.parseEther("100000000"),
       ethers.parseEther("100000000"),

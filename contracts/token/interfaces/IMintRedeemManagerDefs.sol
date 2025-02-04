@@ -16,4 +16,5 @@ interface IMintRedeemManagerDefs is IMintRedeemManagerEvents {
     error MintRedeemManagerSupplyAmountNotReached();
     error MintRedeemManagerInvalidMaxRedeemAmount();
     error MintRedeemManagerInvalidBenefactor();
+    error MintRedeemManagerCollateralNotValid();
 }

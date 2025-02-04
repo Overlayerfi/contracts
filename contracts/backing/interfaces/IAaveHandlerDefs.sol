@@ -13,9 +13,13 @@ interface IAaveHandlerDefs {
 
     error AaveHandlerOperationNotAllowed();
 
+    error AaveHandlerCallerIsNotUsdo();
+
     error AaveHandlerAaveWithrawFailed();
 
     error AaveHandlerInsufficientBalance();
+
+    error AaveHandlerInsufficientABalance();
 
     error AaveIntervalNotRespected();
 
@@ -29,7 +33,7 @@ interface IAaveHandlerDefs {
 
     event AaveNewTeamAllocation(uint8 amount);
 
-    event AaveNewTreasury(address addr);
+    event AaveNewRewardsDispatcher(address addr);
 
     event AaveSwapPosition(uint256 usdc, uint256 usdt, uint256 out);
 }
