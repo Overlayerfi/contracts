@@ -31,6 +31,8 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
         address admin,
         MintRedeemManagerTypes.StableCoin memory usdc_,
         MintRedeemManagerTypes.StableCoin memory usdt_,
+        MintRedeemManagerTypes.StableCoin memory aUsdc_,
+        MintRedeemManagerTypes.StableCoin memory aUsdt_,
         uint256 maxMintPerBlock_,
         uint256 maxRedeemPerBlock_
     )
@@ -39,6 +41,8 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
         MintRedeemManager(
             usdc_,
             usdt_,
+            aUsdc_,
+            aUsdt_,
             admin,
             decimals(),
             maxMintPerBlock_,

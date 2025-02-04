@@ -29,10 +29,6 @@ abstract contract MintRedeemManager is
     /// @notice role enabling to disable mint and redeem
     bytes32 private constant GATEKEEPER_ROLE = keccak256("GATEKEEPER_ROLE");
 
-    /// @notice the minimum amount to trigger the backing collateral
-    /// @dev it has to be multiplied to the base (token decimal)
-    uint256 private constant BACKING_MIN_AMOUNT_TO_BE_MULTIPLIED_BY_BASE = 1000;
-
     /* --------------- STATE VARIABLES --------------- */
 
     /// @notice Parent token decimals
@@ -47,6 +43,9 @@ abstract contract MintRedeemManager is
     uint256 public maxMintPerBlock;
     /// @notice max redeemed USDO allowed per block
     uint256 public maxRedeemPerBlock;
+
+    /// @notice if protocol is in emergency mode
+    bool public emergencyMode;
 
     /* --------------- MODIFIERS --------------- */
 
@@ -71,17 +70,21 @@ abstract contract MintRedeemManager is
     constructor(
         MintRedeemManagerTypes.StableCoin memory usdc_,
         MintRedeemManagerTypes.StableCoin memory usdt_,
+        MintRedeemManagerTypes.StableCoin memory aUsdc_,
+        MintRedeemManagerTypes.StableCoin memory aUsdt_,
         address admin,
         uint256 decimals,
         uint256 maxMintPerBlock_,
         uint256 maxRedeemPerBlock_
-    ) CollateralSpenderManager(admin, usdc_, usdt_) {
+    ) CollateralSpenderManager(admin, usdc_, usdt_, aUsdc_, aUsdt_) {
         if (decimals == 0) revert MintRedeemManagerInvalidDecimals();
         _decimals = decimals;
 
         // Set the max mint/redeem limits per block
         _setMaxMintPerBlock(maxMintPerBlock_);
         _setMaxRedeemPerBlock(maxRedeemPerBlock_);
+
+        emergencyMode = false;
     }
 
     /* --------------- EXTERNAL --------------- */
@@ -95,6 +98,7 @@ abstract contract MintRedeemManager is
 
     /// @notice Approve an external spender for USDC and USDT
     /// @dev The spender is handled by the CollateralSpenderManager contract
+    /// @dev Normally this function is not used as the approval is managed by the acceptance flow
     function approveCollateral() external onlyRole(COLLATERAL_MANAGER_ROLE) {
         if (approvedCollateralSpender == address(0))
             revert MintRedeemManagerInvalidZeroAddress();
@@ -103,6 +107,14 @@ abstract contract MintRedeemManager is
             type(uint256).max
         );
         IERC20(usdt.addr).forceApprove(
+            approvedCollateralSpender,
+            type(uint256).max
+        );
+        IERC20(aUsdc.addr).forceApprove(
+            approvedCollateralSpender,
+            type(uint256).max
+        );
+        IERC20(aUsdt.addr).forceApprove(
             approvedCollateralSpender,
             type(uint256).max
         );
@@ -137,24 +149,15 @@ abstract contract MintRedeemManager is
         _revokeRole(COLLATERAL_MANAGER_ROLE, collateralManager);
     }
 
-    /// @notice Supply funds to the active backing contract (aka approvedCollateralSpender)
-    /// @dev the approveCollateralSpender will colect the funds, as the only entity allowed to do so
-    function supplyToBacking() external nonReentrant whenNotPaused {
-        uint256 usdcBal = IERC20(usdc.addr).balanceOf(address(this));
-        uint256 usdtBal = IERC20(usdt.addr).balanceOf(address(this));
-        uint256 minAmountUsdc = BACKING_MIN_AMOUNT_TO_BE_MULTIPLIED_BY_BASE *
-            (10 ** usdc.decimals);
-        uint256 minAmountUsdt = BACKING_MIN_AMOUNT_TO_BE_MULTIPLIED_BY_BASE *
-            (10 ** usdt.decimals);
-
-        if (!((usdcBal > minAmountUsdc) && (usdtBal > minAmountUsdt))) {
-            revert MintRedeemManagerSupplyAmountNotReached();
-        }
-        //Get the integer division
-        uint256 usdcToMove = (usdcBal / minAmountUsdc) * minAmountUsdc;
-        uint256 usdtToMove = (usdtBal / minAmountUsdt) * minAmountUsdt;
-        IUSDOBacking(approvedCollateralSpender).supply(usdcToMove, usdtToMove);
-        emit SuppliedToBacking(msg.sender, usdcToMove, usdtToMove);
+    /// @notice Change the protocol emergency mode
+    /// @dev Only default admin can call this function
+    /// @dev If any additional stable is found (not tied to any USDO) is present here, consider calling `supplyToBacking` first as that call may fail if called from here under some unusual circumstances
+    /// @param emergencyMode_ The mode to be set
+    function setEmergencyStatus(
+        bool emergencyMode_
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        emergencyMode = emergencyMode_;
+        emit MintRedeemManagerEmergencyStatus(emergencyMode);
     }
 
     /// @notice Pause the contract
@@ -169,6 +172,19 @@ abstract contract MintRedeemManager is
         _unpause();
     }
 
+    /// @notice Supply funds to the active backing contract (aka approvedCollateralSpender)
+    /// @dev the approveCollateralSpender will colect the funds, as the only entity allowed to do so
+    function supplyToBacking() external nonReentrant whenNotPaused {
+        if (approvedCollateralSpender != address(0)) {
+            uint256 usdcBal = IERC20(emergencyMode ? aUsdc.addr : usdc.addr)
+                .balanceOf(address(this));
+            uint256 usdtBal = IERC20(emergencyMode ? aUsdt.addr : usdt.addr)
+                .balanceOf(address(this));
+            IUSDOBacking(approvedCollateralSpender).supply(usdcBal, usdtBal);
+            emit SuppliedToBacking(msg.sender, usdcBal, usdtBal);
+        }
+    }
+
     /* --------------- INTERNAL --------------- */
 
     /// @notice Check mint and redeem invariant
@@ -177,8 +193,10 @@ abstract contract MintRedeemManager is
     function _validateInvariant(
         MintRedeemManagerTypes.Order calldata order
     ) internal view {
-        uint256 usdcDecimalsDiff = _decimals - usdc.decimals;
-        uint256 usdtDecimalsDiff = _decimals - usdt.decimals;
+        uint256 usdcDecimalsDiff = _decimals -
+            (emergencyMode ? aUsdc.decimals : usdc.decimals);
+        uint256 usdtDecimalsDiff = _decimals -
+            (emergencyMode ? aUsdt.decimals : usdt.decimals);
         uint256 usdc_amount_normalized = order.collateral_usdc_amount *
             (10 ** usdcDecimalsDiff);
         uint256 usdt_amount_normalized = order.collateral_usdt_amount *
@@ -194,13 +212,38 @@ abstract contract MintRedeemManager is
         }
     }
 
+    /// @notice Check order parameters based on protocol emergency status
+    /// @param order A struct containing the order
+    function _validateInputTokens(
+        MintRedeemManagerTypes.Order calldata order
+    ) internal view {
+        if (emergencyMode) {
+            if (
+                !(order.collateral_usdc == aUsdc.addr &&
+                    order.collateral_usdt == aUsdt.addr)
+            ) {
+                revert MintRedeemManagerCollateralNotValid();
+            }
+        } else {
+            if (
+                !(order.collateral_usdc == usdc.addr &&
+                    order.collateral_usdt == usdt.addr)
+            ) {
+                revert MintRedeemManagerCollateralNotValid();
+            }
+        }
+    }
+
     /// @notice Mint stablecoins from assets
     /// @dev Order benefactor is not used as we constraint it to be the msg.sender at higher level
+    /// @dev The received funds are supplied to the backing contract
     /// @param order A struct containing the mint order
     function _managerMint(
         MintRedeemManagerTypes.Order calldata order
     ) internal belowMaxMintPerBlock(order.usdo_amount) {
         _validateInvariant(order);
+        // Check for wanted source tokens
+        _validateInputTokens(order);
         // Add to the minted amount in this block
         mintedPerBlock[block.number] += order.usdo_amount;
         _transferCollateral(
@@ -225,6 +268,8 @@ abstract contract MintRedeemManager is
         returns (uint256 amountToBurn, uint256 usdcBack, uint256 usdtBack)
     {
         _validateInvariant(order);
+        // Check for wanted source tokens
+        _validateInputTokens(order);
         // Add to the redeemed amount in this block
         redeemedPerBlock[block.number] += order.usdo_amount;
 
@@ -252,7 +297,10 @@ abstract contract MintRedeemManager is
 
     /// @notice Redeem collateral from the protocol
     /// @dev It will trigger the backing contract (aka approvedCollateralSpender) withdraw method if the collateral is not sufficient
-    /// @param amount The amount of USDO to be unmint
+    /// @param amount The amount of USDO to burn
+    /// @return checkedBurnAmount The amount to burn
+    /// @return usdcBack The amount of USDC returned to user
+    /// @return usdtBack The amount of USDT returned to user
     function _withdrawFromProtocol(
         uint256 amount
     )
@@ -264,13 +312,17 @@ abstract contract MintRedeemManager is
         }
         //Here does hold the inveriant that _decimals >= token.decimals
         unchecked {
-            uint256 diffDecimalsUsdc = _decimals - usdc.decimals;
-            uint256 diffDecimalsUsdt = _decimals - usdt.decimals;
+            uint256 diffDecimalsUsdc = _decimals -
+                (emergencyMode ? aUsdc.decimals : usdc.decimals);
+            uint256 diffDecimalsUsdt = _decimals -
+                (emergencyMode ? aUsdt.decimals : usdt.decimals);
             uint256 halfAmount = amount / 2;
             uint256 needAmountUsdc = halfAmount / (10 ** diffDecimalsUsdc);
             uint256 needAmountUsdt = halfAmount / (10 ** diffDecimalsUsdt);
-            uint256 usdcBal = IERC20(usdc.addr).balanceOf(address(this));
-            uint256 usdtBal = IERC20(usdt.addr).balanceOf(address(this));
+            uint256 usdcBal = IERC20(emergencyMode ? aUsdc.addr : usdc.addr)
+                .balanceOf(address(this));
+            uint256 usdtBal = IERC20(emergencyMode ? aUsdt.addr : usdt.addr)
+                .balanceOf(address(this));
 
             // Compute the needed amount from backing contract
             uint256 amountFromBackingUsdc = 0;
@@ -299,6 +351,7 @@ abstract contract MintRedeemManager is
 
     /// @notice transfer supported asset to beneficiary address
     /// @dev This contract needs to have available funds
+    /// @dev asset validation has to be performed by the caller
     /// @param beneficiary The redeem beneficiary
     /// @param asset The redeemed asset
     /// @param amount The redeemed amount
@@ -307,15 +360,12 @@ abstract contract MintRedeemManager is
         address asset,
         uint256 amount
     ) internal {
-        if (!(asset == usdc.addr || asset == usdt.addr)) {
-            revert MintRedeemManagerUnsupportedAsset();
-        } else {
-            IERC20(asset).safeTransfer(beneficiary, amount);
-        }
+        IERC20(asset).safeTransfer(beneficiary, amount);
     }
 
     /// @notice transfer supported asset to target addresses
     /// @dev User must have approved this contract for allowance
+    /// @dev asset validation has to be performed by the caller
     /// @param amount The amount to be transfered
     /// @param asset The asset to be transfered
     /// @param recipient The destination address
@@ -324,9 +374,6 @@ abstract contract MintRedeemManager is
         address asset,
         address recipient
     ) internal {
-        // cannot mint using unsupported asset or native ETH even if it is supported for redemptions
-        if (!(asset == usdc.addr || asset == usdt.addr))
-            revert MintRedeemManagerUnsupportedAsset();
         IERC20 token = IERC20(asset);
         token.safeTransferFrom(msg.sender, recipient, amount);
     }
