@@ -417,6 +417,107 @@ describe("USDOBacking", function () {
       );
     });
 
+    it("Donation should not influence", async function () {
+      const { admin, usdc, usdt, usdo, ausdc, ausdt, usdobacking, alice, bob } =
+        await loadFixture(deployFixture);
+
+      await usdc
+        .connect(admin)
+        .transfer(bob.address, ethers.parseUnits("100", 6));
+
+      const order = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral_usdt: await usdt.getAddress(),
+        collateral_usdc: await usdc.getAddress(),
+        collateral_usdt_amount: ethers.parseUnits(
+          "1000",
+          await usdt.decimals()
+        ),
+        collateral_usdc_amount: ethers.parseUnits(
+          "1000",
+          await usdc.decimals()
+        ),
+        usdo_amount: ethers.parseEther("2000")
+      };
+      await usdo.connect(alice).mint(order);
+      // Donate
+      await usdc
+        .connect(bob)
+        .transfer(await usdo.getAddress(), ethers.parseUnits("50", 6));
+      await usdo.connect(alice).supplyToBacking();
+      expect(await usdo.balanceOf(alice.address)).to.be.equal(
+        ethers.parseEther("2000")
+      );
+      expect(await usdc.balanceOf(await usdo.getAddress())).to.be.equal(
+        ethers.parseUnits("0", await usdc.decimals())
+      );
+      expect(await usdt.balanceOf(await usdo.getAddress())).to.be.equal(
+        ethers.parseUnits("0", await usdt.decimals())
+      );
+      expect(await ausdc.balanceOf(await usdobacking.getAddress())).to.be.equal(
+        ethers.parseUnits("1050.5", await ausdc.decimals())
+      );
+      expect(await ausdt.balanceOf(await usdobacking.getAddress())).to.be.equal(
+        ethers.parseUnits("1000.5", await ausdt.decimals())
+      );
+      expect(await usdobacking.totalSuppliedUSDC()).to.be.equal(
+        ethers.parseUnits("1050.5", await usdc.decimals())
+      );
+      expect(await usdobacking.totalSuppliedUSDT()).to.be.equal(
+        ethers.parseUnits("1000.5", await usdt.decimals())
+      );
+
+      // Donate
+      await usdc
+        .connect(bob)
+        .transfer(await usdo.getAddress(), ethers.parseUnits("50", 6));
+      await usdo.connect(bob).supplyToBacking();
+
+      const redeemOrder = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral_usdt: await usdt.getAddress(),
+        collateral_usdc: await usdc.getAddress(),
+        collateral_usdt_amount: ethers.parseUnits(
+          "1000",
+          await usdt.decimals()
+        ),
+        collateral_usdc_amount: ethers.parseUnits(
+          "1000",
+          await usdc.decimals()
+        ),
+        usdo_amount: ethers.parseEther("2000")
+      };
+      await usdo.connect(alice).redeem(redeemOrder);
+      expect(await usdo.balanceOf(alice.address)).to.be.equal(
+        ethers.parseEther("0")
+      );
+      expect(await usdc.balanceOf(await usdo.getAddress())).to.be.equal(0);
+      expect(await usdt.balanceOf(await usdo.getAddress())).to.be.equal(0);
+      // Account last donation
+      expect(await usdobacking.totalSuppliedUSDC()).to.be.equal(
+        ethers.parseUnits("100.5", await usdc.decimals())
+      );
+      expect(await usdobacking.totalSuppliedUSDT()).to.be.equal(
+        ethers.parseUnits("0.5", await usdt.decimals())
+      );
+      //################################################################################################################################################
+      //account yield for aToken -> use greaterThanOrEqual
+      expect(
+        await ausdc.balanceOf(await usdobacking.getAddress())
+      ).to.be.greaterThanOrEqual(
+        ethers.parseUnits("100.5", await ausdc.decimals())
+      );
+      expect(
+        await ausdt.balanceOf(await usdobacking.getAddress())
+      ).to.be.greaterThanOrEqual(
+        ethers.parseUnits("0.5", await ausdt.decimals())
+      );
+      // Initial amount
+      expect(await usdo.totalSupply()).to.be.equal(ethers.parseEther("1"));
+    });
+
     it("Should withdraw from backing", async function () {
       const { usdc, usdt, usdo, ausdc, ausdt, usdobacking, alice } =
         await loadFixture(deployFixture);
