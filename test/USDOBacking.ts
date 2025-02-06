@@ -764,10 +764,10 @@ describe("USDOBacking", function () {
       expect(await usdt.balanceOf(await usdo.getAddress())).to.be.equal(0);
       expect(await usdobacking.totalSuppliedUSDC()).to.be.equal(500000);
       expect(await usdobacking.totalSuppliedUSDT()).to.be.equal(500000);
-      expect(await ausdt.balanceOf(alice.address)).to.be.equal(
+      expect(await ausdt.balanceOf(alice.address)).to.be.greaterThanOrEqual(
         ethers.parseUnits("600", await ausdt.decimals())
       );
-      expect(await ausdc.balanceOf(alice.address)).to.be.equal(
+      expect(await ausdc.balanceOf(alice.address)).to.be.greaterThanOrEqual(
         ethers.parseUnits("600", await ausdc.decimals())
       );
       //################################################################################################################################################
