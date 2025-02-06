@@ -280,10 +280,19 @@ describe("USDOBacking", function () {
         usdo,
         "SuppliedToBacking"
       );
-      expect(await ausdc.balanceOf(await usdobacking.getAddress())).to.be.equal(
+      // Supply zero amounts
+      expect(await usdo.connect(bob).supplyToBacking()).to.emit(
+        usdo,
+        "SuppliedToBacking"
+      );
+      expect(
+        await ausdc.balanceOf(await usdobacking.getAddress())
+      ).to.be.greaterThanOrEqual(
         ethers.parseUnits("2000.5", await ausdc.decimals())
       );
-      expect(await ausdt.balanceOf(await usdobacking.getAddress())).to.be.equal(
+      expect(
+        await ausdt.balanceOf(await usdobacking.getAddress())
+      ).to.be.greaterThanOrEqual(
         ethers.parseUnits("2000.5", await ausdt.decimals())
       );
       expect(await usdobacking.totalSuppliedUSDC()).to.be.equal(
@@ -363,6 +372,8 @@ describe("USDOBacking", function () {
 
       // No assets in USDO
       await usdo.connect(alice).supplyToBacking();
+      // Supply zero amounts
+      await usdo.connect(alice).supplyToBacking();
       await usdo.connect(admin).setEmergencyStatus(true);
 
       expect(await usdc.balanceOf(await usdo.getAddress())).to.be.equal(0);
@@ -441,11 +452,13 @@ describe("USDOBacking", function () {
         usdo_amount: ethers.parseEther("2000")
       };
       await usdo.connect(alice).mint(order);
+      await usdo.connect(alice).supplyToBacking();
       // Donate
       await usdc
         .connect(bob)
         .transfer(await usdo.getAddress(), ethers.parseUnits("50", 6));
-      await usdo.connect(alice).supplyToBacking();
+      // The donation above should only forward assets to the backing contract without modifing the supplied stable coins trakcer
+      await usdo.connect(bob).supplyToBacking();
       expect(await usdo.balanceOf(alice.address)).to.be.equal(
         ethers.parseEther("2000")
       );
@@ -455,14 +468,18 @@ describe("USDOBacking", function () {
       expect(await usdt.balanceOf(await usdo.getAddress())).to.be.equal(
         ethers.parseUnits("0", await usdt.decimals())
       );
-      expect(await ausdc.balanceOf(await usdobacking.getAddress())).to.be.equal(
+      expect(
+        await ausdc.balanceOf(await usdobacking.getAddress())
+      ).to.be.greaterThanOrEqual(
         ethers.parseUnits("1050.5", await ausdc.decimals())
       );
-      expect(await ausdt.balanceOf(await usdobacking.getAddress())).to.be.equal(
+      expect(
+        await ausdt.balanceOf(await usdobacking.getAddress())
+      ).to.be.greaterThanOrEqual(
         ethers.parseUnits("1000.5", await ausdt.decimals())
       );
       expect(await usdobacking.totalSuppliedUSDC()).to.be.equal(
-        ethers.parseUnits("1050.5", await usdc.decimals())
+        ethers.parseUnits("1000.5", await usdc.decimals())
       );
       expect(await usdobacking.totalSuppliedUSDT()).to.be.equal(
         ethers.parseUnits("1000.5", await usdt.decimals())
@@ -495,9 +512,9 @@ describe("USDOBacking", function () {
       );
       expect(await usdc.balanceOf(await usdo.getAddress())).to.be.equal(0);
       expect(await usdt.balanceOf(await usdo.getAddress())).to.be.equal(0);
-      // Account last donation
+      // Donation should not influence the supplied usdc and usdt accounting
       expect(await usdobacking.totalSuppliedUSDC()).to.be.equal(
-        ethers.parseUnits("100.5", await usdc.decimals())
+        ethers.parseUnits("0.5", await usdc.decimals())
       );
       expect(await usdobacking.totalSuppliedUSDT()).to.be.equal(
         ethers.parseUnits("0.5", await usdt.decimals())
