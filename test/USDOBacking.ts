@@ -223,10 +223,10 @@ describe("USDOBacking", function () {
   describe("Team allocation change", function () {
     it("Should change team allocation points", async function () {
       const { usdobacking, admin } = await loadFixture(deployFixture);
-      await usdobacking.proposeNewTeamAllocation(10);
+      await usdobacking.proposeNewOvaDispatcherAllocation(10);
       await time.increase(10 * 24 * 60 * 60);
       expect(
-        await usdobacking.connect(admin).acceptProposedTeamAllocation()
+        await usdobacking.connect(admin).acceptProposedOvaDispatcherAllocation()
       ).to.emit(usdobacking, "AaveNewTeamAllocation");
     });
   });

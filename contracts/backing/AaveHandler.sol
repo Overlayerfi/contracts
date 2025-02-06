@@ -47,30 +47,26 @@ abstract contract AaveHandler is
     ///@notice AAVE protocl Pool.sol contract address
     address public AAVE = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     ///@notice Protocol rewardsDispatcher
-    address public REWARDS_DISPATCHER;
+    address public OVA_REWARDS_DISPATCHER;
     ///@notice Amount of total supplied USDC
     uint256 public totalSuppliedUSDC;
     ///@notice Amount of total supplied USDT
     uint256 public totalSuppliedUSDT;
     /// @notice the proposed new spender
     address public proposedAave;
-    /// @notice emergency withdraw address after a position swap
-    address private emergencyWithdrawRecipient;
-    /// @notice the last emergency withdraw time
-    uint256 public emergencyWithdrawProposalTime;
     /// @notice the last aave proposal time
     uint256 public aaveProposalTime;
     /// @notice the last team allocation proposal time
-    uint256 public teamAllocationProposalTime;
+    uint256 public ovaDispatcherAllocationProposalTime;
     /// @notice the proposed team allocation percentage
-    uint8 public proposedTeamAllocation;
+    uint8 public proposedOvaDispatcherAllocation;
 
     //########################################## PRIVATE STORAGE ##########################################
 
     ///@notice team reward allocation percentage
-    uint8 private TEAM_ALLOCATION = 20;
+    uint8 public ovaDispatcherAllocation = 20;
     ///@notice usdo reward allocation percentage
-    uint8 private USDO_MINT_AMOUNT = 80;
+    uint8 public stakedUsdoRewardsAllocation = 80;
 
     //########################################## MODIFIERS ##########################################
 
@@ -98,10 +94,9 @@ abstract contract AaveHandler is
         if (usdo == address(0)) revert AaveHandlerZeroAddressException();
         if (susdo == address(0)) revert AaveHandlerZeroAddressException();
         if (usdo == susdo) revert AaveHandlerSameAddressException();
-        REWARDS_DISPATCHER = rewardsDispatcher;
+        OVA_REWARDS_DISPATCHER = rewardsDispatcher;
         USDO = usdo;
         sUSDO = susdo;
-        emergencyWithdrawRecipient = rewardsDispatcher;
 
         //approve AAVE
         approveAave(type(uint256).max);
@@ -167,13 +162,13 @@ abstract contract AaveHandler is
         if (amountUsdc > oldUsdcSupplied) {
             uint256 usdcDiff = amountUsdc - oldUsdcSupplied;
             if (usdcDiff > 0) {
-                IERC20(USDC).safeTransfer(REWARDS_DISPATCHER, usdcDiff);
+                IERC20(USDC).safeTransfer(OVA_REWARDS_DISPATCHER, usdcDiff);
             }
         }
         if (amountUsdt > oldUsdtSupplied) {
             uint256 usdtDiff = amountUsdt - oldUsdtSupplied;
             if (usdtDiff > 0) {
-                IERC20(USDT).safeTransfer(REWARDS_DISPATCHER, usdtDiff);
+                IERC20(USDT).safeTransfer(OVA_REWARDS_DISPATCHER, usdtDiff);
             }
         }
     }
@@ -225,13 +220,13 @@ abstract contract AaveHandler is
         IUSDO(USDO).mint(order);
 
         uint256 amountToStaking = minAmountBetween.mulDiv(
-            USDO_MINT_AMOUNT,
+            stakedUsdoRewardsAllocation,
             100
         );
         IsUSDO(sUSDO).transferInRewards(amountToStaking);
 
         IERC20(USDO).safeTransfer(
-            REWARDS_DISPATCHER,
+            OVA_REWARDS_DISPATCHER,
             minAmountBetween - amountToStaking
         );
     }
@@ -316,31 +311,16 @@ abstract contract AaveHandler is
         aaveProposalTime = block.timestamp;
     }
 
-    ///@notice A new emergency withdraw recipient
+    ///@notice Propose a new ova dispatcher contract
     ///@dev Can not be zero address
-    ///@param recipient The new recipient
-    function setEmergencyWithdrawRecipient(
-        address recipient
-    ) external onlyOwner nonReentrant {
-        if (recipient == address(0)) revert AaveHandlerZeroAddressException();
-        emergencyWithdrawRecipient = recipient;
-    }
-
-    ///@notice Propose a emergency withdraw time
-    function proposeEmergencyTime() external onlyOwner {
-        emergencyWithdrawProposalTime = block.timestamp + 30 days;
-    }
-
-    ///@notice Propose a new AAVE contract
-    ///@dev Can not be zero address
-    ///@param proposedTeamAllocation_ The new proposed team allocation
-    function proposeNewTeamAllocation(
-        uint8 proposedTeamAllocation_
+    ///@param proposedOvaDispatcherAllocation_ The new proposed team allocation
+    function proposeNewOvaDispatcherAllocation(
+        uint8 proposedOvaDispatcherAllocation_
     ) external onlyOwner {
-        if (proposedTeamAllocation_ > 100)
+        if (proposedOvaDispatcherAllocation_ > 100)
             revert AaveHandlerOperationNotAllowed();
-        proposedTeamAllocation = proposedTeamAllocation_;
-        teamAllocationProposalTime = block.timestamp;
+        proposedOvaDispatcherAllocation = proposedOvaDispatcherAllocation_;
+        ovaDispatcherAllocationProposalTime = block.timestamp;
     }
 
     ///@notice Accept the proposed AAVE contract
@@ -365,17 +345,17 @@ abstract contract AaveHandler is
     }
 
     ///@notice Accept the proposed team allocation
-    function acceptProposedTeamAllocation() external onlyOwner {
+    function acceptProposedOvaDispatcherAllocation() external onlyOwner {
         if (
-            teamAllocationProposalTime + PROPOSAL_TIME_INTERVAL >
+            ovaDispatcherAllocationProposalTime + PROPOSAL_TIME_INTERVAL >
             block.timestamp
         ) {
             revert AaveIntervalNotRespected();
         }
-        TEAM_ALLOCATION = proposedTeamAllocation;
-        USDO_MINT_AMOUNT = 100 - TEAM_ALLOCATION;
+        ovaDispatcherAllocation = proposedOvaDispatcherAllocation;
+        stakedUsdoRewardsAllocation = 100 - ovaDispatcherAllocation;
 
-        emit AaveNewTeamAllocation(TEAM_ALLOCATION);
+        emit AaveNewTeamAllocation(ovaDispatcherAllocation);
     }
 
     ///@notice Update protocol rewardsDispatcher
@@ -386,7 +366,7 @@ abstract contract AaveHandler is
     ) external onlyOwner {
         if (rewardsDispatcher == address(0))
             revert AaveHandlerZeroAddressException();
-        REWARDS_DISPATCHER = rewardsDispatcher;
+        OVA_REWARDS_DISPATCHER = rewardsDispatcher;
         emit AaveNewRewardsDispatcher(rewardsDispatcher);
     }
 
