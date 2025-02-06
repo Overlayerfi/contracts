@@ -18,8 +18,6 @@ import "./uniswap/TickMath.sol";
 import "./openzeppelin/SafeMath.sol";
 import "./openzeppelin/Math.sol";
 
-import "hardhat/console.sol";
-
 /// @title Uniswap V3 canonical staking interface
 contract UniswapV3Staker is IUniswapV3Staker, Multicall {
     using SafeMath for uint256;
