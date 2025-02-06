@@ -11,8 +11,6 @@ import {IsUSDO} from "./interfaces/IsUSDO.sol";
 import {IUSDO} from "./interfaces/IUSDO.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Constants} from "./Constants.sol";
-import {PositionSwapper} from "./PositionSwapper.sol";
-import {PositionSwapperParams} from "./PositionSwapperParams.sol";
 import "../token/types/MintRedeemManagerTypes.sol";
 
 /**
@@ -21,7 +19,6 @@ import "../token/types/MintRedeemManagerTypes.sol";
  */
 abstract contract AaveHandler is
     Constants,
-    PositionSwapper,
     Ownable2Step,
     IAaveHandlerDefs,
     ReentrancyGuard
@@ -118,8 +115,7 @@ abstract contract AaveHandler is
 
     //########################################## EXTERNAL FUNCTIONS ##########################################
 
-    ///@notice Withraw funds from AAVE protocol
-    ///@dev Use with caution, it will forward all the user funds to the protocol token (funds are safu)
+    ///@notice Withraw funds from AAVE protocol and return all the collateral to USDO
     ///@dev It requires equal amounts in input
     ///@param amountUsdc The amount to withdraw intended as USDC
     ///@param amountUsdt The amount to withdraw intended as USDCT
@@ -171,13 +167,13 @@ abstract contract AaveHandler is
         if (amountUsdc > oldUsdcSupplied) {
             uint256 usdcDiff = amountUsdc - oldUsdcSupplied;
             if (usdcDiff > 0) {
-                IERC20(USDC).safeTransfer(owner(), usdcDiff);
+                IERC20(USDC).safeTransfer(REWARDS_DISPATCHER, usdcDiff);
             }
         }
         if (amountUsdt > oldUsdtSupplied) {
             uint256 usdtDiff = amountUsdt - oldUsdtSupplied;
             if (usdtDiff > 0) {
-                IERC20(USDT).safeTransfer(owner(), usdtDiff);
+                IERC20(USDT).safeTransfer(REWARDS_DISPATCHER, usdtDiff);
             }
         }
     }
@@ -392,34 +388,6 @@ abstract contract AaveHandler is
             revert AaveHandlerZeroAddressException();
         REWARDS_DISPATCHER = rewardsDispatcher;
         emit AaveNewRewardsDispatcher(rewardsDispatcher);
-    }
-
-    ///@notice Swap the current stable coins position into a blue chip (WETH)
-    function adminSwapPosition() external onlyOwner {
-        if (
-            block.timestamp < emergencyWithdrawProposalTime ||
-            emergencyWithdrawProposalTime == 0
-        ) {
-            revert AaveHandlerOperationNotAllowed();
-        }
-        uint256 amountUsdc = IERC20(AUSDC).balanceOf(address(this));
-        uint256 amountUsdt = IERC20(AUSDT).balanceOf(address(this));
-        PositionSwapperParams memory params = PositionSwapperParams(
-            USDC,
-            AUSDC,
-            USDT,
-            AUSDT,
-            WETH,
-            AAVE,
-            UNI_SWAP_ROUTER_V2,
-            UNI_QUOTER_V2,
-            amountUsdc,
-            amountUsdt,
-            emergencyWithdrawRecipient,
-            AAVE_REFERRAL_CODE
-        );
-        uint256 swapped = _swap(params);
-        emit AaveSwapPosition(amountUsdc, amountUsdt, swapped);
     }
 
     //########################################## PUBLIC FUNCTIONS ##########################################

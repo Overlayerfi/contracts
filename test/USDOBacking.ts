@@ -1022,47 +1022,5 @@ describe("USDOBacking", function () {
         ethers.parseUnits("2000.5", await usdt.decimals())
       );
     });
-
-    it("adminSwapPosition - should move stable coins position into WETH position", async function () {
-      const { usdc, usdt, usdo, usdobacking, admin, alice, aweth } =
-        await loadFixture(deployFixture);
-      const order = {
-        benefactor: alice.address,
-        beneficiary: alice.address,
-        collateral_usdt: await usdt.getAddress(),
-        collateral_usdc: await usdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits(
-          "2100",
-          await usdt.decimals()
-        ),
-        collateral_usdc_amount: ethers.parseUnits(
-          "2100",
-          await usdc.decimals()
-        ),
-        usdo_amount: ethers.parseEther("4200")
-      };
-      await usdo.connect(alice).mint(order);
-      expect(await usdo.connect(alice).supplyToBacking()).to.emit(
-        usdo,
-        "SuppliedToBacking"
-      );
-
-      await time.increase(12 * 30 * 24 * 60 * 60); //12 months
-
-      await usdobacking.connect(admin).proposeEmergencyTime();
-      await time.increase(0.5 * 30 * 24 * 60 * 60); //0.5 months
-      await expect(usdobacking.connect(admin).adminSwapPosition()).to.be
-        .eventually.rejected;
-      await time.increase(0.5 * 30 * 24 * 60 * 60 + 1); //0.5 months
-      await usdobacking.connect(admin).adminSwapPosition();
-      const beforeBalance = await aweth.balanceOf(admin.address);
-      expect(beforeBalance).is.greaterThan(0);
-
-      // Try some rewards
-      await time.increase(12 * 30 * 24 * 60 * 60); //12 months
-      expect(await aweth.balanceOf(admin.address)).is.greaterThan(
-        beforeBalance
-      );
-    });
   });
 });
