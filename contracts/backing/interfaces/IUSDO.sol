@@ -2,8 +2,9 @@
 pragma solidity 0.8.20;
 
 import "../../token/types/MintRedeemManagerTypes.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface IUSDO {
+interface IUSDO is IERC20 {
     function acceptProposedCollateralSpender() external;
     function mint(MintRedeemManagerTypes.Order calldata order) external;
     function emergencyMode() external returns (bool);
