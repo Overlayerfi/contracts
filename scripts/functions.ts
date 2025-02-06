@@ -1,6 +1,11 @@
 import { ethers } from "hardhat";
 import { Contract } from "ethers";
-import { USDC_ADDRESS, USDT_ADDRESS } from "./addresses";
+import {
+  AUSDC_ADDRESS,
+  AUSDT_ADDRESS,
+  USDC_ADDRESS,
+  USDT_ADDRESS
+} from "./addresses";
 import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
 import LIQUIDITY_ABI from "../artifacts/contracts/liquidity/Liquidity.sol/Liquidity.json";
 import USDO_ABI from "../artifacts/contracts/token/USDO.sol/USDO.json";
@@ -35,6 +40,14 @@ export async function deploy_USDO(
     },
     {
       addr: USDT_ADDRESS,
+      decimals: 6
+    },
+    {
+      addr: AUSDC_ADDRESS,
+      decimals: 6
+    },
+    {
+      addr: AUSDT_ADDRESS,
       decimals: 6
     },
     ethers.parseEther("100000000"),
