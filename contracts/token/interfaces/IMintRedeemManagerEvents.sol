@@ -8,6 +8,9 @@ interface IMintRedeemManagerEvents {
     /// @notice Event emitted when contract receives ETH
     event Received(address, uint256);
 
+    /// @notice Event for signaling emergency mode status
+    event MintRedeemManagerEmergencyStatus(bool status);
+
     /// @notice Event emitted when USDO is minted
     event Mint(
         address indexed minter,
