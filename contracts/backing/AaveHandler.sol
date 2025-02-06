@@ -35,6 +35,8 @@ abstract contract AaveHandler is
     uint16 private constant AAVE_REFERRAL_CODE = 0;
     /// @notice the time interval needed to changed the AAVE contract
     uint256 public constant PROPOSAL_TIME_INTERVAL = 10 days;
+    /// @notice decimals offset between usdo and usdc/usdt
+    uint256 public constant DECIMALS_DIFF_AMOUNT = 10 ** 12;
 
     //########################################## IMMUTABLE ##########################################
 
@@ -288,9 +290,22 @@ abstract contract AaveHandler is
                 );
             }
         }
+
+        // Compute how much we have to increase our counters. We cannot exceed the USDO supply as this call follows a mint action
+        uint256 halfSupply = (IUSDO(USDO).totalSupply() / 2) /
+            DECIMALS_DIFF_AMOUNT;
+        uint256 differenceUsdc = halfSupply - totalSuppliedUSDC;
+        uint256 differenceUsdt = halfSupply - totalSuppliedUSDT;
+        if (differenceUsdc > amountUsdc) {
+            revert AaveHandlerUnexpectedAmount();
+        }
+        if (differenceUsdt > amountUsdt) {
+            revert AaveHandlerUnexpectedAmount();
+        }
+
         unchecked {
-            totalSuppliedUSDC += amountUsdc;
-            totalSuppliedUSDT += amountUsdt;
+            totalSuppliedUSDC += Math.min(amountUsdc, differenceUsdc);
+            totalSuppliedUSDT += Math.min(amountUsdt, differenceUsdt);
         }
 
         emit AaveSupply(amountUsdc, amountUsdt);

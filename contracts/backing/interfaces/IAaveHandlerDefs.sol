@@ -15,6 +15,8 @@ interface IAaveHandlerDefs {
 
     error AaveHandlerCallerIsNotUsdo();
 
+    error AaveHandlerUnexpectedAmount();
+
     error AaveHandlerAaveWithrawFailed();
 
     error AaveHandlerInsufficientBalance();
