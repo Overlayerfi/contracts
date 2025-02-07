@@ -41,7 +41,7 @@ contract USDOBacking is AaveHandler, IUSDOBackingDefs {
     //########################################## EXTERNAL FUNCTIONS ##########################################
 
     ///@notice Recover asset from the contract
-    ///@param asset The asset to approve
+    ///@param asset The asset to recover
     ///@param amount The spender amount
     function recoverAsset(
         address asset,

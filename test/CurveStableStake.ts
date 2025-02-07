@@ -256,11 +256,11 @@ describe("CurveStableStake", function () {
         await liquidity.activeRewards(stakedAsset.getAddress())
       ).to.be.equal(true);
       expect(
-        await liquidity.rewardsPerSecondMultiplierNum(stakedAsset.getAddress())
+        await liquidity.rewardsPerYearMultiplierNum(stakedAsset.getAddress())
       ).to.be.equal(1);
       await liquidity.setRewardForStakedAssets(stakedAsset.getAddress(), 10, 1);
       expect(
-        await liquidity.rewardsPerSecondMultiplierNum(stakedAsset.getAddress())
+        await liquidity.rewardsPerYearMultiplierNum(stakedAsset.getAddress())
       ).to.be.equal(10);
     });
 
@@ -327,6 +327,57 @@ describe("CurveStableStake", function () {
         liquidity,
         "Deposit"
       );
+    });
+
+    it("Pools with endtimestamp should compute rewards uo to the end time stamp", async function () {
+      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
+        await loadFixture(deployFixture);
+
+      const amount = ethers.parseEther("1");
+      await stakedAsset.transfer(alice.getAddress(), amount);
+      await stakedAsset.connect(alice).approve(liquidity.getAddress(), amount);
+
+      await liquidity.setReward(
+        tokenRewardOneOvaReferral.getAddress(),
+        ethers.parseEther("1")
+      );
+      await liquidity.setRewardForStakedAssets(
+        tokenRewardOneOvaReferral.getAddress(),
+        1,
+        1
+      );
+      const latestTime: number = await time.latest();
+      await liquidity.addWithNumCoinsAndPool(
+        stakedAsset.getAddress(),
+        tokenRewardOneOvaReferral.getAddress(),
+        1,
+        3,
+        CURVE_DAI_USDC_USDT_POOL,
+        latestTime + 60 * 60,
+        false,
+        true
+      );
+
+      await expect(await liquidity.connect(alice).deposit(0, amount)).to.emit(
+        liquidity,
+        "Deposit"
+      );
+
+      // Virtual price of curve LP is 1.03
+      const expected = (1.03 / (60 * 60 * 24 * 365)) * (60 * 60);
+
+      await time.increase(60 * 60 * 100);
+
+      await expect(await liquidity.connect(alice).withdraw(0, amount)).to.emit(
+        liquidity,
+        "Withdraw"
+      );
+
+      const rewardsBal = ethers.formatEther(
+        await tokenRewardOneOvaReferral.balanceOf(alice.address)
+      );
+      expect(+rewardsBal).to.be.greaterThan(expected * 0.99);
+      expect(+rewardsBal).to.be.lessThan(expected * 1.01);
     });
 
     it("Rewards for staked liquidity", async function () {

@@ -25,14 +25,14 @@ contract CurveStableStake is Liquidity {
     using Math for uint256;
 
     /**
-     * @notice The emitted amount of reward for each second multiplier numerator.
+     * @notice The emitted amount of reward for each year multiplier numerator.
      */
-    mapping(address => uint256) public rewardsPerSecondMultiplierNum;
+    mapping(address => uint256) public rewardsPerYearMultiplierNum;
 
     /**
-     * @notice The emitted amount of reward for each second multiplier denominator.
+     * @notice The emitted amount of reward for each year multiplier denominator.
      */
-    mapping(address => uint256) public rewardsPerSecondMultiplierDen;
+    mapping(address => uint256) public rewardsPerYearMultiplierDen;
 
     /**
      * @notice Track number of stable coins held inside Curve pools.
@@ -107,15 +107,16 @@ contract CurveStableStake is Liquidity {
         if (!activeRewards[address(rewardAsset)]) {
             activeRewards[address(rewardAsset)] = true;
         }
+        _massUpdatePools();
         if (
-            rewardsPerSecondMultiplierNum[address(rewardAsset)] != rewardRateNum
+            rewardsPerYearMultiplierNum[address(rewardAsset)] != rewardRateNum
         ) {
-            rewardsPerSecondMultiplierNum[address(rewardAsset)] = rewardRateNum;
+            rewardsPerYearMultiplierNum[address(rewardAsset)] = rewardRateNum;
         }
         if (
-            rewardsPerSecondMultiplierDen[address(rewardAsset)] != rewardRateDen
+            rewardsPerYearMultiplierDen[address(rewardAsset)] != rewardRateDen
         ) {
-            rewardsPerSecondMultiplierDen[address(rewardAsset)] = rewardRateDen;
+            rewardsPerYearMultiplierDen[address(rewardAsset)] = rewardRateDen;
         }
     }
 
@@ -139,10 +140,7 @@ contract CurveStableStake is Liquidity {
         uint256 accRewardPerShare = pool.accRewardPerShare;
         uint256 stakedAssetSupply = pool.stakedAsset.balanceOf(address(this));
         if (block.timestamp > pool.lastRewardTime && stakedAssetSupply != 0) {
-            uint256 multiplier = _getMultiplier(
-                pool.lastRewardTime,
-                block.timestamp
-            );
+            uint256 multiplier = _getMultiplier(pid);
 
             // This is the same computation made in the updatePool function. Just a view version.
             uint256 rewards = multiplier *
@@ -181,10 +179,7 @@ contract CurveStableStake is Liquidity {
             pool.lastRewardTime = block.timestamp;
             return;
         }
-        uint256 multiplier = _getMultiplier(
-            pool.lastRewardTime,
-            block.timestamp
-        );
+        uint256 multiplier = _getMultiplier(pid);
         uint256 rewards = multiplier *
             (
                 rewardsForStakedAssets(pool.stakedAsset, pool.rewardAsset)
@@ -197,7 +192,10 @@ contract CurveStableStake is Liquidity {
             pool.accRewardPerShare +
             rewards.mulDiv(1e18, stakedAssetSupply);
 
-        pool.lastRewardTime = block.timestamp;
+        pool.lastRewardTime = Math.min(
+            block.timestamp,
+            pool.endTimeStamp != 0 ? pool.endTimeStamp : block.timestamp
+        );
     }
 
     /**
@@ -239,8 +237,8 @@ contract CurveStableStake is Liquidity {
 
         return
             totalLiquidityHeld.mulDiv(
-                rewardsPerSecondMultiplierNum[address(reward)],
-                rewardsPerSecondMultiplierDen[address(reward)]
+                rewardsPerYearMultiplierNum[address(reward)],
+                rewardsPerYearMultiplierDen[address(reward)]
             ) / SECONDS_IN_YEAR;
     }
 }

@@ -311,13 +311,63 @@ describe("Liquidity", function () {
       );
     });
 
-    it("Should not harvest or withraw before end time if vesting", async function () {
+    it("Pools with endtimestamp should compute rewards uo to the end time stamp", async function () {
+      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
+        await loadFixture(deployFixture);
+
+      const latestTime: number = await time.latest();
+      await time.increaseTo(latestTime + 1);
+      const amount = ethers.parseEther("1");
+      await stakedAsset.transfer(alice.getAddress(), amount);
+      await stakedAsset.connect(alice).approve(liquidity.getAddress(), amount);
+
+      await liquidity.setReward(
+        tokenRewardOneOvaReferral.getAddress(),
+        ethers.parseEther("1")
+      );
+      await liquidity.add(
+        stakedAsset.getAddress(),
+        tokenRewardOneOvaReferral.getAddress(),
+        1,
+        latestTime + 60 * 60,
+        false,
+        true
+      );
+
+      await expect(await liquidity.connect(alice).deposit(0, amount)).to.emit(
+        liquidity,
+        "Deposit"
+      );
+
+      const expected = 60 * 60;
+
+      await time.increase(60 * 60 * 100);
+
+      await expect(await liquidity.connect(alice).withdraw(0, amount)).to.emit(
+        liquidity,
+        "Withdraw"
+      );
+
+      const rewardsBal = ethers.formatEther(
+        await tokenRewardOneOvaReferral.balanceOf(alice.address)
+      );
+      expect(+rewardsBal).to.be.greaterThan(expected * 0.99);
+      expect(+rewardsBal).to.be.lessThan(expected * 1.01);
+    });
+
+    it("Should harvest and not withraw before end time if vesting", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice } =
         await loadFixture(deployFixture);
-      const amount = ethers.parseEther("10");
-      await stakedAsset.transfer(alice.getAddress(), amount);
+      const n = "5";
+      const amount = ethers.parseEther(n);
+      await stakedAsset.transfer(
+        alice.getAddress(),
+        ethers.parseEther((+n * 2).toFixed(1))
+      );
 
-      await stakedAsset.connect(alice).approve(liquidity.getAddress(), amount);
+      await stakedAsset
+        .connect(alice)
+        .approve(liquidity.getAddress(), ethers.MaxUint256);
 
       const latestTime: number = await time.latest();
 
@@ -331,14 +381,27 @@ describe("Liquidity", function () {
         true
       );
 
+      expect(
+        await tokenRewardOneOvaReferral.balanceOf(alice.address)
+      ).to.be.equal(0);
       await expect(await liquidity.connect(alice).deposit(0, amount)).to.emit(
         liquidity,
         "Deposit"
       );
+      expect(
+        await tokenRewardOneOvaReferral.balanceOf(alice.address)
+      ).to.be.equal(0);
 
-      await expect(liquidity.connect(alice).harvest(0)).to.be.eventually
+      await expect(liquidity.connect(alice).harvest(0)).to.be.not.eventually
         .rejected;
-      await time.increaseTo(latestTime + 60 * 60 * 24 * 8);
+      await time.increaseTo(latestTime + 60 * 60 * 24 * 3);
+      await expect(await liquidity.connect(alice).deposit(0, amount)).to.emit(
+        liquidity,
+        "Deposit"
+      );
+      // Sequental deposits should harvest before endTimestamp
+      const firstBal = await tokenRewardOneOvaReferral.balanceOf(alice.address);
+      expect(firstBal).to.be.greaterThan(0);
       await expect(liquidity.connect(alice).withdraw(0, amount)).to.be
         .eventually.rejected;
       await time.increaseTo(latestTime + 60 * 60 * 24 * 10 + 1);
@@ -346,6 +409,10 @@ describe("Liquidity", function () {
         liquidity,
         "Withdraw"
       );
+      const secondBal = await tokenRewardOneOvaReferral.balanceOf(
+        alice.address
+      );
+      expect(secondBal).to.be.greaterThan(firstBal);
     });
 
     it("Deposit, harvest and withdraw with referral", async function () {
@@ -392,12 +459,8 @@ describe("Liquidity", function () {
         .addCode("BOB", bob.address);
 
       // Consume referral code
-      await tokenRewardOneOvaReferral
-        .connect(alice)
-        .consumeReferral("BOB", alice.address);
-      await tokenRewardOneOvaReferral
-        .connect(owner)
-        .consumeReferral("BOB", owner.address);
+      await tokenRewardOneOvaReferral.connect(alice).consumeReferral("BOB");
+      await tokenRewardOneOvaReferral.connect(owner).consumeReferral("BOB");
 
       // Test an increasing amount of bonus payed out
       await expect(

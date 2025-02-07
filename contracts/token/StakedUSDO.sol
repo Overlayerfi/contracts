@@ -169,7 +169,8 @@ abstract contract StakedUSDO is
         if (to == address(0)) revert StakedUSDOInvalidZeroAddress();
         if (
             hasRole(FULL_RESTRICTED_STAKER_ROLE, from) &&
-            !hasRole(FULL_RESTRICTED_STAKER_ROLE, to)
+            (!hasRole(FULL_RESTRICTED_STAKER_ROLE, to) &&
+                !hasRole(SOFT_RESTRICTED_STAKER_ROLE, to))
         ) {
             uint256 amountToDistribute = balanceOf(from);
             _burn(from, amountToDistribute);

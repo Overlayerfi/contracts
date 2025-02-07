@@ -47,6 +47,11 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     mapping(address => uint256) public totalAllocPointsPerReward;
 
     /**
+     * @notice The staking assets already present.
+     */
+    mapping(address => bool) private usedStakingAssets;
+
+    /**
      * @notice The bonus multiplier.
      */
     uint256 public bonusMultiplier = 1;
@@ -130,6 +135,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @param bonusMultiplier_ the new multiplier value.
      */
     function updateMultiplier(uint256 bonusMultiplier_) external onlyOwner {
+        _massUpdatePools();
         bonusMultiplier = bonusMultiplier_;
         emit NewBonusMultiplier(bonusMultiplier_);
     }
@@ -218,7 +224,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         uint256 pending = rewards - currentUser.rewardDebt;
         // Update user info
         currentUser.amount = currentUser.amount - amount;
-        // update reward debt, there is harvest on deposit so at every deposit the debt will be updated with the new amount the user has.
+        // update reward debt, there is harvest on withdraw so at every withdraw the debt will be updated with the new amount the user has.
         currentUser.rewardDebt = currentUser.amount.mulDiv(
             pool.accRewardPerShare,
             1e18
@@ -241,6 +247,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
 
     /**
      * @notice Harvest reward for an account.
+     * @dev This is allowed both before and after the end of pool endTimeStamp
      * @param pid the pool identifier.
      * @param target the user to be harvested.
      */
@@ -255,10 +262,6 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         // Get pool and user
         PoolInfo memory pool = poolInfo[pid];
         UserInfo storage currentUser = userInfo[pid][target];
-        // Vesting pool
-        if (pool.vesting && block.timestamp < pool.endTimeStamp) {
-            revert VestingPool();
-        }
 
         // Compute pending rewards
         uint256 pending = pendingReward(pid, target);
@@ -279,6 +282,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
 
     /**
      * @notice Harvest reward.
+     * @dev This is allowed both before and after the end of pool endTimeStamp
      * @param pid the pool identifier.
      */
     function harvest(uint256 pid) external override nonReentrant {
@@ -289,10 +293,6 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         // Get pool and user
         PoolInfo memory pool = poolInfo[pid];
         UserInfo storage currentUser = userInfo[pid][msg.sender];
-        // Vesting pool
-        if (pool.vesting && block.timestamp < pool.endTimeStamp) {
-            revert VestingPool();
-        }
 
         // Compute pending rewards
         uint256 pending = pendingReward(pid, msg.sender);
@@ -362,6 +362,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         PoolInfo storage pool = poolInfo[pid];
         UserInfo storage currentUser = userInfo[pid][msg.sender];
 
+        // Block deposits if endtime is reached
         if (pool.endTimeStamp > 0 && pool.endTimeStamp < block.timestamp) {
             revert PoolNotActive();
         }
@@ -375,13 +376,13 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
 
         // Update user info
         currentUser.amount = currentUser.amount + amount;
-        // update reward debt, there is harvest on deposit so at every deposit the debt will be updated with the new amount the user has.
+
         currentUser.rewardDebt = currentUser.amount.mulDiv(
             pool.accRewardPerShare,
             1e18
         );
 
-        // harvest up to date rewards
+        // Harvest is allowed for both vesting and not vesting pools
         uint256 pending = oldAmount.mulDiv(pool.accRewardPerShare, 1e18) -
             oldDebt;
         if (pending > 0) {
@@ -409,7 +410,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @notice Add a new pool
      * @dev It reverts if the starting time is set to zero
      * @dev A vesting pool can not have endTime equal to 0
-     * @param stakedAsset the wanted lp token.
+     * @param stakedAsset the wanted token.
      * @param rewardAsset the reward that will be payed out.
      * @param allocationPoints the weight of the added pool.
      * @param endTime the ending time for this pool. 0 to ignore.
@@ -424,6 +425,9 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         bool vested,
         bool update
     ) public onlyOwner {
+        if (usedStakingAssets[address(stakedAsset)]) {
+            revert AlreadyUsedStakedAsset();
+        }
         if (vested && endTime == 0) {
             revert NotAllowed();
         }
@@ -433,6 +437,9 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         if (update) {
             _massUpdatePools();
         }
+
+        usedStakingAssets[address(stakedAsset)] = true;
+
         uint256 lastRewardTime = block.timestamp > startTime
             ? block.timestamp
             : startTime;
@@ -472,10 +479,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         uint256 accRewardPerShare = pool.accRewardPerShare;
         uint256 stakedAssetSupply = pool.stakedAsset.balanceOf(address(this));
         if (block.timestamp > pool.lastRewardTime && stakedAssetSupply != 0) {
-            uint256 multiplier = _getMultiplier(
-                pool.lastRewardTime,
-                block.timestamp
-            );
+            uint256 multiplier = _getMultiplier(pid);
 
             // This is the same computation made in the updatePool function. Just a view version.
             uint256 rewards = multiplier *
@@ -608,10 +612,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
             pool.lastRewardTime = block.timestamp;
             return;
         }
-        uint256 multiplier = _getMultiplier(
-            pool.lastRewardTime,
-            block.timestamp
-        );
+        uint256 multiplier = _getMultiplier(pid);
         uint256 rewards = multiplier *
             (
                 rewardsPerSecond[address(pool.rewardAsset)].mulDiv(
@@ -623,28 +624,30 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
             pool.accRewardPerShare +
             rewards.mulDiv(1e18, stakedAssetSupply);
 
-        pool.lastRewardTime = block.timestamp;
+        pool.lastRewardTime = Math.min(
+            block.timestamp,
+            pool.endTimeStamp != 0 ? pool.endTimeStamp : block.timestamp
+        );
     }
 
     /**
      * @notice Get the multiplier value calculated between two times.
-     * @param from the starting time.
-     * @param to the ending time.
+     * @param pid the pool id.
      * @return The difference between the two sides multiplied for the bonus.
      */
-    function _getMultiplier(
-        uint256 from,
-        uint256 to
-    ) internal view returns (uint256) {
+    function _getMultiplier(uint256 pid) internal view returns (uint256) {
+        PoolInfo storage pool = poolInfo[pid];
+        uint256 from = pool.lastRewardTime;
+        uint256 to = Math.min(
+            block.timestamp,
+            pool.endTimeStamp != 0 ? pool.endTimeStamp : block.timestamp
+        );
         // Sould never happen.
         if (to < from) {
-            return bonusMultiplier;
+            return 0;
         }
 
         uint256 delta = to - from;
-        if (delta == 0) {
-            return bonusMultiplier;
-        }
         return delta * bonusMultiplier;
     }
 }
