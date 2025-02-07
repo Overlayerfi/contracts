@@ -34,7 +34,7 @@ Sometimes the private rpc (which the next point is based on) will have issue wit
 ```
 npm run node
 ```
-This will spawn a forked Ethereum mainnet from block `19709557`
+This will spawn a forked Ethereum mainnet from block `21795000`
 
 ## Run script/deployment
 ```
