@@ -9,9 +9,9 @@ abstract contract Constants {
     //########################################## CONSTANT ##########################################
 
     ///@notice USDC eth sepolia contract address
-    address public constant USDC = 0x85c9aC190c8153aBa227FD9Cb236d2261B60996c;
+    address public constant USDC = 0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8;
     ///@notice USDT eth sepolia contract address
-    address public constant USDT = 0xDD4ED73e1aF352a73180E4e9432246100827e3db;
+    address public constant USDT = 0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0;
     ///@notice aUSDC eth sepolia contract address
     address public constant AUSDC = 0x16dA4541aD1807f4443d92D26044C1147406EB80;
     ///@notice aUSDT eth sepolia contract address

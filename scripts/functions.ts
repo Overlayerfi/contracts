@@ -30,7 +30,7 @@ export async function deploy_ERC20(
     ethers.parseEther(initialSupply),
     name,
     name,
-    { gasLimit: 10000000 }
+    { gasLimit: 1000000 }
   );
   await deployedContract.waitForDeployment();
 
@@ -44,6 +44,10 @@ export async function deploy_USDO(
   usdcDecimals: number,
   usdt: string,
   usdtDecimals: number,
+  ausdc: string,
+  ausdcDecimals: number,
+  ausdt: string,
+  ausdtDecimals: number,
   approveDeployerCollateral?: boolean,
   baseGasFeeMult?: number
 ): Promise<string> {
@@ -63,12 +67,12 @@ export async function deploy_USDO(
       decimals: usdtDecimals
     },
     {
-      addr: AUSDC_ADDRESS,
-      decimals: 6
+      addr: ausdc,
+      decimals: ausdcDecimals
     },
     {
-      addr: AUSDT_ADDRESS,
-      decimals: 6
+      addr: ausdt,
+      decimals: ausdtDecimals
     },
     ethers.parseEther("100000000"),
     ethers.parseEther("100000000"),

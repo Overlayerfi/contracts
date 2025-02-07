@@ -26,6 +26,7 @@ import CURVE_STABLE_STAKE_ABI from "../../artifacts/contracts/liquidity/CurveSta
 import SINGLE_STABLE_STAKE_ABI from "../../artifacts/contracts/liquidity/SingleStableStake.sol/SingleStableStake.json";
 import OVA_REFERRAL_ABI from "../../artifacts/contracts/token/OvaReferral.sol/OvaReferral.json";
 import { getContractAddress } from "@ethersproject/address";
+import { AUSDC_SEPOLIA_ADDRESS, AUSDT_SEPOLIA_ADDRESS, USDC_SEPOLIA_ADDRESS, USDT_SEPOLIA_ADDRESS } from "../addresses";
 //import {
 //  CURVE_DAI_USDC_USDT_LP,
 //  CURVE_DAI_USDC_USDT_POOL,
@@ -58,13 +59,11 @@ async function main() {
 
     // 0. Retrieve mock tokens
     // TODO: remove on mainnet
-    const fakeUsdc = "0x85c9aC190c8153aBa227FD9Cb236d2261B60996c";
-    const fakeUsdt = "0xDD4ED73e1aF352a73180E4e9432246100827e3db";
-    const fakeUsdcUsdo = "0x8626e0062692045F38EC66454aB9C0Fb65647375";
-    const fakeUsdtUsdo = "0xa7b90b45B9d30ec37F80b75FF731c75f91d72A94";
+    const fakeUsdcUsdo = "0xc0B8D9721a97f10863029510A0989dBaF0661947";
+    const fakeUsdtUsdo = "0xf37D303B57b5feD5f1171aC02A411Ecc5cd7F343";
 
     // 1. Deploy USDO
-    const usdoAddr = await deploy_USDO(fakeUsdc, 18, fakeUsdt, 18, true, 2);
+    const usdoAddr = await deploy_USDO(USDC_SEPOLIA_ADDRESS, 6, USDT_SEPOLIA_ADDRESS, 6, AUSDC_SEPOLIA_ADDRESS, 6, AUSDT_SEPOLIA_ADDRESS, 6, true, 2);
 
     // 2. Deploy sUSDO
     const susdoAddr = await deploy_StakedUSDO(usdoAddr, 2);
@@ -300,11 +299,11 @@ async function main() {
     const order = {
       benefactor: admin.address,
       beneficiary: admin.address,
-      collateral_usdt: fakeUsdc,
-      collateral_usdc: fakeUsdt,
-      collateral_usdt_amount: ethers.parseUnits("1000000", 18),
-      collateral_usdc_amount: ethers.parseUnits("1000000", 18),
-      usdo_amount: ethers.parseEther("2000000")
+      collateral_usdt: USDC_SEPOLIA_ADDRESS,
+      collateral_usdc: USDT_SEPOLIA_ADDRESS,
+      collateral_usdt_amount: ethers.parseUnits("1", 6),
+      collateral_usdc_amount: ethers.parseUnits("1", 6),
+      usdo_amount: ethers.parseEther("2")
     };
     await USDO_mint(usdoAddr, order, 2);
     const usdoContract = new ethers.Contract(usdoAddr, USDO_ABI.abi, admin);
