@@ -81,10 +81,10 @@ contract OvaDispatcher is Ownable {
         safetyModule = safetyModule_;
     }
 
-		function collect(address token) external onlyOwner {
-			uint256 bal = IERC20(token).balanceOf(address(this));
-			IERC20(token).safeTransfer(safetyModule, bal);
-		}
+    function collect(address token) external onlyOwner {
+        uint256 bal = IERC20(token).balanceOf(address(this));
+        IERC20(token).safeTransfer(safetyModule, bal);
+    }
 
     function dispatch() external {
         uint256 bal = IERC20(usdo).balanceOf(address(this));
