@@ -39,6 +39,37 @@ export async function deploy_ERC20(
   return await deployedContract.getAddress();
 }
 
+export async function deploy_Dispatcher(
+  admin: string,
+  team: string,
+  safetyModule: string,
+  buyBack: string,
+  usdo: string,
+  baseGasFeeMult?: number
+): Promise<string> {
+  const [deployer] = await ethers.getSigners();
+
+  console.log(
+    "Deploying Ova dispatcher contract with signer:",
+    deployer.address
+  );
+
+  const ContractSource = await ethers.getContractFactory("OvaDispatcher");
+  const deployedContract = await ContractSource.deploy(
+    admin,
+    team,
+    safetyModule,
+    buyBack,
+    usdo,
+    { gasLimit: 1000000 }
+  );
+  await deployedContract.waitForDeployment();
+
+  console.log("Contract deployed at:", await deployedContract.getAddress());
+
+  return await deployedContract.getAddress();
+}
+
 export async function deploy_USDO(
   usdc: string,
   usdcDecimals: number,

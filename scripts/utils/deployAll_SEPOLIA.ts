@@ -10,45 +10,40 @@ import {
   USDO_mint,
   StakedUSDO_deposit,
   deploy_AirdropReward,
-  deploy_AirdropPoolCurveStableStake,
   deploy_AirdropSingleStableStake,
-  CurveStableStake_setRewardForStakedAssets,
   SingleStableStake_setRewardForStakedAssets,
-  CurveStableStake_addWithNumCoinsAndPool,
   SingleStableStake_addPool,
   AirdropReward_setStakingPools,
   AirdropReward_addTrackers,
-  Liquidity_updateReferral
+  Liquidity_updateReferral,
+  deploy_Dispatcher
 } from "../functions";
 import USDO_ABI from "../../artifacts/contracts/token/USDO.sol/USDO.json";
 import SUSDO_ABI from "../../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
-import CURVE_STABLE_STAKE_ABI from "../../artifacts/contracts/liquidity/CurveStableStake.sol/CurveStableStake.json";
 import SINGLE_STABLE_STAKE_ABI from "../../artifacts/contracts/liquidity/SingleStableStake.sol/SingleStableStake.json";
 import OVA_REFERRAL_ABI from "../../artifacts/contracts/token/OvaReferral.sol/OvaReferral.json";
 import { getContractAddress } from "@ethersproject/address";
-import { AUSDC_SEPOLIA_ADDRESS, AUSDT_SEPOLIA_ADDRESS, USDC_SEPOLIA_ADDRESS, USDT_SEPOLIA_ADDRESS } from "../addresses";
-//import {
-//  CURVE_DAI_USDC_USDT_LP,
-//  CURVE_DAI_USDC_USDT_POOL,
-//  DAI_ADDRESS,
-//  USDC_ADDRESS,
-//  USDT_ADDRESS
-//} from "../addresses";
+import {
+  AUSDC_SEPOLIA_ADDRESS,
+  AUSDT_SEPOLIA_ADDRESS,
+  USDC_SEPOLIA_ADDRESS,
+  USDT_SEPOLIA_ADDRESS
+} from "../addresses";
+import { USDC_ABI } from "../abi/USDC_abi";
 
 const AIRDROP_POOLS_REWARD_TOKEN_ADMIN =
   "0xE6379d6EB7573734eD198cbc98D37769c40b4126";
 const AIRDROP_POOLS_ADMIN = "0xE6379d6EB7573734eD198cbc98D37769c40b4126";
+const OVA_SEPOLIA_SAFETY_MODULE = "0x7bE51020c8c6a9153B3C8688410d201bbbb27fB9";
+const OVA_SEPOLIA_TEAM = "0x4b05A19E5b50498fe94d9F7A7c8362f5ACc457b1";
 
 // Curve pools are mocked by using single token pools
-// TODO: Restore Curve staking pools on mainnet
 async function main() {
   try {
     const admin = await ethers.getSigner(
       "0xE6379d6EB7573734eD198cbc98D37769c40b4126"
     );
-    const treasuryAddr = "0xE14e881B37042FcaB208918feA435aE520C4Dce4";
     console.log("Signer address:", admin.address);
-    console.log("Treasury address:", treasuryAddr);
 
     const latestTime: number = Math.floor(new Date().getTime() / 1000);
     console.log(`Starting pools timestamp: ${latestTime}`);
@@ -58,12 +53,22 @@ async function main() {
     };
 
     // 0. Retrieve mock tokens
-    // TODO: remove on mainnet
     const fakeUsdcUsdo = "0xc0B8D9721a97f10863029510A0989dBaF0661947";
     const fakeUsdtUsdo = "0xf37D303B57b5feD5f1171aC02A411Ecc5cd7F343";
 
     // 1. Deploy USDO
-    const usdoAddr = await deploy_USDO(USDC_SEPOLIA_ADDRESS, 6, USDT_SEPOLIA_ADDRESS, 6, AUSDC_SEPOLIA_ADDRESS, 6, AUSDT_SEPOLIA_ADDRESS, 6, true, 2);
+    const usdoAddr = await deploy_USDO(
+      USDC_SEPOLIA_ADDRESS,
+      6,
+      USDT_SEPOLIA_ADDRESS,
+      6,
+      AUSDC_SEPOLIA_ADDRESS,
+      6,
+      AUSDT_SEPOLIA_ADDRESS,
+      6,
+      true,
+      2
+    );
 
     // 2. Deploy sUSDO
     const susdoAddr = await deploy_StakedUSDO(usdoAddr, 2);
@@ -79,17 +84,7 @@ async function main() {
       admin.provider
     );
 
-    // 4. Deploy airdrop pool: Curve stable stake
-    //const curveStableStakeAddr = await deploy_AirdropPoolCurveStableStake(
-    //  AIRDROP_POOLS_ADMIN
-    //);
-    //const curveStableStakeContract = new ethers.Contract(
-    //  curveStableStakeAddr,
-    //  CURVE_STABLE_STAKE_ABI.abi,
-    //  admin.provider
-    //);
-
-    // 5. Deploy airdrop pools: Single stable stake
+    // 4. Deploy airdrop pools: Single stable stake and curve stable stake (faked with single stable stake)
     const singleStableStakeAddr = await deploy_AirdropSingleStableStake(
       AIRDROP_POOLS_ADMIN,
       2
@@ -98,7 +93,6 @@ async function main() {
       AIRDROP_POOLS_ADMIN,
       2
     );
-    // TODO: remove on mainnet
     const curveStableStakeCrvAddr = await deploy_AirdropSingleStableStake(
       AIRDROP_POOLS_ADMIN,
       2
@@ -113,17 +107,13 @@ async function main() {
       SINGLE_STABLE_STAKE_ABI.abi,
       admin.provider
     );
-    // TODO: remove on mainnet
     const curveStableStakeCrvContract = new ethers.Contract(
       curveStableStakeCrvAddr,
       SINGLE_STABLE_STAKE_ABI.abi,
       admin.provider
     );
 
-    // 6. Set airdrop reward minters
-    //await (ovaReferralContract.connect(admin) as Contract).setMinter(
-    //  curveStableStakeAddr
-    //);
+    // 5. Set airdrop reward minters
     let tx = await (ovaReferralContract.connect(admin) as Contract).setMinter(
       singleStableStakeAddr,
       defaultTransactionOptions
@@ -146,7 +136,6 @@ async function main() {
       "hash =",
       tx.hash
     );
-    // TODO: remove on mainnet
     tx = await (ovaReferralContract.connect(admin) as Contract).setMinter(
       curveStableStakeCrvAddr,
       defaultTransactionOptions
@@ -159,16 +148,7 @@ async function main() {
       tx.hash
     );
 
-    // 7. Set reward assets and pools inside Liquidity pools
-    // See internal doc for reference values
-    //await CurveStableStake_setRewardForStakedAssets(
-    //  curveStableStakeContract,
-    //  admin,
-    //  ovaReferralAddress,
-    //  17520 * 1,
-    //  1
-    //); // * 1 as we will have 1 pools
-    // TODO: remove on mainnet
+    // 6. Set reward assets and pools inside Liquidity pools
     await SingleStableStake_setRewardForStakedAssets(
       curveStableStakeCrvContract,
       admin,
@@ -196,19 +176,6 @@ async function main() {
     // Fake USDT-USDO pool with tri pool DAI-USDC-USDT LP
     const endTimeStamp = latestTime + 60 * 60 * 24 * 30 * 3;
     console.log(`Ending pools timestamp: ${endTimeStamp}`);
-    //await CurveStableStake_addWithNumCoinsAndPool(
-    //  curveStableStakeContract,
-    //  admin,
-    //  CURVE_DAI_USDC_USDT_LP,
-    //  ovaReferralAddress,
-    //  1,
-    //  3,
-    //  CURVE_DAI_USDC_USDT_POOL,
-    //  endTimeStamp,
-    //  false,
-    //  true
-    //);
-    // TODO: remove on mainnet
     await SingleStableStake_addPool(
       curveStableStakeCrvContract,
       admin,
@@ -220,7 +187,6 @@ async function main() {
       true,
       2
     );
-    // TODO: remove on mainnet
     await SingleStableStake_addPool(
       curveStableStakeCrvContract,
       admin,
@@ -255,6 +221,15 @@ async function main() {
       2
     );
 
+    // 7. Deploy ova dispatcher
+    const dispatcherAddress = await deploy_Dispatcher(
+      admin.address,
+      OVA_SEPOLIA_TEAM,
+      OVA_SEPOLIA_SAFETY_MODULE,
+      OVA_SEPOLIA_SAFETY_MODULE,
+      usdoAddr
+    );
+
     // 8. Remove cool down from sUSDO
     await StakedUSDO_setCooldownStaking(susdoAddr, 0, 2); // None
 
@@ -276,7 +251,7 @@ async function main() {
     await USDO_proposeNewCollateralSpender(usdoAddr, futureAddress, 2); //replace with usdo
     const usdobackingAddr = await deploy_USDOBacking(
       admin.address,
-      treasuryAddr,
+      dispatcherAddress,
       usdoAddr,
       susdoAddr,
       2
@@ -295,12 +270,33 @@ async function main() {
       2
     );
 
+    const usdcContract = new ethers.Contract(
+      USDC_SEPOLIA_ADDRESS,
+      USDC_ABI,
+      admin
+    );
+    const usdtContract = new ethers.Contract(
+      USDT_SEPOLIA_ADDRESS,
+      USDC_ABI,
+      admin
+    );
+    tx = await (usdcContract.connect(admin) as Contract).approve(
+      usdoAddr,
+      ethers.MaxUint256,
+      defaultTransactionOptions
+    );
+    tx = await (usdtContract.connect(admin) as Contract).approve(
+      usdoAddr,
+      ethers.MaxUint256,
+      defaultTransactionOptions
+    );
+
     // 12. Mint and stake initial USDO
     const order = {
       benefactor: admin.address,
       beneficiary: admin.address,
-      collateral_usdt: USDC_SEPOLIA_ADDRESS,
-      collateral_usdc: USDT_SEPOLIA_ADDRESS,
+      collateral_usdt: USDT_SEPOLIA_ADDRESS,
+      collateral_usdc: USDC_SEPOLIA_ADDRESS,
       collateral_usdt_amount: ethers.parseUnits("1", 6),
       collateral_usdc_amount: ethers.parseUnits("1", 6),
       usdo_amount: ethers.parseEther("2")
