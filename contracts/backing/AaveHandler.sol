@@ -7,6 +7,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 import {IAaveHandlerDefs} from "./interfaces/IAaveHandlerDefs.sol";
+import {IDispatcher} from "./interfaces/IDispatcher.sol";
 import {IsUSDO} from "./interfaces/IsUSDO.sol";
 import {IUSDO} from "./interfaces/IUSDO.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -229,6 +230,7 @@ abstract contract AaveHandler is
             OVA_REWARDS_DISPATCHER,
             minAmountBetween - amountToStaking
         );
+        IDispatcher(OVA_REWARDS_DISPATCHER).dispatch();
     }
 
     ///@notice Supply funds to AAVE protocol

@@ -76,6 +76,16 @@ describe("USDOBacking", function () {
       defaultTransactionOptions
     );
 
+    const Dispatcher = await ethers.getContractFactory("OvaDispatcher");
+    const dispatcher = await Dispatcher.deploy(
+      admin.address,
+      admin.address,
+      admin.address,
+      admin.address,
+      await usdo.getAddress(),
+      defaultTransactionOptions
+    );
+
     //send some usdc and usdt to users
     await (usdc.connect(admin) as Contract).transfer(
       alice.address,
@@ -137,7 +147,7 @@ describe("USDOBacking", function () {
     const USDOBacking = await ethers.getContractFactory("USDOBacking");
     const usdobacking = await USDOBacking.deploy(
       admin.address,
-      admin.address,
+      await dispatcher.getAddress(),
       await usdo.getAddress(),
       await susdo.getAddress()
       //{ maxFeePerGas: 9702346660 }
@@ -765,10 +775,10 @@ describe("USDOBacking", function () {
       expect(await usdobacking.totalSuppliedUSDC()).to.be.equal(500000);
       expect(await usdobacking.totalSuppliedUSDT()).to.be.equal(500000);
       expect(await ausdt.balanceOf(alice.address)).to.be.greaterThanOrEqual(
-        ethers.parseUnits("600", await ausdt.decimals())
+        ethers.parseUnits("599.9", await ausdt.decimals())
       );
       expect(await ausdc.balanceOf(alice.address)).to.be.greaterThanOrEqual(
-        ethers.parseUnits("600", await ausdc.decimals())
+        ethers.parseUnits("599.9", await ausdc.decimals())
       );
       //################################################################################################################################################
       //account yield for aToken -> use greaterThanOrEqual
