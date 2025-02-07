@@ -25,15 +25,15 @@ contract USDOBacking is AaveHandler, IUSDOBackingDefs {
     ///@notice The constructor
     ///@dev It accepts to be the USDO collateral spender
     ///@param admin The contract admin
-    ///@param treasury The contract treasury
+    ///@param dispatcher The contract dispatcher
     ///@param usdo The USDO contract
     ///@param susdo The sUSDO contract
     constructor(
         address admin,
-        address treasury,
+        address dispatcher,
         address usdo,
         address susdo
-    ) AaveHandler(admin, treasury, usdo, susdo) {
+    ) AaveHandler(admin, dispatcher, usdo, susdo) {
         IUSDO(usdo).acceptProposedCollateralSpender();
         emit USDOSpenderAccepted();
     }
