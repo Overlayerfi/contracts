@@ -151,6 +151,10 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
         if (holder == address(0)) {
             revert OvaReferralZeroAddress();
         }
+        // Code users can not create codes
+        if (referredFrom[holder] != address(0)) {
+            revert OvaReferralAlreadyReferred();
+        }
         if (referralCodes[code] != address(0)) {
             revert OvaReferralCodeAlreadyUsed();
         }
@@ -169,6 +173,10 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
         address holder = msg.sender;
         if (holder == address(0)) {
             revert OvaReferralZeroAddress();
+        }
+        // Code users can not create codes
+        if (referredFrom[holder] != address(0)) {
+            revert OvaReferralAlreadyReferred();
         }
         if (referralCodes[code] != address(0)) {
             revert OvaReferralCodeAlreadyUsed();
