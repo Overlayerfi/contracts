@@ -105,10 +105,7 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
             ILiquidityDefs stakingPool = ILiquidityDefs(stakingPools[i]);
             uint256 stakingPoolLen = stakingPool.poolLength();
             for (uint256 j = 0; j < stakingPoolLen; ) {
-                (uint256 userAmount, uint256 userDebt) = stakingPool.userInfo(
-                    j,
-                    consumer
-                );
+                (uint256 userAmount, ) = stakingPool.userInfo(j, consumer);
                 if (userAmount > 0) {
                     stakingPool.harvestFor(j, consumer);
                 }

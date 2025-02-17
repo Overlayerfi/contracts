@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-/**
- * @title IAaveHandlerDefs
- */
 interface IAaveHandlerDefs {
     error AaveHandlerZeroAddressException();
 
@@ -31,11 +28,11 @@ interface IAaveHandlerDefs {
 
     event AaveSupply(uint256 usdc, uint256 usdt);
 
-    event AaveNewAave(address addr);
+    event AaveNewAave(address indexed addr);
 
     event AaveNewTeamAllocation(uint8 amount);
 
-    event AaveNewRewardsDispatcher(address addr);
+    event AaveNewRewardsDispatcher(address indexed addr);
 
     event AaveSwapPosition(uint256 usdc, uint256 usdt, uint256 out);
 }
