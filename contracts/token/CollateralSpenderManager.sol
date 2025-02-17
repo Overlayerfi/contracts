@@ -3,13 +3,13 @@ pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./Collateral.sol";
+import "./USDOCollateral.sol";
 
 /**
  * @title CollateralSpenderManager
  * @notice This contract handles the collateral spender for USDO
  */
-abstract contract CollateralSpenderManager is Collateral, ReentrancyGuard {
+abstract contract CollateralSpenderManager is USDOCollateral, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     error CollateralSpenderManagerInvalidSpenderAddress();
@@ -22,16 +22,16 @@ abstract contract CollateralSpenderManager is Collateral, ReentrancyGuard {
     bytes32 internal constant COLLATERAL_MANAGER_ROLE =
         keccak256("COLLATERAL_MANAGER_ROLE");
 
-    /// @notice the time interval needed to changed a spender address
+    /// @notice The time interval needed to changed a spender address
     uint256 public constant PROPOSAL_TIME_INTERVAL = 10 days;
 
-    /// @notice the unique approved collateral spender
+    /// @notice The unique approved collateral spender
     address internal approvedCollateralSpender;
 
-    /// @notice the proposed new spender
+    /// @notice The proposed new spender
     address public proposedSpender;
 
-    /// @notice the last proposal time
+    /// @notice The last proposal time
     uint256 public proposalTime;
 
     constructor(
@@ -40,7 +40,7 @@ abstract contract CollateralSpenderManager is Collateral, ReentrancyGuard {
         MintRedeemManagerTypes.StableCoin memory usdt_,
         MintRedeemManagerTypes.StableCoin memory aUsdc_,
         MintRedeemManagerTypes.StableCoin memory aUsdt_
-    ) Collateral(admin, usdc_, usdt_, aUsdc_, aUsdt_) {}
+    ) USDOCollateral(admin, usdc_, usdt_, aUsdc_, aUsdt_) {}
 
     /// @notice View the spender
     /// @return The active spender
@@ -74,14 +74,14 @@ abstract contract CollateralSpenderManager is Collateral, ReentrancyGuard {
         }
         address oldSpender = approvedCollateralSpender;
         approvedCollateralSpender = proposedSpender;
-        //remove allowance of old spender
+        // Remove allowance of old spender
         if (oldSpender != address(0)) {
             IERC20(usdc.addr).forceApprove(oldSpender, 0);
             IERC20(usdt.addr).forceApprove(oldSpender, 0);
             IERC20(aUsdc.addr).forceApprove(oldSpender, 0);
             IERC20(aUsdt.addr).forceApprove(oldSpender, 0);
         }
-        //add allowance for new spender
+        // Add allowance for new spender
         IERC20(usdc.addr).forceApprove(
             approvedCollateralSpender,
             type(uint256).max
