@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "./GovernanceTokenBase.sol";
+import "./MintableTokenBase.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./interfaces/IOvaReferral.sol";
 import {ILiquidityDefs} from "../liquidity/interfaces/ILiquidityDefs.sol";
@@ -10,7 +10,7 @@ import {ILiquidityDefs} from "../liquidity/interfaces/ILiquidityDefs.sol";
  * @title OvaReferral
  * @notice This token tracks the referral points for OVA airdrop.
  */
-contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
+contract OvaReferral is MintableTokenBase, ReentrancyGuard, IOvaReferral {
     /// @notice Track the referral source for given address
     mapping(address => address) public referredFrom;
 
@@ -60,7 +60,7 @@ contract OvaReferral is GovernanceTokenBase, ReentrancyGuard, IOvaReferral {
     ///@param admin The contract admin
     constructor(
         address admin
-    ) GovernanceTokenBase(admin, "Airdrop OVA", "AOVA") {}
+    ) MintableTokenBase(admin, "Airdrop OVA", "AOVA") {}
 
     function getStakingPools() external view returns (address[] memory) {
         return stakingPools;
