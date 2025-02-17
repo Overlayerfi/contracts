@@ -29,13 +29,13 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
 
     uint24 public cooldownDuration;
 
-    /// @notice ensure cooldownDuration is zero
+    /// @notice Ensure cooldownDuration is zero
     modifier ensureCooldownOff() {
         if (cooldownDuration != 0) revert StakedUSDOOperationNotAllowed();
         _;
     }
 
-    /// @notice ensure cooldownDuration is gt 0
+    /// @notice Ensure cooldownDuration is gt 0
     modifier ensureCooldownOn() {
         if (cooldownDuration == 0) revert StakedUSDOOperationNotAllowed();
         _;
@@ -81,7 +81,7 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
     }
 
     /// @notice Claim the staking amount after the cooldown has finished. The address can only retire the full amount of assets.
-    /// @dev unstake can be called after cooldown have been set to 0, to let accounts to be able to claim remaining assets locked at Silo
+    /// @dev Unstake can be called after cooldown have been set to 0, to let accounts to be able to claim remaining assets locked at Silo
     /// @param receiver Address to send the assets by the staker
     function unstake(address receiver) external {
         UserCooldown storage userCooldown = cooldowns[msg.sender];
@@ -99,8 +99,8 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
         }
     }
 
-    /// @notice redeem assets and starts a cooldown to claim the converted underlying asset
-    /// @param assets assets to redeem
+    /// @notice Redeem assets and starts a cooldown to claim the converted underlying asset
+    /// @param assets Assets to redeem
     function cooldownAssets(
         uint256 assets
     ) external ensureCooldownOn returns (uint256 shares) {
@@ -117,8 +117,8 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
         _withdraw(msg.sender, address(SILO), msg.sender, assets, shares);
     }
 
-    /// @notice redeem shares into assets and starts a cooldown to claim the converted underlying asset
-    /// @param shares shares to redeem
+    /// @notice Redeem shares into assets and starts a cooldown to claim the converted underlying asset
+    /// @param shares Shares to redeem
     function cooldownShares(
         uint256 shares
     ) external ensureCooldownOn returns (uint256 assets) {

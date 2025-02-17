@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 import abi from "../../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
 
-const addr = "0x00D15604415907AAE09e5454Ca299f2Ee93fA941";
+const addr = "0x4d019A38828ef3C355F72cf78D8Ea243f5757826";
 
 async function main() {
   const [signer] = await ethers.getSigners();

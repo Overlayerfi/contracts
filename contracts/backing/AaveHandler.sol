@@ -16,7 +16,7 @@ import "../token/types/MintRedeemManagerTypes.sol";
 
 /**
  * @title AaveHandler
- * @notice This contract represent the Aave position handler
+ * @notice Aave V3 protocol position handler
  */
 abstract contract AaveHandler is
     Constants,
@@ -80,7 +80,7 @@ abstract contract AaveHandler is
 
     ///@notice The constructor
     ///@param admin The contract admin
-    ///@param rewardsDispatcher The protocol rewardsDispatcher
+    ///@param rewardsDispatcher The protocol rewardsDispatcher contract
     ///@param usdo The USDO contract
     ///@param usdo The sUSDO contract
     constructor(
@@ -111,10 +111,10 @@ abstract contract AaveHandler is
 
     //########################################## EXTERNAL FUNCTIONS ##########################################
 
-    ///@notice Withraw funds from AAVE protocol and return all the collateral to USDO
+    ///@notice Withraw funds from aave and return all the collateral to USDO
     ///@dev It requires equal amounts in input
     ///@param amountUsdc The amount to withdraw intended as USDC
-    ///@param amountUsdt The amount to withdraw intended as USDCT
+    ///@param amountUsdt The amount to withdraw intended as USDT
     function adminWithdraw(
         uint256 amountUsdc,
         uint256 amountUsdt
@@ -154,12 +154,13 @@ abstract contract AaveHandler is
             ? amountUsdt
             : totalSuppliedUSDT;
 
+        // Compute the updated supplied amount
         totalSuppliedUSDC -= usdcBack;
         totalSuppliedUSDT -= usdtBack;
-
-        //the amount to inject back to the protocol is represented by total totalSuppliedUSDC/T
+        // Return collateral to protocol token
         IERC20(USDC).safeTransfer(USDO, usdcBack);
         IERC20(USDT).safeTransfer(USDO, usdtBack);
+
         if (amountUsdc > oldUsdcSupplied) {
             uint256 usdcDiff = amountUsdc - oldUsdcSupplied;
             if (usdcDiff > 0) {
@@ -175,9 +176,6 @@ abstract contract AaveHandler is
     }
 
     ///@notice Compound funds from-to AAVE protocol
-    ///@dev This method assumes that USDC and USDT decimals are less or equal 18
-    ///@dev We track the user deposited funds with totalSuppliedUSDC/T and leverage
-    ///the dynamic balance of AAVE aToken in order to compute the gains
     function compound() external nonReentrant {
         bool isEmergencyMode = IUSDO(USDO).emergencyMode();
 
@@ -188,16 +186,13 @@ abstract contract AaveHandler is
         if (diffUSDC == 0 || diffUSDT == 0) {
             return;
         }
-        //hardcoded USDC and USDT decimals offset as immutables,
-        //these multipliers represent the amount up to 18 decimals (usdo decimals)
-        uint256 usdcMultiplier = 10 ** 12;
-        uint256 usdtMultiplier = 10 ** 12;
+        // Decimals difference are harcoded as they don't mutate
         uint256 minAmountBetween = Math.min(
-            diffUSDC * usdcMultiplier,
-            diffUSDT * usdtMultiplier
+            diffUSDC * DECIMALS_DIFF_AMOUNT,
+            diffUSDT * DECIMALS_DIFF_AMOUNT
         );
-        uint256 usdcWithdrawAmount = minAmountBetween / usdcMultiplier;
-        uint256 usdtWithdrawAmount = minAmountBetween / usdtMultiplier;
+        uint256 usdcWithdrawAmount = minAmountBetween / DECIMALS_DIFF_AMOUNT;
+        uint256 usdtWithdrawAmount = minAmountBetween / DECIMALS_DIFF_AMOUNT;
 
         if (!isEmergencyMode) {
             _withdrawInternalAave(
@@ -234,8 +229,8 @@ abstract contract AaveHandler is
     }
 
     ///@notice Supply funds to AAVE protocol
-    ///@param amountUsdc The amount to supply intended as USDC
-    ///@param amountUsdt The amount to supply intended as USDT
+    ///@param amountUsdc The amount to supply intended as USDC or their aToken version
+    ///@param amountUsdt The amount to supply intended as USDT or their aToken version
     function supply(
         uint256 amountUsdc,
         uint256 amountUsdt
@@ -284,7 +279,8 @@ abstract contract AaveHandler is
             }
         }
 
-        // Compute how much we have to increase our counters. We cannot exceed the USDO supply as this call follows a mint action
+        // Do not count donations: compute how much we have to increase our supply counters.
+        // We cannot exceed the USDO supply.
         uint256 halfSupply = (IUSDO(USDO).totalSupply() / 2) /
             DECIMALS_DIFF_AMOUNT;
         uint256 differenceUsdc = halfSupply - totalSuppliedUSDC;
@@ -295,27 +291,24 @@ abstract contract AaveHandler is
         if (differenceUsdt > amountUsdt) {
             revert AaveHandlerUnexpectedAmount();
         }
-
-        unchecked {
-            totalSuppliedUSDC += Math.min(amountUsdc, differenceUsdc);
-            totalSuppliedUSDT += Math.min(amountUsdt, differenceUsdt);
-        }
+        totalSuppliedUSDC += Math.min(amountUsdc, differenceUsdc);
+        totalSuppliedUSDT += Math.min(amountUsdt, differenceUsdt);
 
         emit AaveSupply(amountUsdc, amountUsdt);
     }
 
-    ///@notice Propose a new AAVE contract
+    ///@notice Propose a new aave contract
     ///@dev Can not be zero address
-    ///@param aave The new AAVE address
+    ///@param aave The new aave contract address
     function proposeNewAave(address aave) external onlyOwner nonReentrant {
         if (aave == address(0)) revert AaveHandlerZeroAddressException();
         proposedAave = aave;
         aaveProposalTime = block.timestamp;
     }
 
-    ///@notice Propose a new ova dispatcher contract
+    ///@notice Propose a new protocol dispatcher contract
     ///@dev Can not be zero address
-    ///@param proposedOvaDispatcherAllocation_ The new proposed team allocation
+    ///@param proposedOvaDispatcherAllocation_ The new proposed dispatcher contract
     function proposeNewOvaDispatcherAllocation(
         uint8 proposedOvaDispatcherAllocation_
     ) external onlyOwner {
@@ -335,7 +328,7 @@ abstract contract AaveHandler is
         }
         address oldAave = AAVE;
         AAVE = proposedAave;
-        //remove allowance of old spender
+        // Remove allowance of old spender
         if (oldAave != address(0)) {
             IERC20(USDC).forceApprove(oldAave, 0);
             IERC20(USDT).forceApprove(oldAave, 0);
@@ -360,8 +353,7 @@ abstract contract AaveHandler is
         emit AaveNewTeamAllocation(ovaDispatcherAllocation);
     }
 
-    ///@notice Update protocol rewardsDispatcher
-    ///@dev Does not harm protocol users
+    ///@notice Update protocol dispatcher
     ///@param rewardsDispatcher The new rewardsDispatcher address
     function updateRewardsDispatcher(
         address rewardsDispatcher
@@ -396,9 +388,9 @@ abstract contract AaveHandler is
         IERC20(AUSDT).forceApprove(USDO, amount);
     }
 
-    ///@notice Withraw funds from AAVE protocol, the public interface for allowed callers
-    ///@param amountUsdc The amount to withdraw intended as USDC or aUSDC
-    ///@param amountUsdt The amount to withdraw intended as USDCT or aUSDT
+    ///@notice Withraw funds from aave protocol
+    ///@param amountUsdc The amount to withdraw intended as USDC or their aToken version
+    ///@param amountUsdt The amount to withdraw intended as USDT or their aToken version
     function withdraw(
         uint256 amountUsdc,
         uint256 amountUsdt
@@ -420,8 +412,8 @@ abstract contract AaveHandler is
     //########################################## INTERNAL FUNCTIONS ##########################################
 
     /// @notice Update the supplied usdc and usdt counter
-    /// @param usdcTaken The amount of usdc returned
-    /// @param usdtTaken The amount of usdt returned
+    /// @param usdcTaken The amount of usdc removed from the backing supply
+    /// @param usdtTaken The amount of usdt removed from the backing supply
     function updateSuppliedAmounts(
         uint256 usdcTaken,
         uint256 usdtTaken
@@ -444,7 +436,7 @@ abstract contract AaveHandler is
 
     ///@notice Withraw funds taking aTokens directly
     ///@param amountUsdc The amount to withdraw intended as aUSDC
-    ///@param amountUsdt The amount to withdraw intended as aUSDCT
+    ///@param amountUsdt The amount to withdraw intended as aUSDT
     ///@param recipient The collateral recipient
     function _withdrawInternalEmergency(
         uint256 amountUsdc,
@@ -462,9 +454,9 @@ abstract contract AaveHandler is
         updateSuppliedAmounts(amountUsdc, amountUsdt);
     }
 
-    ///@notice Withraw funds to AAVE protocol with status change
+    ///@notice Withraw funds from aave and update supply counters
     ///@param amountUsdc The amount to withdraw intended as USDC
-    ///@param amountUsdt The amount to withdraw intended as USDCT
+    ///@param amountUsdt The amount to withdraw intended as USDT
     ///@param recipient The collateral recipient
     function _withdrawInternal(
         uint256 amountUsdc,
@@ -480,9 +472,9 @@ abstract contract AaveHandler is
         updateSuppliedAmounts(usdcReceived, usdtReceived);
     }
 
-    ///@notice Withraw funds to AAVE protocol
+    ///@notice Withraw funds to aave
     ///@param amountUsdc The amount to withdraw intended as USDC
-    ///@param amountUsdt The amount to withdraw intended as USDCT
+    ///@param amountUsdt The amount to withdraw intended as USDT
     ///@param recipient The collateral recipient
     function _withdrawInternalAave(
         uint256 amountUsdc,

@@ -156,7 +156,7 @@ describe("USDO", function () {
     });
   });
 
-  describe("Collateral Manager", function () {
+  describe("USDOCollateral Manager", function () {
     it("Should set first collateral manager", async function () {
       const { usdo, admin, alice } = await loadFixture(deployFixture);
       const collateralManagerAddress = await admin.getAddress();

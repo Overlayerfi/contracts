@@ -25,7 +25,7 @@ contract USDOBacking is AaveHandler, IUSDOBackingDefs {
     ///@notice The constructor
     ///@dev It accepts to be the USDO collateral spender
     ///@param admin The contract admin
-    ///@param dispatcher The contract dispatcher
+    ///@param dispatcher The protocol reward dispatcher contract
     ///@param usdo The USDO contract
     ///@param susdo The sUSDO contract
     constructor(
@@ -42,7 +42,7 @@ contract USDOBacking is AaveHandler, IUSDOBackingDefs {
 
     ///@notice Recover asset from the contract
     ///@param asset The asset to recover
-    ///@param amount The spender amount
+    ///@param amount The amount to recover
     function recoverAsset(
         address asset,
         uint256 amount
