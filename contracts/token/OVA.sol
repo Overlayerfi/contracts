@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "./GovernanceTokenBase.sol";
+import "./MintableTokenBase.sol";
 
 /**
  * @title OVA
  * @notice This token represent the governance OVAG token.
  */
-contract OVA is GovernanceTokenBase {
+contract OVA is MintableTokenBase {
     ///@notice The constructor
     ///@param admin The contract admin
-    constructor(address admin) GovernanceTokenBase(admin, "OVA", "OVA") {}
+    constructor(address admin) MintableTokenBase(admin, "OVA", "OVA") {}
 }

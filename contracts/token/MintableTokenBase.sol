@@ -7,10 +7,10 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
- * @title GovernanceTokenBase
+ * @title MintableTokenBase
  * @notice This token represent a mintable token by an allowed minter.
  */
-contract GovernanceTokenBase is Ownable2Step, ERC20Burnable, ERC20Permit {
+contract MintableTokenBase is Ownable2Step, ERC20Burnable, ERC20Permit {
     error ZeroAddressException();
 
     error OnlyMinter();
