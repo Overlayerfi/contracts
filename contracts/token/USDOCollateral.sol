@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-//import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../shared/SingleAdminAccessControl.sol";
 import "./types/MintRedeemManagerTypes.sol";
 
 /**
- * @title Collateral
- * @notice This contract handles the collateral for USDO
+ * @title USDOCollateral
+ * @notice This contract handles the collateral definitions for USDO
  */
-abstract contract Collateral is SingleAdminAccessControl {
+abstract contract USDOCollateral is SingleAdminAccessControl {
     error CollateralInvalidZeroAddress();
 
     error CollateralInvalidDecimals();

@@ -35,13 +35,6 @@ interface IMintRedeemManagerEvents {
         uint256 usdo_amount
     );
 
-    /// @notice Event emitted when assets are moved to custody provider wallet
-    event CustodyTransfer(
-        address indexed wallet,
-        address indexed asset,
-        uint256 amount
-    );
-
     /// @notice Event emitted when the max mint per block is changed
     event MaxMintPerBlockChanged(
         uint256 oldMaxMintPerBlock,
