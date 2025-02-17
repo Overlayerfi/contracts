@@ -7,8 +7,6 @@ import "./interfaces/ISingleAdminAccessControl.sol";
 
 /**
  * @title SingleAdminAccessControl
- * @notice SingleAdminAccessControl is a contract that provides a single admin role
- * @notice This contract is a simplified alternative to OpenZeppelin's AccessControlDefaultAdminRules
  */
 abstract contract SingleAdminAccessControl is
     IERC5313,
@@ -34,14 +32,15 @@ abstract contract SingleAdminAccessControl is
         emit AdminTransferRequested(_currentDefaultAdmin, newAdmin);
     }
 
+    /// @notice New admin role acceptance
     function acceptAdmin() external {
         if (msg.sender != _pendingDefaultAdmin) revert NotPendingAdmin();
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    /// @notice grant a role
-    /// @notice can only be executed by the current single admin
-    /// @notice admin role cannot be granted externally
+    /// @notice Grant a role
+    /// @notice Can only be executed by the current single admin
+    /// @notice Admin role cannot be granted externally
     /// @param role bytes32
     /// @param account address
     function grantRole(
@@ -51,9 +50,9 @@ abstract contract SingleAdminAccessControl is
         _grantRole(role, account);
     }
 
-    /// @notice revoke a role
-    /// @notice can only be executed by the current admin
-    /// @notice admin role cannot be revoked
+    /// @notice Revoke a role
+    /// @notice Can only be executed by the current admin
+    /// @notice Admin role cannot be revoked
     /// @param role bytes32
     /// @param account address
     function revokeRole(
@@ -79,7 +78,7 @@ abstract contract SingleAdminAccessControl is
         return _currentDefaultAdmin;
     }
 
-    ///@notice no way to change admin without removing old admin first
+    ///@notice No way to change admin without removing old admin first
     ///@param role The role
     ///@param account The account address
     function _grantRole(
