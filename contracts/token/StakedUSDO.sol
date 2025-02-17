@@ -12,7 +12,7 @@ import "./interfaces/IStakedUSDO.sol";
 
 /**
  * @title StakedUSDO
- * @dev This contract is intended to be inherited in order to define custom vesting aka cooldowns policies
+ * @dev This contract is intended to be inherited in order to define custom vesting (cooldowns) policies
  */
 abstract contract StakedUSDO is
     SingleAdminAccessControl,
@@ -51,13 +51,13 @@ abstract contract StakedUSDO is
 
     /* ------------- MODIFIERS ------------- */
 
-    /// @notice ensure input amount nonzero
+    /// @notice Ensure input amount nonzero
     modifier notZero(uint256 amount) {
         if (amount == 0) revert StakedUSDOInvalidAmount();
         _;
     }
 
-    /// @notice ensures blacklist target is not owner
+    /// @notice Ensures blacklist target is not owner
     modifier notOwner(address target) {
         if (target == owner()) revert StakedUSDOCantBlacklistOwner();
         _;
@@ -71,7 +71,6 @@ abstract contract StakedUSDO is
      * @param initialRewarder The address of the initial rewarder.
      * @param admin The address of the admin role.
      * @param vestingPeriod The rewards vesting period
-     *
      */
     constructor(
         IERC20 asset,
@@ -224,7 +223,7 @@ abstract contract StakedUSDO is
 
     /* ------------- INTERNAL ------------- */
 
-    /// @notice ensures a small non-zero amount of shares does not remain, exposing to donation attack
+    /// @notice Ensures a small non-zero amount of shares does not remain, exposing to donation attack
     function _checkMinShares() internal view {
         uint256 _totalSupply = totalSupply();
         if (_totalSupply > 0 && _totalSupply < MIN_SHARES)
@@ -287,6 +286,8 @@ abstract contract StakedUSDO is
         _checkMinShares();
     }
 
+    /// @notice Updata the vesting amount
+    /// @param newVestingAmount The new vesting amount
     function _updateVestingAmount(uint256 newVestingAmount) internal {
         if (getUnvestedAmount() > 0) revert StakedUSDOStillVesting();
 

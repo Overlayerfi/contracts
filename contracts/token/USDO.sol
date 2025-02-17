@@ -10,13 +10,13 @@ import "./types/MintRedeemManagerTypes.sol";
 
 /**
  * @title USDO
- * @notice USDO The starting point...
+ * @notice The Second Layer stable coin
  */
 contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
-    /// @notice blacklisted accounts
+    /// @notice Blacklisted accounts
     mapping(address => bool) public blacklist;
 
-    /// @notice role enabling to disable or enable ERC20 _update for a given address
+    /// @notice Role enabling to disable or enable ERC20 _update for a given address
     bytes32 private constant CONTROLLER_ROLE =
         keccak256("BLACKLIST_MANAGER_ROLE");
 
@@ -27,6 +27,14 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
         _;
     }
 
+    /// @notice Constructor
+    /// @param admin The contract admin
+    /// @param usdc_ The usdc stablecoin struct
+    /// @param usdc_ The usdt stablecoin struct
+    /// @param usdc_ The ausdc stablecoin struct
+    /// @param usdt_ The ausdt stablecoin struct
+    /// @param maxMintPerBlock_ Max mint amount for each block
+    /// @param maxRedeemPerBlock_ Max redeem amount for each block
     constructor(
         address admin,
         MintRedeemManagerTypes.StableCoin memory usdc_,

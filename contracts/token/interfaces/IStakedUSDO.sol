@@ -3,7 +3,6 @@
 pragma solidity 0.8.20;
 
 interface IStakedUSDO {
-    // Events //
     /// @notice Event emitted when the rewards are received
     event RewardsReceived(uint256 amount);
     /// @notice Event emitted when the balance from an FULL_RESTRICTED_STAKER_ROLE user are redistributed
@@ -12,8 +11,6 @@ interface IStakedUSDO {
         address indexed to,
         uint256 amount
     );
-
-    // Errors //
     /// @notice Error emitted shares or assets equal zero.
     error StakedUSDOInvalidAmount();
     /// @notice Error emitted when owner attempts to rescue USDO tokens.
