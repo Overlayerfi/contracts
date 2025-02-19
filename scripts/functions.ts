@@ -1,5 +1,4 @@
 import { ethers } from "hardhat";
-import { Contract } from "ethers";
 import {
   AUSDC_ADDRESS,
   AUSDT_ADDRESS,
@@ -7,6 +6,9 @@ import {
   USDT_ADDRESS
 } from "./addresses";
 import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
+import OVAWHITELIST_ABI from "../artifacts/contracts/whitelist/OvaWhitelist.sol/OvaWhitelist.json";
+import SUBSCRIPTIONCONSUMERSEPOLIA_ABI from "../artifacts/contracts/chainlink/SubscriptionConsumerSepolia.sol/SubscriptionConsumerSepolia.json";
+import TESTMATH_ABI from "../artifacts/contracts/test/TestMath.sol/TestMath.json";
 import LIQUIDITY_ABI from "../artifacts/contracts/liquidity/Liquidity.sol/Liquidity.json";
 import USDO_ABI from "../artifacts/contracts/token/USDO.sol/USDO.json";
 import OVAREFERRAL_ABI from "../artifacts/contracts/token/OvaReferral.sol/OvaReferral.json";
@@ -14,6 +16,8 @@ import SUSDO_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUS
 import { ILiquidity } from "./types";
 import { USDC_ABI } from "./abi/USDC_abi";
 import { USDT_ABI } from "./abi/USDT_abi";
+import { OvaWhitelistInterface } from "../typechain-types/contracts/whitelist/OvaWhitelist";
+import { IDispatcher } from "../typechain-types/contracts/backing/interfaces/IDispatcher";
 
 export async function deploy_USDO(
   approveDeployerCollateral?: boolean,
@@ -568,5 +572,176 @@ export function decodeCustomError(error: any, abi: any) {
     }
   } else {
     console.error("No return data in error:", error);
+  }
+}
+
+export async function deploy_OvaWhitelist(admin: string): Promise<void> {
+  const [deployer] = await ethers.getSigners();
+
+  console.log("Deploying OvaWhitelist contract with signer:", deployer.address);
+
+  const ContractSource = await ethers.getContractFactory("OvaWhitelist");
+  const deployedContract = await ContractSource.deploy(admin);
+  await deployedContract.waitForDeployment();
+
+  console.log("Contract deployed at:", await deployedContract.getAddress());
+}
+
+export async function OvaWhitelist_add(
+  contractAddress: string,
+  who: string,
+  signer: any
+) {
+  if (!ethers.isAddress(who)) {
+    throw new Error(`${who} is not a valid address`);
+  }
+  if (!ethers.isAddress(contractAddress)) {
+    throw new Error(`${contractAddress} is not a valid address`);
+  }
+
+  try {
+    const contract = new ethers.Contract(
+      contractAddress,
+      OVAWHITELIST_ABI.abi,
+      signer
+    );
+    const tx = await contract.connect(signer).add(who);
+    const recepit = await tx.wait();
+    console.log(
+      `${who} added to whitelist. Transaction executed at ${tx.hash}`
+    );
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export async function OvaWhitelist_remove(
+  contractAddress: string,
+  who: string,
+  signer: any
+) {
+  if (!ethers.isAddress(who)) {
+    throw new Error(`${who} is not a valid address`);
+  }
+  if (!ethers.isAddress(contractAddress)) {
+    throw new Error(`${contractAddress} is not a valid address`);
+  }
+
+  try {
+    const contract = new ethers.Contract(
+      contractAddress,
+      OVAWHITELIST_ABI.abi,
+      signer
+    );
+    const tx = await contract.connect(signer).remove(who);
+    const recepit = await tx.wait();
+    console.log(
+      `${who} removed from whitelist. Transaction executed at ${tx.hash}`
+    );
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export async function deploy_SubscriptionConsumerSepolia(id: string) {
+  const [deployer] = await ethers.getSigners();
+
+  console.log(
+    "Deploying SubscriptionConsumerSepolia contract with signer:",
+    deployer.address
+  );
+
+  const ContractSource = await ethers.getContractFactory(
+    "SubscriptionConsumerSepolia"
+  );
+  const deployedContract = await ContractSource.deploy(id);
+  await deployedContract.waitForDeployment();
+
+  console.log("Contract deployed at:", await deployedContract.getAddress());
+}
+
+export async function SubscriptionConsumerSepolia_request(
+  contractAddress: string,
+  signer: any
+) {
+  if (!ethers.isAddress(contractAddress)) {
+    throw new Error(`${contractAddress} is not a valid address`);
+  }
+
+  try {
+    const contract = new ethers.Contract(
+      contractAddress,
+      SUBSCRIPTIONCONSUMERSEPOLIA_ABI.abi,
+      signer
+    );
+    const tx = await contract.connect(signer).requestRandomWords(true);
+    const recepit = await tx.wait();
+    console.log(`Transaction executed at ${tx.hash}`);
+    console.log(`Tx:\n${tx}`);
+    console.log(`Receipt:\n${recepit}`);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export async function SubscriptionConsumerSepolia_get(
+  provider: any,
+  contractAddress: string,
+  id: string
+) {
+  if (!ethers.isAddress(contractAddress)) {
+    throw new Error(`${contractAddress} is not a valid address`);
+  }
+
+  try {
+    const contract = new ethers.Contract(
+      contractAddress,
+      SUBSCRIPTIONCONSUMERSEPOLIA_ABI.abi,
+      provider
+    );
+    const res = await contract.getRequestStatus(id);
+    console.log("Request:", res);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export async function deploy_TestMath() {
+  const [deployer] = await ethers.getSigners();
+
+  console.log("Deploying Math contract with signer:", deployer.address);
+
+  const ContractSource = await ethers.getContractFactory("TestMath");
+  const deployedContract = await ContractSource.deploy({
+    maxFeePerGas: 10000000000
+  });
+  await deployedContract.waitForDeployment();
+
+  console.log("Contract deployed at:", await deployedContract.getAddress());
+}
+
+export async function TestMath_mod(
+  provider: any,
+  contractAddress: string,
+  a: string,
+  b: string
+) {
+  if (!ethers.isAddress(contractAddress)) {
+    throw new Error(`${contractAddress} is not a valid address`);
+  }
+
+  try {
+    const contract = new ethers.Contract(
+      contractAddress,
+      TESTMATH_ABI.abi,
+      provider
+    );
+    const res = await contract.testMod(
+      ethers.parseUnits(a, 0),
+      ethers.parseUnits(b, 0)
+    );
+    console.log("Mod:", res);
+  } catch (e) {
+    console.error(e);
   }
 }
