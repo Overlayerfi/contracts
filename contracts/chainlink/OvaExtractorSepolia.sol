@@ -70,7 +70,7 @@ contract OvaExtractorSepolia is VRFConsumerBaseV2Plus {
     // @param participants_ The participants list
     function setParticipants(string[] memory participants_) external onlyOwner {
         delete participants;
-        for (uint256 i=0; i<participants_.length;) {
+        for (uint256 i = 0; i < participants_.length; ) {
             participants.push(participants_[i]);
             unchecked {
                 i++;

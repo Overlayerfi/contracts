@@ -651,9 +651,7 @@ export async function deploy_SubscriptionConsumerSepolia(id: string) {
     deployer.address
   );
 
-  const ContractSource = await ethers.getContractFactory(
-    "OvaExtractorSepolia"
-  );
+  const ContractSource = await ethers.getContractFactory("OvaExtractorSepolia");
   const deployedContract = await ContractSource.deploy(id);
   await deployedContract.waitForDeployment();
 
