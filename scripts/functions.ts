@@ -7,7 +7,7 @@ import {
 } from "./addresses";
 import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
 import OVAWHITELIST_ABI from "../artifacts/contracts/whitelist/OvaWhitelist.sol/OvaWhitelist.json";
-import SUBSCRIPTIONCONSUMERSEPOLIA_ABI from "../artifacts/contracts/chainlink/SubscriptionConsumerSepolia.sol/SubscriptionConsumerSepolia.json";
+import SUBSCRIPTIONCONSUMERSEPOLIA_ABI from "../artifacts/contracts/chainlink/OvaExtractorSepolia.sol/OvaExtractorSepolia.json";
 import TESTMATH_ABI from "../artifacts/contracts/test/TestMath.sol/TestMath.json";
 import LIQUIDITY_ABI from "../artifacts/contracts/liquidity/Liquidity.sol/Liquidity.json";
 import USDO_ABI from "../artifacts/contracts/token/USDO.sol/USDO.json";
@@ -647,12 +647,12 @@ export async function deploy_SubscriptionConsumerSepolia(id: string) {
   const [deployer] = await ethers.getSigners();
 
   console.log(
-    "Deploying SubscriptionConsumerSepolia contract with signer:",
+    "Deploying OvaExtractorSepolia contract with signer:",
     deployer.address
   );
 
   const ContractSource = await ethers.getContractFactory(
-    "SubscriptionConsumerSepolia"
+    "OvaExtractorSepolia"
   );
   const deployedContract = await ContractSource.deploy(id);
   await deployedContract.waitForDeployment();

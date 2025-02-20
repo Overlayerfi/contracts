@@ -1,24 +1,13 @@
 // SPDX-License-Identifier: MIT
-// An example of a consumer contract that relies on a subscription for funding.
 pragma solidity 0.8.20;
 
 import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
 import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
-/**
- * Request testnet LINK and ETH here: https://faucets.chain.link/
- * Find information on LINK Token Contracts and get the latest ETH and LINK faucets here: https://docs.chain.link/docs/link-token-contracts/
- */
-
-/**
- * THIS IS AN EXAMPLE CONTRACT THAT USES HARDCODED VALUES FOR CLARITY.
- * THIS IS AN EXAMPLE CONTRACT THAT USES UN-AUDITED CODE.
- * DO NOT USE THIS CODE IN PRODUCTION.
- */
-
-contract SubscriptionConsumerSepolia is VRFConsumerBaseV2Plus {
+contract OvaExtractorSepolia is VRFConsumerBaseV2Plus {
     event RequestSent(uint256 requestId, uint32 numWords);
     event RequestFulfilled(uint256 requestId, uint256[] randomWords);
+    event WinnerSet(string winner);
 
     struct RequestStatus {
         bool fulfilled; // whether the request has been successfully fulfilled
@@ -30,6 +19,15 @@ contract SubscriptionConsumerSepolia is VRFConsumerBaseV2Plus {
 
     // Your subscription ID.
     uint256 public s_subscriptionId;
+
+    // User participants
+    string[] public participants;
+
+    // Final winner
+    string public winner;
+
+    // If the winner has been set
+    bool public winnerSet;
 
     // Past request IDs.
     uint256[] public requestIds;
@@ -43,27 +41,41 @@ contract SubscriptionConsumerSepolia is VRFConsumerBaseV2Plus {
 
     // Depends on the number of requested values that you want sent to the
     // fulfillRandomWords() function. Storing each word costs about 20,000 gas,
-    // so 100,000 is a safe default for this example contract. Test and adjust
-    // this limit based on the network that you select, the size of the request,
-    // and the processing of the callback request in the fulfillRandomWords()
-    // function.
+    // so 100,000 is a safe default for 1 word.
     uint32 public callbackGasLimit = 100000;
 
-    // The default is 3, but you can set this higher.
+    // The default is 3.
     uint16 public requestConfirmations = 3;
 
-    // For this example, retrieve 1 random values in one request.
+    // Retrieve 1 random values in one request.
     // Cannot exceed VRFCoordinatorV2_5.MAX_NUM_WORDS.
     uint32 public numWords = 1;
 
     /**
-     * HARDCODED FOR SEPOLIA
-     * COORDINATOR: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B
+     * SEPOLIA COORDINATOR: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B
      */
     constructor(
         uint256 subscriptionId
     ) VRFConsumerBaseV2Plus(0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B) {
         s_subscriptionId = subscriptionId;
+    }
+
+    // Add new participant
+    // @param who The participant
+    function addParticipant(string memory who) external onlyOwner {
+        participants.push(who);
+    }
+
+    // Add new participants
+    // @param participants_ The participants list
+    function setParticipants(string[] memory participants_) external onlyOwner {
+        delete participants;
+        for (uint256 i=0; i<participants_.length;) {
+            participants.push(participants_[i]);
+            unchecked {
+                i++;
+            }
+        }
     }
 
     // Assumes the subscription is funded sufficiently.
@@ -110,9 +122,21 @@ contract SubscriptionConsumerSepolia is VRFConsumerBaseV2Plus {
 
     function getRequestStatus(
         uint256 _requestId
-    ) external view returns (bool fulfilled, uint256[] memory randomWords) {
+    ) public view returns (bool fulfilled, uint256[] memory randomWords) {
         require(s_requests[_requestId].exists, "request not found");
         RequestStatus memory request = s_requests[_requestId];
         return (request.fulfilled, request.randomWords);
+    }
+
+    function assignWinnerFromRequest(uint256 _requestId) external onlyOwner {
+        require(participants.length > 0, "no participants");
+        (bool fulfilled, uint256[] memory words) = getRequestStatus(_requestId);
+        require(fulfilled, "request not fulfilled");
+        uint256 word = words[0];
+        uint256 winnerId = word % participants.length;
+        winner = participants[winnerId];
+        winnerSet = true;
+
+        emit WinnerSet(winner);
     }
 }
