@@ -2,18 +2,23 @@
 pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
- * @title OvaUsdtDistributor
+ * @title OvaLotteryRewardsDistributor
  * @notice Distributes a fixed reward of 50 USDT to whitelisted addresses.
  * @dev USDT tokens must be sent by the owner to this contract. The owner can add or remove
  * addresses from the whitelist. Each whitelisted address can collect a fixed reward only once.
  */
-contract OvaUsdtDistributor is Ownable, ReentrancyGuard {
+contract OvaLotteryRewardsDistributor is Ownable, ReentrancyGuard, ERC20 {
     using SafeERC20 for IERC20;
+
+    enum Reward {
+        usdt,
+        rOva
+    }
 
     /// @notice Emitted when an invalid (zero) address is used.
     error InvalidAddress();
@@ -22,19 +27,23 @@ contract OvaUsdtDistributor is Ownable, ReentrancyGuard {
     error NothingToCollect();
 
     /// @notice The fixed reward amount of 50 USDT (with 6 decimals).
-    uint256 public constant AMOUNT = 50 * (10 ** 6);
+    uint256 public constant AMOUNT_USDT = 50 * (10 ** 6);
+
+    uint256 public constant AMOUNT_rOVA = 50 * (10 ** 18);
 
     /// @notice USDT contract address on Ethereum mainnet.
     address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
 
-    /// @notice Mapping that tracks the allowed claim amount for each whitelisted address.
-    mapping(address => uint256) public allowed;
+    /// @notice Mapping that tracks the allowedUsdt claim amount for each whitelisted address.
+    mapping(address => uint256) public allowedUsdt;
+
+    mapping(address => uint256) public allowedROva;
 
     /**
      * @notice Constructor that sets the initial administrator.
      * @param admin The address of the contract administrator.
      */
-    constructor(address admin) Ownable(admin) {}
+    constructor(address admin) Ownable(admin) ERC20("rOVA", "rOVA") {}
 
     /**
      * @notice Allows the owner to recover any ERC20 tokens sent to the contract.
@@ -53,11 +62,15 @@ contract OvaUsdtDistributor is Ownable, ReentrancyGuard {
      * @param who The address to be whitelisted.
      * @dev Reverts if the provided address is the zero address.
      */
-    function add(address who) external onlyOwner {
+    function add(address who, Reward reward) external onlyOwner {
         if (who == address(0)) {
             revert InvalidAddress();
         }
-        allowed[who] = AMOUNT;
+        if (reward == Reward.usdt) {
+            allowedUsdt[who] = AMOUNT_USDT;
+        } else {
+            allowedROva[who] = AMOUNT_rOVA;
+        }
     }
 
     /**
@@ -65,25 +78,35 @@ contract OvaUsdtDistributor is Ownable, ReentrancyGuard {
      * @param who The address to be removed.
      * @dev Reverts if the provided address is the zero address.
      */
-    function remove(address who) external onlyOwner {
+    function remove(address who, Reward reward) external onlyOwner {
         if (who == address(0)) {
             revert InvalidAddress();
         }
-        allowed[who] = 0;
+        if (reward == Reward.usdt) {
+            allowedUsdt[who] = 0;
+        } else {
+            allowedROva[who] = 0;
+        }
     }
 
     /**
      * @notice Allows a whitelisted address to collect their USDT reward.
-     * @dev Uses nonReentrant to prevent reentrancy attacks. Resets the allowed amount to zero
+     * @dev Uses nonReentrant to prevent reentrancy attacks. Resets the allowedUsdt amount to zero
      * before transferring tokens. Reverts if the caller is not whitelisted or has already claimed.
      */
     function collect() external nonReentrant {
-        if (allowed[msg.sender] == 0) {
+        if (allowedUsdt[msg.sender] == 0 && allowedROva[msg.sender] == 0) {
             revert NothingToCollect();
         }
-        // Reset allowed amount to prevent reentrancy issues.
-        allowed[msg.sender] = 0;
-        // Transfer the fixed reward to the caller.
-        IERC20(USDT).safeTransfer(msg.sender, AMOUNT);
+        if (allowedUsdt[msg.sender] > 0) {
+            // Reset allowedUsdt amount to prevent reentrancy issues.
+            allowedUsdt[msg.sender] = 0;
+            // Transfer the fixed reward to the caller.
+            IERC20(USDT).safeTransfer(msg.sender, AMOUNT_USDT);
+        }
+        if (allowedROva[msg.sender] > 0) {
+            allowedROva[msg.sender] = 0;
+            _mint(msg.sender, AMOUNT_rOVA);
+        }
     }
 }
