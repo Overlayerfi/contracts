@@ -5,7 +5,7 @@ import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFCo
 import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
 /// @title OvaExtractorSepolia Lottery Contract
-/// @notice This contract manages a lottery by storing a list of participants and selecting a winner using Chainlink VRF randomness.
+/// @notice This contract manages a lottery by storing a list of participants and selecting a winners using Chainlink VRF randomness.
 /// @dev Inherits from VRFConsumerBaseV2Plus which includes owner-based access control.
 contract OvaExtractorSepolia is VRFConsumerBaseV2Plus {
     /// @notice Emitted when a random words request is sent.
@@ -18,16 +18,19 @@ contract OvaExtractorSepolia is VRFConsumerBaseV2Plus {
     /// @param randomWords The random words returned by the VRF coordinator.
     event RequestFulfilled(uint256 requestId, uint256[] randomWords);
 
-    /// @notice Emitted when a winner is set.
-    /// @param winner The winner selected from the participants list.
-    event WinnerSet(string winner);
-
+    /// @notice Emitted when a winners is set.
+    /// @param usdtWinners The usdt winners selected from the participants list.
+    /// @param rOvaWinners The rOVa winners selected from the participants list.
+    event WinnerSet(string[] usdtWinners, string[] rOvaWinners);
     /// @notice Structure to store the status of a VRF request.
     struct RequestStatus {
         bool fulfilled; // Whether the request has been successfully fulfilled.
         bool exists; // Whether the request exists.
         uint256[] randomWords; // The random words returned by the request.
     }
+
+    /// @notice Number of usdt winners
+    uint256 public constant USDT_WINNERS = 10;
 
     /// @notice Mapping from request IDs to their corresponding status.
     mapping(uint256 => RequestStatus) public s_requests;
@@ -38,10 +41,13 @@ contract OvaExtractorSepolia is VRFConsumerBaseV2Plus {
     /// @notice Array of participants in the lottery.
     string[] public participants;
 
-    /// @notice The final winner of the lottery.
-    string public winner;
+    /// @notice The final usdt winners of the lottery.
+    string[] public usdtWinners;
 
-    /// @notice Flag indicating whether a winner has been set.
+    /// @notice The final rOva winners of the lottery.
+    string[] public rOvaWinners;
+
+    /// @notice Flag indicating whether a winners has been set.
     bool public winnerSet;
 
     /// @notice Array storing past VRF request IDs.
@@ -63,7 +69,7 @@ contract OvaExtractorSepolia is VRFConsumerBaseV2Plus {
 
     /// @notice The number of random words to request.
     /// @dev Must not exceed VRFCoordinatorV2_5.MAX_NUM_WORDS.
-    uint32 public numWords = 1;
+    uint32 public numWords = 30;
 
     /**
      * @notice Constructs the OvaExtractorSepolia contract.
@@ -172,30 +178,42 @@ contract OvaExtractorSepolia is VRFConsumerBaseV2Plus {
     }
 
     /**
-     * @notice Resets the winner for the current lottery round.
+     * @notice Resets the winners for the current lottery round.
      * @dev Only callable by the owner.
      */
     function resetWinner() external onlyOwner {
-        delete winner;
+        delete usdtWinners;
+        delete rOvaWinners;
         winnerSet = false;
     }
 
     /**
-     * @notice Assigns a winner based on a fulfilled VRF request.
+     * @notice Assigns a winners based on a fulfilled VRF request.
      * @param _requestId The ID of the fulfilled VRF request.
-     * @dev Uses the first random word to select a winner via modulo operation.
-     *      Only callable by the owner. Reverts if no participants exist or if a winner is already set.
+     * @dev Uses the first random word to select a winners via modulo operation.
+     *      Only callable by the owner. Reverts if no participants exist or if a winners is already set.
      */
-    function assignWinnerFromRequest(uint256 _requestId) external onlyOwner {
+    function assignWinnersFromRequest(uint256 _requestId) external onlyOwner {
         require(participants.length > 0, "no participants");
-        require(!winnerSet, "winner already set");
+        require(!winnerSet, "winners already set");
         (bool fulfilled, uint256[] memory words) = getRequestStatus(_requestId);
         require(fulfilled, "request not fulfilled");
-        uint256 word = words[0];
-        uint256 winnerId = word % participants.length;
-        winner = participants[winnerId];
+        require(words.length == numWords, "unexpected number of words");
+        for (uint256 i = 0; i < numWords; ) {
+            uint256 word = words[i];
+            uint256 winnerId = word % participants.length;
+
+            if (i < USDT_WINNERS) {
+                usdtWinners.push(participants[winnerId]);
+            } else {
+                rOvaWinners.push(participants[winnerId]);
+            }
+            unchecked {
+                i++;
+            }
+        }
         winnerSet = true;
 
-        emit WinnerSet(winner);
+        emit WinnerSet(usdtWinners, rOvaWinners);
     }
 }
