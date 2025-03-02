@@ -7,7 +7,7 @@ import {
 } from "./addresses";
 import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
 import OVAWHITELIST_ABI from "../artifacts/contracts/whitelist/OvaWhitelist.sol/OvaWhitelist.json";
-import SUBSCRIPTIONCONSUMERSEPOLIA_ABI from "../artifacts/contracts/chainlink/OvaExtractorSepolia.sol/OvaExtractorSepolia.json";
+import SUBSCRIPTIONCONSUMERSEPOLIA_ABI from "../artifacts/contracts/sepolialottery/OvaExtractorSepolia.sol/OvaExtractorSepolia.json";
 import TESTMATH_ABI from "../artifacts/contracts/test/TestMath.sol/TestMath.json";
 import LIQUIDITY_ABI from "../artifacts/contracts/liquidity/Liquidity.sol/Liquidity.json";
 import USDO_ABI from "../artifacts/contracts/token/USDO.sol/USDO.json";
@@ -16,8 +16,6 @@ import SUSDO_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUS
 import { ILiquidity } from "./types";
 import { USDC_ABI } from "./abi/USDC_abi";
 import { USDT_ABI } from "./abi/USDT_abi";
-import { OvaWhitelistInterface } from "../typechain-types/contracts/whitelist/OvaWhitelist";
-import { IDispatcher } from "../typechain-types/contracts/backing/interfaces/IDispatcher";
 
 export async function deploy_USDO(
   approveDeployerCollateral?: boolean,
@@ -606,6 +604,38 @@ export async function OvaWhitelist_add(
       signer
     );
     const tx = await contract.connect(signer).add(who);
+    const recepit = await tx.wait();
+    console.log(
+      `${who} added to whitelist. Transaction executed at ${tx.hash}`
+    );
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export async function OvaWhitelist_batchAdd(
+  contractAddress: string,
+  who: string[],
+  signer: any
+) {
+  for (const c of who) {
+    if (!ethers.isAddress(c)) {
+      throw new Error(`${c} is not a valid address`);
+    }
+  }
+  if (!ethers.isAddress(contractAddress)) {
+    throw new Error(`${contractAddress} is not a valid address`);
+  }
+
+  try {
+    const contract = new ethers.Contract(
+      contractAddress,
+      OVAWHITELIST_ABI.abi,
+      signer
+    );
+    const tx = await contract
+      .connect(signer)
+      .batchAdd(who, { gasLimit: 10000000 });
     const recepit = await tx.wait();
     console.log(
       `${who} added to whitelist. Transaction executed at ${tx.hash}`
