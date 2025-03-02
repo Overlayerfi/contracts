@@ -35,7 +35,7 @@ const testAccounts = [
 const config: HardhatUserConfig = {
   docgen: {
     output: 'docs',
-    exclude: ['mock_ERC20', 'pancake', 'uniswap', 'curve']
+    exclude: ['mock_ERC20', 'pancake', 'uniswap', 'curve', 'backing']
   },
   solidity: {
     compilers: [
