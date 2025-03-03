@@ -10,7 +10,7 @@ import "./types/MintRedeemManagerTypes.sol";
 
 /**
  * @title USDO
- * @notice The Second Layer stable coin
+ * @notice The Dual Layer stable coin
  */
 contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
     /// @notice Blacklisted accounts
