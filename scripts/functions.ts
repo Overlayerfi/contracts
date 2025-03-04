@@ -613,6 +613,38 @@ export async function OvaWhitelist_add(
   }
 }
 
+export async function OvaWhitelist_verify(
+  contractAddress: string,
+  who: string[],
+  provider: any
+) {
+  for (const c of who) {
+    if (!ethers.isAddress(c)) {
+      throw new Error(`${c} is not a valid address`);
+    }
+  }
+  if (!ethers.isAddress(contractAddress)) {
+    throw new Error(`${contractAddress} is not a valid address`);
+  }
+
+  try {
+    const contract = new ethers.Contract(
+      contractAddress,
+      OVAWHITELIST_ABI.abi,
+      provider
+    );
+    const res = [];
+    for (const a of who) {
+      const tx = await contract.whitelist(a);
+      res.push({ address: a, res: tx });
+    }
+    return res;
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
+
 export async function OvaWhitelist_batchAdd(
   contractAddress: string,
   who: string[],
