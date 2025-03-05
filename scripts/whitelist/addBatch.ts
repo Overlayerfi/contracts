@@ -9,7 +9,7 @@ const provider = new ethers.JsonRpcProvider(
   PRIVATE_ETH_SEPOLIA_RPC_PREFIX + process.env.ALCHEMY_KEY!
 );
 const owner = new ethers.Wallet(
-  process.env.OVA_SEPOLIA_DEPLOYER_KEY!,
+  process.env.OVA_SEPOLIA_DEPLOYER_KEY_OLD!,
   provider
 );
 
