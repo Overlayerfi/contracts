@@ -605,7 +605,7 @@ export async function OvaWhitelist_add(
       OVAWHITELIST_ABI.abi,
       signer
     );
-    for (const a of who)  {
+    for (const a of who) {
       const tx = await contract.connect(signer).add(a);
       const recepit = await tx.wait();
       console.log(
