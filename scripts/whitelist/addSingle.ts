@@ -13,7 +13,7 @@ const owner = new ethers.Wallet(
   provider
 );
 
-const target = "";
+const target = [""];
 const contractAddr = "0x9A58742F11E824B84Aa891EC4EFDFA3932D30f54";
 
 OvaWhitelist_add(contractAddr, target, owner)
