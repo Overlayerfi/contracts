@@ -37,6 +37,16 @@ const config: HardhatUserConfig = {
     output: 'docs',
     exclude: ['mock_ERC20', 'pancake', 'uniswap', 'curve', 'backing']
   },
+  etherscan: {
+    apiKey: {
+      sepolia: process.env.ETHERSCAN_API_KEY!,
+    },
+  },
+  sourcify: {
+    // Disabled by default
+    // Doesn't need an API key
+    enabled: true
+  },
   solidity: {
     compilers: [
       {

@@ -587,11 +587,13 @@ export async function deploy_OvaWhitelist(admin: string): Promise<void> {
 
 export async function OvaWhitelist_add(
   contractAddress: string,
-  who: string,
+  who: string[],
   signer: any
 ) {
-  if (!ethers.isAddress(who)) {
-    throw new Error(`${who} is not a valid address`);
+  for (const c of who) {
+    if (!ethers.isAddress(c)) {
+      throw new Error(`${c} is not a valid address`);
+    }
   }
   if (!ethers.isAddress(contractAddress)) {
     throw new Error(`${contractAddress} is not a valid address`);
@@ -603,13 +605,37 @@ export async function OvaWhitelist_add(
       OVAWHITELIST_ABI.abi,
       signer
     );
-    const tx = await contract.connect(signer).add(who);
-    const recepit = await tx.wait();
-    console.log(
-      `${who} added to whitelist. Transaction executed at ${tx.hash}`
-    );
+    for (const a of who)  {
+      const tx = await contract.connect(signer).add(a);
+      const recepit = await tx.wait();
+      console.log(
+        `${a} added to whitelist. Transaction executed at ${tx.hash}`
+      );
+    }
   } catch (e) {
     console.error(e);
+  }
+}
+
+export async function OvaWhitelist_count(
+  contractAddress: string,
+  provider: any
+) {
+  if (!ethers.isAddress(contractAddress)) {
+    throw new Error(`${contractAddress} is not a valid address`);
+  }
+
+  try {
+    const contract = new ethers.Contract(
+      contractAddress,
+      OVAWHITELIST_ABI.abi,
+      provider
+    );
+    const tx = await contract.users();
+    return tx;
+  } catch (e) {
+    console.error(e);
+    return -1;
   }
 }
 
