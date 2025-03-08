@@ -33,6 +33,14 @@ const testAccounts = [
 ];
 
 const config: HardhatUserConfig = {
+  gasReporter: {
+    enabled: true,
+    currency: 'USD',
+    L1: "ethereum",
+    L1Etherscan: process.env.ETHERSCAN_API_KEY!,
+    coinmarketcap: process.env.COINMARKETCAP_API_KEY!,
+    //outputFile: 'gas-report.txt',
+  },
   docgen: {
     output: 'docs',
     exclude: ['mock_ERC20', 'pancake', 'uniswap', 'curve', 'backing']

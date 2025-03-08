@@ -7,13 +7,10 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
- * @title OvaLotteryRewardsDistributor
- * @notice Distributes fixed rewards to whitelisted addresses. Whitelisted addresses can collect a fixed USDT reward
- *         (50 USDT with 6 decimals) transferred from the contract's balance, and/or a fixed rOVA reward (50 rOVA with 18 decimals)
- *         minted to their address. If an address is whitelisted for both rewards, they will receive both rewards in a single call.
+ * @title rOVA
  * @dev USDT tokens must be sent by the owner to this contract. The owner can add or remove addresses from the whitelist for each reward type.
  */
-contract OvaLotteryRewardsDistributor is Ownable, ReentrancyGuard, ERC20 {
+contract rOVA is Ownable, ReentrancyGuard, ERC20 {
     using SafeERC20 for IERC20;
 
     /// @notice Enumeration to identify reward types.
@@ -27,12 +24,6 @@ contract OvaLotteryRewardsDistributor is Ownable, ReentrancyGuard, ERC20 {
 
     /// @notice Emitted when a caller attempts to collect rewards but has nothing to claim.
     error NothingToCollect();
-
-    /// @notice The fixed reward amount of 50 USDT (with 6 decimals).
-    uint256 public constant AMOUNT_USDT = 50 * (10 ** 6);
-
-    /// @notice The fixed reward amount of 50 rOVA (with 18 decimals).
-    uint256 public constant AMOUNT_rOVA = 50 * (10 ** 18);
 
     /// @notice USDT contract address on Ethereum mainnet.
     address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
@@ -82,18 +73,19 @@ contract OvaLotteryRewardsDistributor is Ownable, ReentrancyGuard, ERC20 {
      * @notice Adds an address to the whitelist for a specified reward.
      * @param who The address to be whitelisted.
      * @param reward The type of reward to whitelist for (usdt or rOva).
+     * @param amount The reward amount to assign to the address.
      * @dev Reverts if the provided address is the zero address.
      */
-    function add(address who, Reward reward) external onlyOwner {
+    function add(address who, Reward reward, uint256 amount) external onlyOwner {
         if (who == address(0)) {
             revert InvalidAddress();
         }
         if (reward == Reward.usdt) {
-            allowedUsdt[who] = AMOUNT_USDT;
-            emit RewardWhitelisted(who, reward, AMOUNT_USDT);
+            allowedUsdt[who] = amount;
+            emit RewardWhitelisted(who, reward, amount);
         } else {
-            allowedROva[who] = AMOUNT_rOVA;
-            emit RewardWhitelisted(who, reward, AMOUNT_rOVA);
+            allowedROva[who] = amount;
+            emit RewardWhitelisted(who, reward, amount);
         }
     }
 
@@ -119,18 +111,23 @@ contract OvaLotteryRewardsDistributor is Ownable, ReentrancyGuard, ERC20 {
     /**
      * @notice Batch adds multiple addresses to the whitelist for a specified reward.
      * @param accounts The array of addresses to be whitelisted.
+     * @param amounts The array of reward amounts to assign to each address.
      * @param reward The type of reward to whitelist for (usdt or rOva).
      * @dev Reverts if any provided address is the zero address.
      */
     function batchAdd(
         address[] calldata accounts,
+        uint256[] calldata amounts,
         Reward reward
     ) external onlyOwner {
-        uint256 amount = reward == Reward.usdt ? AMOUNT_USDT : AMOUNT_rOVA;
+        if (accounts.length != amounts.length) {
+            revert("OvaLotteryRewardsDistributor: Invalid input length");
+        }
         for (uint256 i = 0; i < accounts.length; i++) {
             if (accounts[i] == address(0)) {
                 revert InvalidAddress();
             }
+            uint256 amount = amounts[i];
             if (reward == Reward.usdt) {
                 allowedUsdt[accounts[i]] = amount;
             } else {
