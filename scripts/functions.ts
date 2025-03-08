@@ -746,6 +746,29 @@ export async function deploy_SubscriptionConsumerSepolia(id: string) {
   console.log("Contract deployed at:", await deployedContract.getAddress());
 }
 
+export async function SubscriptionConsumerSepolia_addParticipants(
+  contractAddress: string,
+  handles: string[],
+  signer: any
+) {
+  if (!ethers.isAddress(contractAddress)) {
+    throw new Error(`${contractAddress} is not a valid address`);
+  }
+
+  try {
+    const contract = new ethers.Contract(
+      contractAddress,
+      SUBSCRIPTIONCONSUMERSEPOLIA_ABI.abi,
+      signer
+    );
+    const tx = await contract.connect(signer).setParticipants(handles);
+    const recepit = await tx.wait();
+    console.log("Transaction executed at", tx.hash);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
 export async function SubscriptionConsumerSepolia_request(
   contractAddress: string,
   signer: any
@@ -762,9 +785,7 @@ export async function SubscriptionConsumerSepolia_request(
     );
     const tx = await contract.connect(signer).requestRandomWords(true);
     const recepit = await tx.wait();
-    console.log(`Transaction executed at ${tx.hash}`);
-    console.log(`Tx:\n${tx}`);
-    console.log(`Receipt:\n${recepit}`);
+    console.log("Transaction executed at", tx.hash);
   } catch (e) {
     console.error(e);
   }
