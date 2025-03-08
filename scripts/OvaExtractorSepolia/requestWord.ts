@@ -9,10 +9,10 @@ const provider = new ethers.JsonRpcProvider(
   PRIVATE_ETH_SEPOLIA_RPC_PREFIX + process.env.ALCHEMY_KEY!
 );
 const owner = new ethers.Wallet(
-  process.env.OVA_SEPOLIA_DEPLOYER_KEY!,
+  process.env.OVA_SEPOLIA_DEPLOYER_KEY_OLD!,
   provider
 );
-const address = "0x104C7ebB04aec8a6e0823326Ea615565F5f49Fb2";
+const address = "";
 
 SubscriptionConsumerSepolia_request(address, owner)
   .then(() => console.log("Completed"))

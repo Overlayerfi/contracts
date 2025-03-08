@@ -62,7 +62,7 @@ contract OvaExtractorSepolia is VRFConsumerBaseV2Plus {
         0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae;
 
     /// @notice The callback gas limit for the VRF request.
-    uint32 public callbackGasLimit = 100000;
+    uint32 public callbackGasLimit = 1000000;
 
     /// @notice The number of confirmations for the VRF request.
     uint16 public requestConfirmations = 3;
@@ -89,6 +89,10 @@ contract OvaExtractorSepolia is VRFConsumerBaseV2Plus {
      */
     function addParticipant(string memory who) external onlyOwner {
         participants.push(who);
+    }
+
+    function setGasLimit(uint32 gasLimit) external onlyOwner {
+        callbackGasLimit = gasLimit;
     }
 
     /**
