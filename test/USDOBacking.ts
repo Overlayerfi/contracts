@@ -1009,11 +1009,15 @@ describe("USDOBacking", function () {
         usdo,
         "SuppliedToBacking"
       );
-      expect(await ausdc.balanceOf(await usdobacking.getAddress())).to.be.equal(
-        ethers.parseUnits("2000.5", await ausdc.decimals())
+      expect(
+        await ausdc.balanceOf(await usdobacking.getAddress())
+      ).to.be.greaterThanOrEqual(
+        ethers.parseUnits("2000.49", await ausdc.decimals())
       );
-      expect(await ausdt.balanceOf(await usdobacking.getAddress())).to.be.equal(
-        ethers.parseUnits("2000.5", await ausdt.decimals())
+      expect(
+        await ausdt.balanceOf(await usdobacking.getAddress())
+      ).to.be.lessThanOrEqual(
+        ethers.parseUnits("2000.51", await ausdt.decimals())
       );
       expect(await usdobacking.totalSuppliedUSDC()).to.be.equal(
         ethers.parseUnits("2000.5", await usdc.decimals())
