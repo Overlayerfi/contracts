@@ -59,5 +59,12 @@ npm run prettier-ts
 npm run prettier-sol
 ```
 
-## Internal beta RPC
-Ova has an internal RPC with a copy of Ethereum mainnet starting from block `19709557`
+## Hardhat utils
+
+### Flatten
+npx hardhat flatten FILE.sol
+
+### Verify
+npx hardhat verify --network NETWORK ADDRESS "ARG"
+
+
