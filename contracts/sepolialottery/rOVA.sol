@@ -76,7 +76,11 @@ contract rOVA is Ownable, ReentrancyGuard, ERC20 {
      * @param amount The reward amount to assign to the address.
      * @dev Reverts if the provided address is the zero address.
      */
-    function add(address who, Reward reward, uint256 amount) external onlyOwner {
+    function add(
+        address who,
+        Reward reward,
+        uint256 amount
+    ) external onlyOwner {
         if (who == address(0)) {
             revert InvalidAddress();
         }

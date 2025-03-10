@@ -174,14 +174,26 @@ abstract contract MintRedeemManager is
 
     /// @notice Supply funds to the active backing contract (aka approvedCollateralSpender)
     /// @dev The approveCollateralSpender will colect the funds, as the only entity allowed to do so
-    function supplyToBacking() external nonReentrant whenNotPaused {
+    /// @param amountUsdc The amount of USDC to supply
+    /// @param amountUsdt The amount of USDT to supply
+    function supplyToBacking(
+        uint256 amountUsdc,
+        uint256 amountUsdt
+    ) external nonReentrant whenNotPaused {
         if (approvedCollateralSpender != address(0)) {
             uint256 usdcBal = IERC20(emergencyMode ? aUsdc.addr : usdc.addr)
                 .balanceOf(address(this));
             uint256 usdtBal = IERC20(emergencyMode ? aUsdt.addr : usdt.addr)
                 .balanceOf(address(this));
-            IUSDOBacking(approvedCollateralSpender).supply(usdcBal, usdtBal);
-            emit SuppliedToBacking(msg.sender, usdcBal, usdtBal);
+            uint256 usdcToSupply = amountUsdc == 0 ? usdcBal : amountUsdc;
+            uint256 usdtToSupply = amountUsdt == 0 ? usdtBal : amountUsdt;
+            if (usdcToSupply > usdcBal || usdtToSupply > usdtBal)
+                revert MintRedeemManagerInsufficientFunds();
+            IUSDOBacking(approvedCollateralSpender).supply(
+                usdcToSupply,
+                usdtToSupply
+            );
+            emit SuppliedToBacking(msg.sender, usdcToSupply, usdtToSupply);
         }
     }
 
