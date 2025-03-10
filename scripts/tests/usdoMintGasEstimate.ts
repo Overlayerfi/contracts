@@ -50,7 +50,7 @@ async function estimate() {
   // From real estimates amount1 should already include amount2 + amount3
   const amount1 = await usdoContract
     .connect(signer)
-    .supplyToBacking.estimateGas();
+    .supplyToBacking.estimateGas(0, 0);
   const amount2 = await aaveContract
     .connect(signer)
     .supply.estimateGas(

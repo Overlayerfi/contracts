@@ -4,7 +4,8 @@ import { expect } from "chai";
 
 describe("rOVA", function () {
   async function deployFixture() {
-    const [admin, whitelisted, nonWhitelisted, another] = await ethers.getSigners();
+    const [admin, whitelisted, nonWhitelisted, another] =
+      await ethers.getSigners();
 
     // Deploy the rOVA with admin as the owner
     const Rewards = await ethers.getContractFactory("rOVA");
@@ -29,10 +30,18 @@ describe("rOVA", function () {
 
   describe("Whitelist management", function () {
     it("Should add an address for USDT reward", async function () {
-      const { rewards, whitelisted, another } = await loadFixture(deployFixture);
+      const { rewards, whitelisted, another } = await loadFixture(
+        deployFixture
+      );
       // For USDT reward, the Reward enum value is 0 and amount is 50 USDT (with 6 decimals)
       const amount = 50_000_000; // 50 USDT (50 * 10^6)
-      await expect(rewards.batchAdd([whitelisted.address, another.address], [amount, amount], 0))
+      await expect(
+        rewards.batchAdd(
+          [whitelisted.address, another.address],
+          [amount, amount],
+          0
+        )
+      )
         .to.emit(rewards, "RewardWhitelisted")
         .withArgs(whitelisted.address, 0, amount);
       expect(await rewards.allowedUsdt(whitelisted.address)).to.equal(amount);
@@ -69,7 +78,9 @@ describe("rOVA", function () {
     });
 
     it("Should batch add addresses for USDT reward", async function () {
-      const { rewards, whitelisted, another } = await loadFixture(deployFixture);
+      const { rewards, whitelisted, another } = await loadFixture(
+        deployFixture
+      );
       const accounts = [whitelisted.address, another.address];
       const amounts = [50_000_000, 50_000_000];
       await expect(rewards.batchAdd(accounts, amounts, 0))
@@ -77,15 +88,25 @@ describe("rOVA", function () {
         .withArgs(whitelisted.address, 0, 50_000_000)
         .and.to.emit(rewards, "RewardWhitelisted")
         .withArgs(another.address, 0, 50_000_000);
-      expect(await rewards.allowedUsdt(whitelisted.address)).to.equal(50_000_000);
+      expect(await rewards.allowedUsdt(whitelisted.address)).to.equal(
+        50_000_000
+      );
       expect(await rewards.allowedUsdt(another.address)).to.equal(50_000_000);
     });
 
     it("Should batch remove addresses for rOVA reward", async function () {
-      const { rewards, whitelisted, another } = await loadFixture(deployFixture);
+      const { rewards, whitelisted, another } = await loadFixture(
+        deployFixture
+      );
       const amount = ethers.parseEther("50");
-      await rewards.batchAdd([whitelisted.address, another.address], [amount, amount], 1);
-      await expect(rewards.batchRemove([whitelisted.address, another.address], 1))
+      await rewards.batchAdd(
+        [whitelisted.address, another.address],
+        [amount, amount],
+        1
+      );
+      await expect(
+        rewards.batchRemove([whitelisted.address, another.address], 1)
+      )
         .to.emit(rewards, "RewardRemoved")
         .withArgs(whitelisted.address, 1)
         .and.to.emit(rewards, "RewardRemoved")
@@ -98,10 +119,9 @@ describe("rOVA", function () {
   describe("Reward Collection", function () {
     it("Should revert collect if no reward is assigned", async function () {
       const { rewards, nonWhitelisted } = await loadFixture(deployFixture);
-      await expect(rewards.connect(nonWhitelisted).collect()).to.be.revertedWithCustomError(
-        rewards,
-        "NothingToCollect"
-      );
+      await expect(
+        rewards.connect(nonWhitelisted).collect()
+      ).to.be.revertedWithCustomError(rewards, "NothingToCollect");
     });
 
     it("Should collect rOVA reward and mint tokens", async function () {
@@ -128,8 +148,13 @@ describe("rOVA", function () {
       await token.waitForDeployment();
 
       // Transfer some tokens to the rewards contract.
-      await token.transfer(await rewards.getAddress(), ethers.parseUnits("1000", 18));
-      expect(await token.balanceOf(await rewards.getAddress())).to.equal(ethers.parseUnits("1000", 18));
+      await token.transfer(
+        await rewards.getAddress(),
+        ethers.parseUnits("1000", 18)
+      );
+      expect(await token.balanceOf(await rewards.getAddress())).to.equal(
+        ethers.parseUnits("1000", 18)
+      );
 
       // Recover the tokens back to the admin.
       await rewards.recover(await token.getAddress());
