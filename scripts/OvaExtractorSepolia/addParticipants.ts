@@ -13,10 +13,12 @@ const owner = new ethers.Wallet(
   provider
 );
 
-const contract = '0x496DEbE2769756044Bbc257Ec48FfEa3199dab77'
+const contract = "0x496DEbE2769756044Bbc257Ec48FfEa3199dab77";
 
-const handles=['']
+const handles = [""];
 //if (handles.length !== 304) {
 //	throw new Error('Invalid handles length')
 //}
-SubscriptionConsumerSepolia_addParticipants(contract, handles, owner).then(e => console.log(e)).catch(e => console.error(e));
+SubscriptionConsumerSepolia_addParticipants(contract, handles, owner)
+  .then((e) => console.log(e))
+  .catch((e) => console.error(e));

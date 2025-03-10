@@ -9,8 +9,7 @@ const provider = new ethers.JsonRpcProvider(
   PRIVATE_ETH_SEPOLIA_RPC_PREFIX + process.env.ALCHEMY_KEY!
 );
 const address = "";
-const id =
-  "";
+const id = "";
 SubscriptionConsumerSepolia_get(provider, address, id)
   .then(() => console.log("Completed"))
   .catch((e) => console.error(e));

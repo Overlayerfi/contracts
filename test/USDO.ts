@@ -139,7 +139,7 @@ describe("USDO", function () {
       );
       await usdo.connect(admin).pause();
       expect(await usdo.paused()).to.equal(true);
-      await expect(usdo.connect(admin).supplyToBacking()).to.be.eventually
+      await expect(usdo.connect(admin).supplyToBacking(0, 0)).to.be.eventually
         .rejected;
     });
 
