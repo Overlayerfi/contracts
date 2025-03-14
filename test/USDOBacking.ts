@@ -1181,10 +1181,14 @@ describe("USDOBacking", function () {
         ethers.parseUnits(atLeastUsdtAdmin.toFixed(4), await usdt.decimals())
       );
 
-      expect(await ausdc.balanceOf(await usdo.getAddress())).to.be.greaterThanOrEqual(
+      expect(
+        await ausdc.balanceOf(await usdo.getAddress())
+      ).to.be.greaterThanOrEqual(
         ethers.parseUnits("1000.5", await usdt.decimals())
       );
-      expect(await ausdt.balanceOf(await usdo.getAddress())).to.be.greaterThanOrEqual(
+      expect(
+        await ausdt.balanceOf(await usdo.getAddress())
+      ).to.be.greaterThanOrEqual(
         ethers.parseUnits("1000.5", await usdt.decimals())
       );
     });
