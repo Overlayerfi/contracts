@@ -54,6 +54,9 @@ abstract contract StakedUSDO is
     /// @notice The timestamp of the last blacklist activation request
     uint256 public blacklistActivationTime;
 
+    /// @notice USDO backing contract
+    address public usdoBacking;
+
     /* ------------- MODIFIERS ------------- */
 
     /// @notice Ensure input amount nonzero
@@ -172,6 +175,18 @@ abstract contract StakedUSDO is
             revert StakedUSDOInvalidTime();
         }
         blacklistActivationTime = time;
+    }
+
+    /**
+     * @notice Sets the usdo backing contract
+     * @dev Zero address not disable
+     * @param backing The usdo backing contract
+     */
+    function setUsdoBacking(
+        address backing
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        usdoBacking = backing;
+        emit UsdoBackingSet(backing);
     }
 
     /**
