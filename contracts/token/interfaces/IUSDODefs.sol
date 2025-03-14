@@ -10,6 +10,10 @@ interface IUSDODefs is IUSDOEvents {
     error USDOInvalidDecimals();
     /// @notice An account has been disabled from performing transactions
     error USDOAccountDisabled();
+    /// @notice Blacklist not active
+    error USDOBlacklistNotActive();
+    /// @notice Blacklist time not valid
+    error USDOBlacklistTimeNotValid();
     /// @notice A blacklist event
     event DisableAccount(address account);
     /// @notice A reverted blacklist event

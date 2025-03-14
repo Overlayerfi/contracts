@@ -30,15 +30,17 @@ abstract contract StakedUSDO is
     bytes32 private constant BLACKLIST_MANAGER_ROLE =
         keccak256("BLACKLIST_MANAGER_ROLE");
     /// @notice The role which prevents an address to stake
-    bytes32 private constant SOFT_RESTRICTED_STAKER_ROLE =
-        keccak256("SOFT_RESTRICTED_STAKER_ROLE");
+    bytes32 private constant STAKE_RESTRICTED_ROLE =
+        keccak256("STAKE_RESTRICTED_ROLE");
     /// @notice The role which prevents an address to transfer, stake, or unstake. The owner of the contract can redirect address staking balance if an address is in full restricting mode.
-    bytes32 private constant FULL_RESTRICTED_STAKER_ROLE =
-        keccak256("FULL_RESTRICTED_STAKER_ROLE");
+    bytes32 private constant WHOLE_RESTRICTED_ROLE =
+        keccak256("WHOLE_RESTRICTED_ROLE");
     /// @notice The vesting period of lastDistributionAmount over which it increasingly becomes available to stakers
     uint256 private _vestingPeriod;
     /// @notice Minimum non-zero shares amount to prevent donation attack
     uint256 private constant MIN_SHARES = 1 ether;
+    /// @notice Time delay for blacklisting to be activated
+    uint256 public constant BLACKLIST_ACTIVATION_TIME = 15 days;
 
     /* ------------- STATE VARIABLES ------------- */
 
@@ -48,6 +50,9 @@ abstract contract StakedUSDO is
 
     /// @notice The timestamp of the last asset distribution from the controller contract into this contract
     uint256 public lastDistributionTimestamp;
+
+    /// @notice The timestamp of the last blacklist activation request
+    uint256 public blacklistActivationTime;
 
     /* ------------- MODIFIERS ------------- */
 
@@ -60,6 +65,18 @@ abstract contract StakedUSDO is
     /// @notice Ensures blacklist target is not owner
     modifier notOwner(address target) {
         if (target == owner()) revert StakedUSDOCantBlacklistOwner();
+        _;
+    }
+
+    /// @notice Ensures blacklist is on
+    modifier blacklistAllowed() {
+        if (
+            blacklistActivationTime == 0 ||
+            blacklistActivationTime + BLACKLIST_ACTIVATION_TIME >
+            block.timestamp
+        ) {
+            revert StakedUSDOCannotBlacklist();
+        }
         _;
     }
 
@@ -116,10 +133,15 @@ abstract contract StakedUSDO is
     function addToBlacklist(
         address target,
         bool isFullBlacklisting
-    ) external onlyRole(BLACKLIST_MANAGER_ROLE) notOwner(target) {
+    )
+        external
+        blacklistAllowed
+        onlyRole(BLACKLIST_MANAGER_ROLE)
+        notOwner(target)
+    {
         bytes32 role = isFullBlacklisting
-            ? FULL_RESTRICTED_STAKER_ROLE
-            : SOFT_RESTRICTED_STAKER_ROLE;
+            ? WHOLE_RESTRICTED_ROLE
+            : STAKE_RESTRICTED_ROLE;
         _grantRole(role, target);
     }
 
@@ -131,11 +153,25 @@ abstract contract StakedUSDO is
     function removeFromBlacklist(
         address target,
         bool isFullBlacklisting
-    ) external onlyRole(BLACKLIST_MANAGER_ROLE) {
+    ) external blacklistAllowed onlyRole(BLACKLIST_MANAGER_ROLE) {
         bytes32 role = isFullBlacklisting
-            ? FULL_RESTRICTED_STAKER_ROLE
-            : SOFT_RESTRICTED_STAKER_ROLE;
+            ? WHOLE_RESTRICTED_ROLE
+            : STAKE_RESTRICTED_ROLE;
         _revokeRole(role, target);
+    }
+
+    /**
+     * @notice Sets the blacklist time.
+     * @dev Disables blakclist if time is zero.
+     * @param time The starting timestamp.
+     */
+    function setBlackListTime(
+        uint256 time
+    ) external onlyRole(BLACKLIST_MANAGER_ROLE) {
+        if (time > 0 && time < block.timestamp) {
+            revert StakedUSDOInvalidTime();
+        }
+        blacklistActivationTime = time;
     }
 
     /**
@@ -158,7 +194,7 @@ abstract contract StakedUSDO is
 
     /**
      * @dev Burns the full restricted user amount and mints to the desired owner address.
-     * @param from The address to burn the entire balance, with the FULL_RESTRICTED_STAKER_ROLE
+     * @param from The address to burn the entire balance, with the WHOLE_RESTRICTED_ROLE
      * @param to The address to mint the entire balance of "from" parameter.
      */
     function redistributeLockedAmount(
@@ -167,9 +203,9 @@ abstract contract StakedUSDO is
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
         if (to == address(0)) revert StakedUSDOInvalidZeroAddress();
         if (
-            hasRole(FULL_RESTRICTED_STAKER_ROLE, from) &&
-            (!hasRole(FULL_RESTRICTED_STAKER_ROLE, to) &&
-                !hasRole(SOFT_RESTRICTED_STAKER_ROLE, to))
+            hasRole(WHOLE_RESTRICTED_ROLE, from) &&
+            (!hasRole(WHOLE_RESTRICTED_ROLE, to) &&
+                !hasRole(STAKE_RESTRICTED_ROLE, to))
         ) {
             uint256 amountToDistribute = balanceOf(from);
             _burn(from, amountToDistribute);
@@ -244,14 +280,14 @@ abstract contract StakedUSDO is
         uint256 shares
     ) internal override nonReentrant notZero(assets) notZero(shares) {
         if (
-            hasRole(SOFT_RESTRICTED_STAKER_ROLE, caller) ||
-            hasRole(SOFT_RESTRICTED_STAKER_ROLE, receiver)
+            hasRole(STAKE_RESTRICTED_ROLE, caller) ||
+            hasRole(STAKE_RESTRICTED_ROLE, receiver)
         ) {
             revert StakedUSDOOperationNotAllowed();
         }
         if (
-            hasRole(FULL_RESTRICTED_STAKER_ROLE, caller) ||
-            hasRole(FULL_RESTRICTED_STAKER_ROLE, receiver)
+            hasRole(WHOLE_RESTRICTED_ROLE, caller) ||
+            hasRole(WHOLE_RESTRICTED_ROLE, receiver)
         ) {
             revert StakedUSDOOperationNotAllowed();
         }
@@ -275,9 +311,9 @@ abstract contract StakedUSDO is
         uint256 shares
     ) internal override nonReentrant notZero(assets) notZero(shares) {
         if (
-            hasRole(FULL_RESTRICTED_STAKER_ROLE, caller) ||
-            hasRole(FULL_RESTRICTED_STAKER_ROLE, receiver) ||
-            hasRole(FULL_RESTRICTED_STAKER_ROLE, sharesOwner)
+            hasRole(WHOLE_RESTRICTED_ROLE, caller) ||
+            hasRole(WHOLE_RESTRICTED_ROLE, receiver) ||
+            hasRole(WHOLE_RESTRICTED_ROLE, sharesOwner)
         ) {
             revert StakedUSDOOperationNotAllowed();
         }
@@ -303,10 +339,10 @@ abstract contract StakedUSDO is
         address to,
         uint256 value
     ) internal virtual override {
-        if (hasRole(FULL_RESTRICTED_STAKER_ROLE, from) && to != address(0)) {
+        if (hasRole(WHOLE_RESTRICTED_ROLE, from) && to != address(0)) {
             revert StakedUSDOOperationNotAllowed();
         }
-        if (hasRole(FULL_RESTRICTED_STAKER_ROLE, to)) {
+        if (hasRole(WHOLE_RESTRICTED_ROLE, to)) {
             revert StakedUSDOOperationNotAllowed();
         }
         super._update(from, to, value);
