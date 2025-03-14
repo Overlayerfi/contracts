@@ -13,16 +13,35 @@ import "./types/MintRedeemManagerTypes.sol";
  * @notice The Dual Layer stable coin
  */
 contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
-    /// @notice Blacklisted accounts
-    mapping(address => bool) public blacklist;
+    /// @notice The timestamp of the last blacklist activation request
+    uint256 public blacklistActivationTime;
+
+    /// @notice Time delay for blacklisting to be activated
+    uint256 public constant BLACKLIST_ACTIVATION_TIME = 15 days;
 
     /// @notice Role enabling to disable or enable ERC20 _update for a given address
     bytes32 private constant CONTROLLER_ROLE =
         keccak256("BLACKLIST_MANAGER_ROLE");
 
+    /// @notice Blacklisted accounts role
+    bytes32 private constant BLACKLISTED_ROLE = keccak256("BLACKLISTED_ROLE");
+
+    /// @notice Ensure account is not blacklisted
     modifier notDisabled(address account) {
-        if (blacklist[account] == true) {
+        if (hasRole(BLACKLISTED_ROLE, account)) {
             revert USDOAccountDisabled();
+        }
+        _;
+    }
+
+    /// @notice Ensure blacklisting is allowed
+    modifier blacklistAllowed() {
+        if (
+            blacklistActivationTime == 0 ||
+            blacklistActivationTime + BLACKLIST_ACTIVATION_TIME >
+            block.timestamp
+        ) {
+            revert USDOBlacklistNotActive();
         }
         _;
     }
@@ -85,6 +104,16 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
         );
     }
 
+    /// @notice Sets the blacklist time.
+    /// @dev Disables blakclist if time is zero.
+    /// @param time The timestamp.
+    function setBlackListTime(uint256 time) external onlyRole(CONTROLLER_ROLE) {
+        if (time > 0 && time < block.timestamp) {
+            revert USDOBlacklistTimeNotValid();
+        }
+        blacklistActivationTime = time;
+    }
+
     /// @notice Redeem collateral
     /// @dev Can not be paused
     /// @param order A struct containing the mint order
@@ -115,15 +144,17 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
     /// @param account The account to be disabled
     function disableAccount(
         address account
-    ) external onlyRole(CONTROLLER_ROLE) {
-        blacklist[account] = true;
+    ) external blacklistAllowed onlyRole(CONTROLLER_ROLE) {
+        _grantRole(BLACKLISTED_ROLE, account);
         emit DisableAccount(account);
     }
 
     /// @notice Enable an account from performing transactions
     /// @param account The account to be enabled
-    function enableAccount(address account) external onlyRole(CONTROLLER_ROLE) {
-        blacklist[account] = false;
+    function enableAccount(
+        address account
+    ) external blacklistAllowed onlyRole(CONTROLLER_ROLE) {
+        _revokeRole(BLACKLISTED_ROLE, account);
         emit EnableAccount(account);
     }
 

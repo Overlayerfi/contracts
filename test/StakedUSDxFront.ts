@@ -192,6 +192,30 @@ describe("StakedUSDOFront", function () {
     });
   });
 
+  describe("Blacklist", function () {
+    it("Should set blacklist time", async function () {
+      const { stakedusdo, admin } = await loadFixture(deployFixture);
+      await stakedusdo.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        admin.address
+      );
+      const t = await time.latest();
+      await stakedusdo.connect(admin).setBlackListTime(t + 100);
+      expect(await stakedusdo.blacklistActivationTime()).to.be.equal(t + 100);
+    });
+
+    it("Should not set time < block.timestamp", async function () {
+      const { stakedusdo, admin } = await loadFixture(deployFixture);
+      await stakedusdo.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        admin.address
+      );
+      const t = await time.latest();
+      await expect(stakedusdo.connect(admin).setBlackListTime(t - 100)).to.be
+        .eventually.rejected;
+    });
+  });
+
   describe("Stake", function () {
     it("Should deposit", async function () {
       const { stakedusdo, admin, alice, bob } = await loadFixture(
@@ -226,12 +250,28 @@ describe("StakedUSDOFront", function () {
       );
     });
 
+    it("Should not not blacklist if not active", async function () {
+      const { stakedusdo, admin, alice } = await loadFixture(deployFixture);
+      await stakedusdo.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        admin.address
+      );
+      await stakedusdo.connect(admin).setBlackListTime(0);
+      await time.increase(60 * 60 * 24 * 15 + 1);
+      await expect(
+        stakedusdo.connect(admin).addToBlacklist(alice.address, true)
+      ).to.be.eventually.rejected;
+    });
+
     it("Should not deposit if full blacklisted", async function () {
       const { stakedusdo, admin, alice } = await loadFixture(deployFixture);
       await stakedusdo.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
         admin.address
       );
+      const t = await time.latest();
+      await stakedusdo.connect(admin).setBlackListTime(t + 1);
+      await time.increase(60 * 60 * 24 * 15 + 1);
       await stakedusdo.connect(admin).addToBlacklist(alice.address, true);
       await expect(
         stakedusdo
@@ -246,6 +286,9 @@ describe("StakedUSDOFront", function () {
         ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
         admin.address
       );
+      const t = await time.latest();
+      await stakedusdo.connect(admin).setBlackListTime(t + 1);
+      await time.increase(60 * 60 * 24 * 15 + 1);
       await stakedusdo.connect(admin).addToBlacklist(alice.address, false);
       await expect(
         stakedusdo

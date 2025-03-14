@@ -5,12 +5,14 @@ pragma solidity 0.8.20;
 interface IStakedUSDO {
     /// @notice Event emitted when the rewards are received
     event RewardsReceived(uint256 amount);
-    /// @notice Event emitted when the balance from an FULL_RESTRICTED_STAKER_ROLE user are redistributed
+    /// @notice Event emitted when the balance from an WHOLE_RESTRICTED_ROLE user are redistributed
     event LockedAmountRedistributed(
         address indexed from,
         address indexed to,
         uint256 amount
     );
+    /// @notice Event emitted when the blacklist timestamp is set
+    event BlacklistTimeSet(uint256 time);
     /// @notice Error emitted shares or assets equal zero.
     error StakedUSDOInvalidAmount();
     /// @notice Error emitted when owner attempts to rescue USDO tokens.
@@ -25,6 +27,10 @@ interface IStakedUSDO {
     error StakedUSDOCantBlacklistOwner();
     /// @notice Error emitted when the zero address is given
     error StakedUSDOInvalidZeroAddress();
+    /// @notice Error emitted when blakclist time is not respected
+    error StakedUSDOCannotBlacklist();
+    /// @notice Error emitted when blakclist time is not valid
+    error StakedUSDOInvalidTime();
 
     function transferInRewards(uint256 amount) external;
 

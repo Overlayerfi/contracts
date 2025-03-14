@@ -293,8 +293,27 @@ describe("USDO", function () {
       ).to.equal(false);
     });
 
-    it("Should set blacklister", async function () {
+    it("Should not blacklist if its not active", async function () {
       const { usdo, gatekeeper, alice, bob } = await loadFixture(deployFixture);
+      const blacklisterAddress = await gatekeeper.getAddress();
+      await usdo.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        blacklisterAddress
+      );
+
+      const lastTime = await time.latest();
+      await usdo.connect(gatekeeper).setBlackListTime(lastTime + 1);
+      // blacklist time is 15 days
+      await time.increase(3600 * 24 * 14);
+
+      await expect(usdo.connect(gatekeeper).disableAccount(alice.address)).to.be
+        .eventually.rejected;
+    });
+
+    it("Should set blacklister and blacklist account", async function () {
+      const { usdo, gatekeeper, alice, bob, admin } = await loadFixture(
+        deployFixture
+      );
       const blacklisterAddress = await gatekeeper.getAddress();
       const aliceAddress = await alice.getAddress();
       const bobAddress = await bob.getAddress();
@@ -318,11 +337,16 @@ describe("USDO", function () {
       await expect(usdo.connect(alice).disableAccount(blacklisterAddress)).to.be
         .eventually.rejected;
 
+      const lastTime = await time.latest();
+      await usdo.connect(gatekeeper).setBlackListTime(lastTime + 1);
+      await time.increase(3600 * 24 * 15 + 1);
+
       await usdo.connect(gatekeeper).disableAccount(bobAddress);
-      expect(await usdo.blacklist(bobAddress)).to.be.equal(true);
+      const role = ethers.keccak256(ethers.toUtf8Bytes("BLACKLISTED_ROLE"));
+      expect(await usdo.hasRole(role, bobAddress)).to.be.equal(true);
 
       await usdo.connect(gatekeeper).enableAccount(bobAddress);
-      expect(await usdo.blacklist(bobAddress)).to.be.equal(false);
+      expect(await usdo.hasRole(role, bobAddress)).to.be.equal(false);
     });
   });
 
@@ -487,6 +511,9 @@ describe("USDO", function () {
         blacklisterAddress
       );
       // Test mint
+      const latestTime = await time.latest();
+      await usdo.connect(gatekeeper).setBlackListTime(latestTime + 1);
+      await time.increase(3600 * 24 * 15 + 1);
       await usdo.connect(gatekeeper).disableAccount(await alice.getAddress());
       const order = {
         benefactor: alice.address,
@@ -502,6 +529,10 @@ describe("USDO", function () {
       await usdo.connect(gatekeeper).enableAccount(await alice.getAddress());
       // Test transfer
       await usdo.connect(alice).mint(order);
+      await usdo.connect(gatekeeper).disableAccount(await alice.getAddress());
+      await expect(usdo.connect(alice).transfer(await bob.getAddress(), "1")).to
+        .be.eventually.rejected;
+      await usdo.connect(gatekeeper).enableAccount(await alice.getAddress());
       await usdo.connect(gatekeeper).disableAccount(await bob.getAddress());
       await expect(usdo.connect(alice).transfer(await bob.getAddress(), "1")).to
         .be.eventually.rejected;
