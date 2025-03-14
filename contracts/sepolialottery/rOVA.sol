@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title rOVA
+ * @notice OVA community rewards
  * @dev USDT tokens must be sent by the owner to this contract. The owner can add or remove addresses from the whitelist for each reward type.
  */
 contract rOVA is Ownable, ReentrancyGuard, ERC20 {
@@ -125,7 +126,7 @@ contract rOVA is Ownable, ReentrancyGuard, ERC20 {
         Reward reward
     ) external onlyOwner {
         if (accounts.length != amounts.length) {
-            revert("OvaLotteryRewardsDistributor: Invalid input length");
+            revert("rOVA: Invalid input length");
         }
         for (uint256 i = 0; i < accounts.length; i++) {
             if (accounts[i] == address(0)) {
