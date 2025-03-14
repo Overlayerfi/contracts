@@ -112,67 +112,69 @@ abstract contract AaveHandler is
     //########################################## EXTERNAL FUNCTIONS ##########################################
 
     ///@notice Withraw funds from aave and return all the collateral to USDO
-    ///@dev It requires equal amounts in input
-    ///@param amountUsdc The amount to withdraw intended as USDC
-    ///@param amountUsdt The amount to withdraw intended as USDT
-    function adminWithdraw(
-        uint256 amountUsdc,
-        uint256 amountUsdt
-    ) external onlyOwner nonReentrant {
-        if (IERC20(AUSDC).balanceOf(address(this)) < amountUsdc)
-            revert AaveHandlerInsufficientBalance();
-        if (IERC20(AUSDT).balanceOf(address(this)) < amountUsdt)
-            revert AaveHandlerInsufficientBalance();
+    function adminWithdraw() external onlyOwner nonReentrant {
         uint256 usdcReceived = 0;
         uint256 usdtReceived = 0;
-        if (amountUsdc > 0) {
+        bool isEmergencyMode = IUSDO(USDO).emergencyMode();
+
+        if (!isEmergencyMode) {
             usdcReceived = IPool(AAVE).withdraw(
                 USDC,
-                amountUsdc,
+                IERC20(AUSDC).balanceOf(address(this)),
                 address(this)
             );
-        }
-        if (amountUsdt > 0) {
             usdtReceived = IPool(AAVE).withdraw(
                 USDT,
-                amountUsdt,
+                IERC20(AUSDT).balanceOf(address(this)),
                 address(this)
             );
+        } else {
+            usdcReceived = IERC20(AUSDC).balanceOf(address(this));
+            usdtReceived = IERC20(AUSDT).balanceOf(address(this));
         }
-        if ((amountUsdc != usdcReceived) || (amountUsdt != usdtReceived)) {
+
+        if (
+            usdcReceived < totalSuppliedUSDC || usdtReceived < totalSuppliedUSDT
+        ) {
             revert AaveHandlerAaveWithrawFailed();
         }
 
-        uint256 oldUsdcSupplied = totalSuppliedUSDC;
-        uint256 oldUsdtSupplied = totalSuppliedUSDT;
-
-        //amount to inject back to protocol
-        uint256 usdcBack = amountUsdc < totalSuppliedUSDC
-            ? amountUsdc
-            : totalSuppliedUSDC;
-        uint256 usdtBack = amountUsdt < totalSuppliedUSDT
-            ? amountUsdt
-            : totalSuppliedUSDT;
-
-        // Compute the updated supplied amount
-        totalSuppliedUSDC -= usdcBack;
-        totalSuppliedUSDT -= usdtBack;
         // Return collateral to protocol token
-        IERC20(USDC).safeTransfer(USDO, usdcBack);
-        IERC20(USDT).safeTransfer(USDO, usdtBack);
+        IERC20(isEmergencyMode ? AUSDC : USDC).safeTransfer(
+            USDO,
+            totalSuppliedUSDC
+        );
+        IERC20(isEmergencyMode ? AUSDT : USDT).safeTransfer(
+            USDO,
+            totalSuppliedUSDT
+        );
 
-        if (amountUsdc > oldUsdcSupplied) {
-            uint256 usdcDiff = amountUsdc - oldUsdcSupplied;
-            if (usdcDiff > 0) {
-                IERC20(USDC).safeTransfer(OVA_REWARDS_DISPATCHER, usdcDiff);
+        if (usdcReceived > totalSuppliedUSDC) {
+            unchecked {
+                uint256 usdcDiff = usdcReceived - totalSuppliedUSDC;
+                if (usdcDiff > 0) {
+                    IERC20(isEmergencyMode ? AUSDC : USDC).safeTransfer(
+                        OVA_REWARDS_DISPATCHER,
+                        usdcDiff
+                    );
+                }
             }
         }
-        if (amountUsdt > oldUsdtSupplied) {
-            uint256 usdtDiff = amountUsdt - oldUsdtSupplied;
-            if (usdtDiff > 0) {
-                IERC20(USDT).safeTransfer(OVA_REWARDS_DISPATCHER, usdtDiff);
+        if (usdtReceived > totalSuppliedUSDT) {
+            unchecked {
+                uint256 usdtDiff = usdtReceived - totalSuppliedUSDT;
+                if (usdtDiff > 0) {
+                    IERC20(isEmergencyMode ? AUSDT : USDT).safeTransfer(
+                        OVA_REWARDS_DISPATCHER,
+                        usdtDiff
+                    );
+                }
             }
         }
+
+        // Reset state
+        totalSuppliedUSDC = 0;
+        totalSuppliedUSDT = 0;
     }
 
     ///@notice Compound funds from-to AAVE protocol
