@@ -13,6 +13,8 @@ interface IStakedUSDO {
     );
     /// @notice Event emitted when the blacklist timestamp is set
     event BlacklistTimeSet(uint256 time);
+    /// @notice Event emitted when the usdo backing contract is set
+    event UsdoBackingSet(address indexed backing);
     /// @notice Error emitted shares or assets equal zero.
     error StakedUSDOInvalidAmount();
     /// @notice Error emitted when owner attempts to rescue USDO tokens.

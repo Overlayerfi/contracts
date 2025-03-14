@@ -6,6 +6,7 @@ pragma solidity 0.8.20;
 import "./StakedUSDO.sol";
 import "./interfaces/IStakedUSDOCoolDown.sol";
 import "./USDOSilo.sol";
+import "../backing/interfaces/IUSDOBacking.sol";
 
 /**
  * @title StakedUSDOFront
@@ -66,6 +67,9 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
         address receiver,
         address _owner
     ) public virtual override ensureCooldownOff returns (uint256) {
+        if (usdoBacking != address(0)) {
+            IUSDOBacking(usdoBacking).compound();
+        }
         return super.withdraw(assets, receiver, _owner);
     }
 
@@ -77,6 +81,9 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
         address receiver,
         address _owner
     ) public virtual override ensureCooldownOff returns (uint256) {
+        if (usdoBacking != address(0)) {
+            IUSDOBacking(usdoBacking).compound();
+        }
         return super.redeem(shares, receiver, _owner);
     }
 
@@ -86,6 +93,10 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
     function unstake(address receiver) external {
         UserCooldown storage userCooldown = cooldowns[msg.sender];
         uint256 assets = userCooldown.underlyingAmount;
+
+        if (usdoBacking != address(0)) {
+            IUSDOBacking(usdoBacking).compound();
+        }
 
         if (
             block.timestamp >= userCooldown.cooldownEnd || cooldownDuration == 0
@@ -107,6 +118,10 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
         if (assets > maxWithdraw(msg.sender))
             revert IStakedUSDOCooldownExcessiveWithdrawAmount();
 
+        if (usdoBacking != address(0)) {
+            IUSDOBacking(usdoBacking).compound();
+        }
+
         shares = previewWithdraw(assets);
 
         cooldowns[msg.sender].cooldownEnd =
@@ -124,6 +139,10 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
     ) external ensureCooldownOn returns (uint256 assets) {
         if (shares > maxRedeem(msg.sender))
             revert IStakedUSDOCooldownExcessiveRedeemAmount();
+
+        if (usdoBacking != address(0)) {
+            IUSDOBacking(usdoBacking).compound();
+        }
 
         assets = previewRedeem(shares);
 
