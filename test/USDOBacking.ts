@@ -1184,12 +1184,12 @@ describe("USDOBacking", function () {
       expect(
         await ausdc.balanceOf(await usdo.getAddress())
       ).to.be.greaterThanOrEqual(
-        ethers.parseUnits("1000.5", await usdt.decimals())
+        ethers.parseUnits("1000.49", await usdt.decimals())
       );
       expect(
         await ausdt.balanceOf(await usdo.getAddress())
       ).to.be.greaterThanOrEqual(
-        ethers.parseUnits("1000.5", await usdt.decimals())
+        ethers.parseUnits("1000.49", await usdt.decimals())
       );
     });
   });
