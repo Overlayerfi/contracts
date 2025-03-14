@@ -153,6 +153,8 @@ describe("USDOBacking", function () {
       //{ maxFeePerGas: 9702346660 }
     );
 
+    await susdo.connect(admin).setUsdoBacking(await usdobacking.getAddress());
+
     // Grant rewarder role
     await susdo
       .connect(admin)
@@ -801,6 +803,51 @@ describe("USDOBacking", function () {
       expect(+ausdcAfter + 600).to.be.greaterThanOrEqual(+ausdcBefore);
       expect(+ausdtAfter + 600).to.be.greaterThanOrEqual(+ausdtBefore);
       //################################################################################################################################################
+    });
+  });
+
+  describe("Compound on staking (Integration test)", function () {
+    it("Should compound backing contract when staking", async function () {
+      const { usdc, usdt, usdo, susdo, alice } = await loadFixture(
+        deployFixture
+      );
+      const order = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral_usdt: await usdt.getAddress(),
+        collateral_usdc: await usdc.getAddress(),
+        collateral_usdt_amount: ethers.parseUnits(
+          "1000",
+          await usdt.decimals()
+        ),
+        collateral_usdc_amount: ethers.parseUnits(
+          "1000",
+          await usdc.decimals()
+        ),
+        usdo_amount: ethers.parseEther("2000")
+      };
+      await usdo.connect(alice).mint(order);
+      await usdo.connect(alice).supplyToBacking(0, 0);
+
+      await usdo
+        .connect(alice)
+        .approve(await susdo.getAddress(), ethers.MaxUint256);
+
+      await time.increase(3600 * 100);
+
+      expect(
+        await susdo
+          .connect(alice)
+          .deposit(ethers.parseEther("2000"), alice.address)
+      ).to.emit(susdo, "RewardsReceived");
+
+      await time.increase(3600 * 100);
+
+      expect(
+        await susdo
+          .connect(alice)
+          .withdraw(ethers.parseEther("1000"), alice.address, alice.address)
+      ).to.emit(susdo, "RewardsReceived");
     });
   });
 
