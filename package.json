@@ -9,6 +9,7 @@
     "node": "npx hardhat node",
     "exec-ova": "npx hardhat --network ova run",
     "exec-sepolia": "npx hardhat --network sepolia run",
+    "exec-eth": "npx hardhat --network eth run",
     "exec-local": "npx hardhat --network localhost run",
     "prettier-sol": "prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'",
     "prettier-check-sol": "prettier --check --plugin=prettier-plugin-solidity 'contracts/**/*.sol'",

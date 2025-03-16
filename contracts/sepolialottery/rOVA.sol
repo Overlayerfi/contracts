@@ -26,6 +26,9 @@ contract rOVA is Ownable, ReentrancyGuard, ERC20 {
     /// @notice Emitted when a caller attempts to collect rewards but has nothing to claim.
     error NothingToCollect();
 
+    /// @notice Emitted when the input lenght does not match.
+    error InvalidInputLength();
+
     /// @notice USDT contract address on Ethereum mainnet.
     address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
 
@@ -126,7 +129,7 @@ contract rOVA is Ownable, ReentrancyGuard, ERC20 {
         Reward reward
     ) external onlyOwner {
         if (accounts.length != amounts.length) {
-            revert("rOVA: Invalid input length");
+            revert InvalidInputLength();
         }
         for (uint256 i = 0; i < accounts.length; i++) {
             if (accounts[i] == address(0)) {
