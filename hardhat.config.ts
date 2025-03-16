@@ -111,7 +111,7 @@ const config: HardhatUserConfig = {
     eth: {
       url: ETH_RPC,
       chainId: 0x1,
-      accounts: [process.env.ADMIN_WALLET_KEY!, process.env.TEAM_WALLET_KEY!],
+      accounts: [process.env.OVA_MAINNET_ROVA_DEPLOYER_KEY!],
       gas: "auto",
       gasPrice: "auto",
       allowUnlimitedContractSize: true,
