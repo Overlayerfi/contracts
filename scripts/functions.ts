@@ -6,7 +6,7 @@ import {
   USDT_ADDRESS
 } from "./addresses";
 import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
-import rOVA_ABI from "../artifacts/contracts/sepolialottery/rOVA.sol/rOVA.json";
+import rOVA_ABI from "../artifacts/contracts/token/rOVA.sol/rOVA.json";
 import OVAWHITELIST_ABI from "../artifacts/contracts/whitelist/OvaWhitelist.sol/OvaWhitelist.json";
 import SUBSCRIPTIONCONSUMERSEPOLIA_ABI from "../artifacts/contracts/sepolialottery/OvaExtractorSepolia.sol/OvaExtractorSepolia.json";
 import TESTMATH_ABI from "../artifacts/contracts/test/TestMath.sol/TestMath.json";
