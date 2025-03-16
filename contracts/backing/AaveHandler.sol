@@ -150,25 +150,27 @@ abstract contract AaveHandler is
         );
 
         if (usdcReceived > totalSuppliedUSDC) {
+            uint usdcDiff = 0;
             unchecked {
-                uint256 usdcDiff = usdcReceived - totalSuppliedUSDC;
-                if (usdcDiff > 0) {
-                    IERC20(isEmergencyMode ? AUSDC : USDC).safeTransfer(
-                        OVA_REWARDS_DISPATCHER,
-                        usdcDiff
-                    );
-                }
+                usdcDiff = usdcReceived - totalSuppliedUSDC;
+            }
+            if (usdcDiff > 0) {
+                IERC20(isEmergencyMode ? AUSDC : USDC).safeTransfer(
+                    OVA_REWARDS_DISPATCHER,
+                    usdcDiff
+                );
             }
         }
         if (usdtReceived > totalSuppliedUSDT) {
+            uint256 usdtDiff = 0;
             unchecked {
-                uint256 usdtDiff = usdtReceived - totalSuppliedUSDT;
-                if (usdtDiff > 0) {
-                    IERC20(isEmergencyMode ? AUSDT : USDT).safeTransfer(
-                        OVA_REWARDS_DISPATCHER,
-                        usdtDiff
-                    );
-                }
+                usdtDiff = usdtReceived - totalSuppliedUSDT;
+            }
+            if (usdtDiff > 0) {
+                IERC20(isEmergencyMode ? AUSDT : USDT).safeTransfer(
+                    OVA_REWARDS_DISPATCHER,
+                    usdtDiff
+                );
             }
         }
 
