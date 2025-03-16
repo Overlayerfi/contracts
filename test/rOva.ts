@@ -9,7 +9,10 @@ describe("rOVA", function () {
 
     // Deploy the rOVA with admin as the owner
     const Rewards = await ethers.getContractFactory("rOVA");
-    const rewards = await Rewards.deploy(admin.address);
+    const rewards = await Rewards.deploy(admin.address, {
+      gasLimit: 10000000,
+      maxFeePerGas: 50 * 10 ** 9
+    });
     await rewards.waitForDeployment();
 
     return { rewards, admin, whitelisted, nonWhitelisted, another };
