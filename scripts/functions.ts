@@ -7,6 +7,7 @@ import {
 } from "./addresses";
 import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
 import rOVA_ABI from "../artifacts/contracts/token/rOVA.sol/rOVA.json";
+import rOVAV2_ABI from "../artifacts/contracts/token/rOVAV2.sol/rOVAV2.json";
 import OVAWHITELIST_ABI from "../artifacts/contracts/whitelist/OvaWhitelist.sol/OvaWhitelist.json";
 import SUBSCRIPTIONCONSUMERSEPOLIA_ABI from "../artifacts/contracts/sepolialottery/OvaExtractorSepolia.sol/OvaExtractorSepolia.json";
 import TESTMATH_ABI from "../artifacts/contracts/test/TestMath.sol/TestMath.json";
@@ -854,6 +855,22 @@ export async function TestMath_mod(
   }
 }
 
+export async function deploy_rOVAV2(deploymentGas: {
+  gasLimit: number;
+  maxFeePerGas: number;
+}) {
+  try {
+    const [signer] = await ethers.getSigners();
+    console.log(`Deploying rOVA with ${signer.address}`);
+    const rOVA = await ethers.getContractFactory("rOVAV2");
+    const rova = await rOVA.deploy(signer.address, deploymentGas);
+    await rova.waitForDeployment();
+    console.log(`Contract deployed at ${await rova.getAddress()}`);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
 export async function deploy_rOVA(deploymentGas: {
   gasLimit: number;
   maxFeePerGas: number;
@@ -865,6 +882,27 @@ export async function deploy_rOVA(deploymentGas: {
     const rova = await rOVA.deploy(signer.address, deploymentGas);
     await rova.waitForDeployment();
     console.log(`Contract deployed at ${await rova.getAddress()}`);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export async function rOVAV2_addBatch(
+  signer: any,
+  contractAddr: string,
+  who: string[],
+  amount: any[],
+  deploymentGas: { gasLimit: number; maxFeePerGas: number }
+) {
+  try {
+    if (!ethers.isAddress(contractAddr)) {
+      throw new Error(`${contractAddr} is not a valid address`);
+    }
+    const contract = new ethers.Contract(contractAddr, rOVAV2_ABI.abi, signer);
+    console.log(`Adding batch rOVA with ${signer.address}`);
+    const tx = await contract.batchAdd(who, amount, deploymentGas);
+    const receipt = await tx.wait();
+    console.log(`Executed at ${tx.hash}`);
   } catch (e) {
     console.error(e);
   }
