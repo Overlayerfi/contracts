@@ -956,3 +956,32 @@ export async function rOVA_removeBatch(
     console.error(e);
   }
 }
+export async function deploy_SepoliaFauct(
+  usdc: string,
+  usdt: string,
+  usdo_usdc: string,
+  usdo_usdt: string
+): Promise<void> {
+  const [deployer] = await ethers.getSigners();
+  for (const c of [usdc, usdt, usdo_usdc, usdo_usdt]) {
+    if (!ethers.isAddress(c)) {
+      throw new Error(`${c} is not a valid address`);
+    }
+  }
+
+  console.log(
+    "Deploying SepoliaFaucet contract with signer:",
+    deployer.address
+  );
+
+  const ContractSource = await ethers.getContractFactory("SepoliaFaucet");
+  const deployedContract = await ContractSource.deploy(
+    usdc,
+    usdt,
+    usdo_usdc,
+    usdo_usdt
+  );
+  await deployedContract.waitForDeployment();
+
+  console.log("Contract deployed at:", await deployedContract.getAddress());
+}
