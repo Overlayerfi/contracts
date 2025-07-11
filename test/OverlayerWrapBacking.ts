@@ -3,9 +3,7 @@ import { config, ethers, network } from "hardhat";
 import { expect } from "chai";
 import { getContractAddress } from "@ethersproject/address";
 import {
-  AUSDC_ADDRESS,
   AUSDT_ADDRESS,
-  USDC_ADDRESS,
   USDT_ADDRESS,
   AWETH_ADDRESS
 } from "../scripts/addresses";
@@ -13,6 +11,7 @@ import ERC20_ABI from "./ERC20_ABI.json";
 import { swap } from "../scripts/uniswap_swapper/proxy";
 import { Contract } from "ethers";
 import Big from "big.js";
+import OVERLAYER_WRAP_ABI from "../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
 
 let swapped = false;
 
@@ -50,25 +49,32 @@ describe("OverlayerWrapBacking", function () {
     const ausdt = new ethers.Contract(AUSDT_ADDRESS, ERC20_ABI, admin.provider);
     const aweth = new ethers.Contract(AWETH_ADDRESS, ERC20_ABI, admin.provider);
 
-    const args = {
-      admin: await admin.getAddress(),
-      name: "wrap",
-      symbol: "wrap",
-      collateral: {
+    const Factory = await ethers.getContractFactory("OverlayerWrapFactory");
+    const factory = await Factory.deploy(
+      await admin.getAddress(),
+      await admin.getAddress(),
+      defaultTransactionOptions
+    );
+    await factory.waitForDeployment();
+
+    const overlayerWrapAddressTx = await factory.deployInitialOverlayerWrap(
+      {
         addr: await usdt.getAddress(),
         decimals: await usdt.decimals()
       },
-      aCollateral: {
+      {
         addr: await ausdt.getAddress(),
         decimals: await ausdt.decimals()
       },
-      maxMintPerBlock: ethers.parseEther("100000000"),
-      maxRedeemPerBlock: ethers.parseEther("100000000")
-    };
-    const OverlayerWrap = await ethers.getContractFactory("OverlayerWrap");
-    const overlayerWrap = await OverlayerWrap.deploy(
-      args,
-      defaultTransactionOptions
+      ethers.parseEther("100000000"),
+      ethers.parseEther("100000000")
+    );
+    await overlayerWrapAddressTx.wait();
+    const overlayerWrapAddress = await factory.symbolToToken("USDT+");
+    const overlayerWrap = new ethers.Contract(
+      overlayerWrapAddress,
+      OVERLAYER_WRAP_ABI.abi,
+      admin
     );
 
     const Dispatcher = await ethers.getContractFactory("OvaDispatcher");
