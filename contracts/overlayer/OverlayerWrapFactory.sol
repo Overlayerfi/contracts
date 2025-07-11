@@ -12,6 +12,8 @@ contract OverlayerWrapFactory is SingleAdminAccessControl {
     // Prevent duplicate symbols and allow lookup
     mapping(string => address) public symbolToToken;
 
+    error ZeroAddressNotAllowed();
+
     event OverlayerWrapDeployed(
         address indexed token,
         string name,
@@ -19,8 +21,45 @@ contract OverlayerWrapFactory is SingleAdminAccessControl {
     );
 
     constructor(address admin, address governor) {
+        if (admin == address(0) || governor == address(0)) {
+            revert ZeroAddressNotAllowed();
+        }
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(GOVERNOR_ROLE, governor);
+    }
+
+    function deployInitialOverlayerWrap(
+        MintRedeemManagerTypes.StableCoin memory collateral_,
+        MintRedeemManagerTypes.StableCoin memory aCollateral_,
+        uint256 maxMintPerBlock_,
+        uint256 maxRedeemPerBlock_
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) returns (address) {
+        // Reject if symbol already exists
+        string memory overlayerZeroSymbol = "USDT+";
+        string memory overlayerZeroName = "Tether USD+";
+        if (symbolToToken[overlayerZeroSymbol] != address(0)) {
+            revert SymbolAlreadyExists(overlayerZeroSymbol);
+        }
+        IOverlayerWrapDefs.ConstructorParams memory params = IOverlayerWrapDefs
+            .ConstructorParams(
+                owner(),
+                overlayerZeroName,
+                overlayerZeroSymbol,
+                collateral_,
+                aCollateral_,
+                maxMintPerBlock_,
+                maxRedeemPerBlock_
+            );
+        OverlayerWrap token = new OverlayerWrap(params);
+
+        symbolToToken[overlayerZeroSymbol] = address(token);
+
+        emit OverlayerWrapDeployed(
+            address(token),
+            overlayerZeroName,
+            overlayerZeroSymbol
+        );
+        return address(token);
     }
 
     function deployOverlayerWrap(

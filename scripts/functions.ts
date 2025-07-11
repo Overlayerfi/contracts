@@ -5,16 +5,16 @@ import {
   USDC_ADDRESS,
   USDT_ADDRESS
 } from "./addresses";
-import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedOverlayerWrapFront.sol/StakedOverlayerWrapFront.json";
-import rOVA_ABI from "../artifacts/contracts/token/rOVA.sol/rOVA.json";
-import rOVAV2_ABI from "../artifacts/contracts/token/rOVAV2.sol/rOVAV2.json";
+import STAKED_USDX_ABI from "../artifacts/contracts/overlayer/StakedOverlayerWrapFront.sol/StakedOverlayerWrapFront.json";
+import rOVA_ABI from "../artifacts/contracts/overlayer/rOVA.sol/rOVA.json";
+import rOVAV2_ABI from "../artifacts/contracts/overlayer/rOVAV2.sol/rOVAV2.json";
 import OVAWHITELIST_ABI from "../artifacts/contracts/whitelist/OvaWhitelist.sol/OvaWhitelist.json";
 import SUBSCRIPTIONCONSUMERSEPOLIA_ABI from "../artifacts/contracts/sepolialottery/OvaExtractorSepolia.sol/OvaExtractorSepolia.json";
 import TESTMATH_ABI from "../artifacts/contracts/test/TestMath.sol/TestMath.json";
 import LIQUIDITY_ABI from "../artifacts/contracts/liquidity/Liquidity.sol/Liquidity.json";
-import OverlayerWrap_ABI from "../artifacts/contracts/token/OverlayerWrap.sol/OverlayerWrap.json";
-import OVAREFERRAL_ABI from "../artifacts/contracts/token/OvaReferral.sol/OvaReferral.json";
-import SOverlayerWrap_ABI from "../artifacts/contracts/token/StakedOverlayerWrapFront.sol/StakedOverlayerWrapFront.json";
+import OverlayerWrap_ABI from "../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
+import OVAREFERRAL_ABI from "../artifacts/contracts/overlayer/OvaReferral.sol/OvaReferral.json";
+import SOverlayerWrap_ABI from "../artifacts/contracts/overlayer/StakedOverlayerWrapFront.sol/StakedOverlayerWrapFront.json";
 import { ILiquidity } from "./types";
 import { USDC_ABI } from "./abi/USDC_abi";
 import { USDT_ABI } from "./abi/USDT_abi";

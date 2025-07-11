@@ -2,6 +2,8 @@ import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 
+import OVERLAYER_WRAP_ABI from "../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
+
 describe("OverlayerWrap", function () {
   async function deployFixture() {
     const [admin, gatekeeper, alice, bob] = await ethers.getSigners();
@@ -27,25 +29,32 @@ describe("OverlayerWrap", function () {
       defaultTransactionOptions
     );
 
-    const Contract = await ethers.getContractFactory("OverlayerWrap");
-    const args = {
-      admin: await admin.getAddress(),
-      name: "wrap",
-      symbol: "wrap",
-      collateral: {
+    const Factory = await ethers.getContractFactory("OverlayerWrapFactory");
+    const factory = await Factory.deploy(
+      await admin.getAddress(),
+      await admin.getAddress(),
+      defaultTransactionOptions
+    );
+    await factory.waitForDeployment();
+
+    const overlayerWrapAddressTx = await factory.deployInitialOverlayerWrap(
+      {
         addr: await collateral.getAddress(),
         decimals: await collateral.decimals()
       },
-      aCollateral: {
+      {
         addr: await acollateral.getAddress(),
         decimals: await acollateral.decimals()
       },
-      maxMintPerBlock: ethers.parseEther("100000000"),
-      maxRedeemPerBlock: ethers.parseEther("100000000")
-    };
-    const overlayerWrap = await Contract.deploy(
-      args,
-      defaultTransactionOptions
+      ethers.parseEther("100000000"),
+      ethers.parseEther("100000000")
+    );
+    await overlayerWrapAddressTx.wait();
+    const overlayerWrapAddress = await factory.symbolToToken("USDT+");
+    const overlayerWrap = new ethers.Contract(
+      overlayerWrapAddress,
+      OVERLAYER_WRAP_ABI.abi,
+      admin
     );
 
     const userAmount = "50";
