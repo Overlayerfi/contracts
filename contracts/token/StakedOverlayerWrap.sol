@@ -97,7 +97,11 @@ abstract contract StakedOverlayerWrap is
         address initialRewarder,
         address admin,
         uint256 vestingPeriod
-    ) ERC20("Staked OverlayerWrap", "sOverlayerWrap") ERC4626(asset) ERC20Permit("sOverlayerWrap") {
+    )
+        ERC20("Staked OverlayerWrap", "sOverlayerWrap")
+        ERC4626(asset)
+        ERC20Permit("sOverlayerWrap")
+    {
         if (
             admin == address(0) ||
             initialRewarder == address(0) ||

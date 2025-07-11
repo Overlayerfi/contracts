@@ -118,15 +118,17 @@ describe("OverlayerWrap", function () {
 
   describe("Deployment", function () {
     it("Should pause", async function () {
-      const { overlayerWrap, admin, collateral } = await loadFixture(deployFixture);
+      const { overlayerWrap, admin, collateral } = await loadFixture(
+        deployFixture
+      );
       await overlayerWrap.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("GATEKEEPER_ROLE")),
         admin.address
       );
       await overlayerWrap.connect(admin).pause();
       expect(await overlayerWrap.paused()).to.equal(true);
-      await expect(overlayerWrap.connect(admin).supplyToBacking(0)).to.be.eventually
-        .rejected;
+      await expect(overlayerWrap.connect(admin).supplyToBacking(0)).to.be
+        .eventually.rejected;
     });
 
     it("Should unpause", async function () {
@@ -151,7 +153,9 @@ describe("OverlayerWrap", function () {
         collateralManagerAddress
       );
       expect(await overlayerWrap.getSpender()).to.be.equal(ethers.ZeroAddress);
-      await overlayerWrap.connect(admin).proposeNewCollateralSpender(alice.address);
+      await overlayerWrap
+        .connect(admin)
+        .proposeNewCollateralSpender(alice.address);
       expect(await overlayerWrap.proposedSpender()).to.be.equal(alice.address);
       await overlayerWrap.connect(alice).acceptProposedCollateralSpender();
       expect(await overlayerWrap.getSpender()).to.be.equal(alice.address);
@@ -165,10 +169,13 @@ describe("OverlayerWrap", function () {
         collateralManagerAddress
       );
       expect(await overlayerWrap.getSpender()).to.be.equal(ethers.ZeroAddress);
-      await overlayerWrap.connect(admin).proposeNewCollateralSpender(alice.address);
+      await overlayerWrap
+        .connect(admin)
+        .proposeNewCollateralSpender(alice.address);
       expect(await overlayerWrap.proposedSpender()).to.be.equal(alice.address);
-      await expect(overlayerWrap.connect(admin).acceptProposedCollateralSpender()).to.be
-        .eventually.rejected;
+      await expect(
+        overlayerWrap.connect(admin).acceptProposedCollateralSpender()
+      ).to.be.eventually.rejected;
     });
 
     it("Should not propose spender if not allowed", async function () {
@@ -191,13 +198,17 @@ describe("OverlayerWrap", function () {
         collateralManagerAddress
       );
       expect(await overlayerWrap.getSpender()).to.be.equal(ethers.ZeroAddress);
-      await overlayerWrap.connect(admin).proposeNewCollateralSpender(alice.address);
+      await overlayerWrap
+        .connect(admin)
+        .proposeNewCollateralSpender(alice.address);
       expect(await overlayerWrap.proposedSpender()).to.be.equal(alice.address);
       await overlayerWrap.connect(alice).acceptProposedCollateralSpender();
       expect(await overlayerWrap.getSpender()).to.be.equal(alice.address);
 
       //change from alice spender to admin
-      await overlayerWrap.connect(admin).proposeNewCollateralSpender(admin.address);
+      await overlayerWrap
+        .connect(admin)
+        .proposeNewCollateralSpender(admin.address);
       expect(await overlayerWrap.proposedSpender()).to.be.equal(admin.address);
       const oldTime = await time.latest();
       expect(await overlayerWrap.proposalTime()).to.be.equal(oldTime);
@@ -216,21 +227,26 @@ describe("OverlayerWrap", function () {
         collateralManagerAddress
       );
       expect(await overlayerWrap.getSpender()).to.be.equal(ethers.ZeroAddress);
-      await overlayerWrap.connect(admin).proposeNewCollateralSpender(alice.address);
+      await overlayerWrap
+        .connect(admin)
+        .proposeNewCollateralSpender(alice.address);
       expect(await overlayerWrap.proposedSpender()).to.be.equal(alice.address);
       await overlayerWrap.connect(alice).acceptProposedCollateralSpender();
       expect(await overlayerWrap.getSpender()).to.be.equal(alice.address);
 
       //change from alice spender to admin
-      await overlayerWrap.connect(admin).proposeNewCollateralSpender(admin.address);
+      await overlayerWrap
+        .connect(admin)
+        .proposeNewCollateralSpender(admin.address);
       expect(await overlayerWrap.proposedSpender()).to.be.equal(admin.address);
       const oldTime = await time.latest();
       expect(await overlayerWrap.proposalTime()).to.be.equal(oldTime);
 
       await time.increase(10 * 24 * 60 * 59);
 
-      await expect(overlayerWrap.connect(admin).acceptProposedCollateralSpender()).to.be
-        .eventually.rejected;
+      await expect(
+        overlayerWrap.connect(admin).acceptProposedCollateralSpender()
+      ).to.be.eventually.rejected;
     });
   });
 
@@ -258,7 +274,9 @@ describe("OverlayerWrap", function () {
     });
 
     it("Should set the gatekeeper", async function () {
-      const { overlayerWrap, gatekeeper, alice } = await loadFixture(deployFixture);
+      const { overlayerWrap, gatekeeper, alice } = await loadFixture(
+        deployFixture
+      );
       const gatekeeperAddress = await gatekeeper.getAddress();
       const aliceAddress = await alice.getAddress();
       await overlayerWrap.grantRole(
@@ -280,7 +298,9 @@ describe("OverlayerWrap", function () {
     });
 
     it("Should not blacklist if its not active", async function () {
-      const { overlayerWrap, gatekeeper, alice, bob } = await loadFixture(deployFixture);
+      const { overlayerWrap, gatekeeper, alice, bob } = await loadFixture(
+        deployFixture
+      );
       const blacklisterAddress = await gatekeeper.getAddress();
       await overlayerWrap.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
@@ -292,14 +312,14 @@ describe("OverlayerWrap", function () {
       // blacklist time is 15 days
       await time.increase(3600 * 24 * 14);
 
-      await expect(overlayerWrap.connect(gatekeeper).disableAccount(alice.address)).to.be
-        .eventually.rejected;
+      await expect(
+        overlayerWrap.connect(gatekeeper).disableAccount(alice.address)
+      ).to.be.eventually.rejected;
     });
 
     it("Should set blacklister and blacklist account", async function () {
-      const { overlayerWrap, gatekeeper, alice, bob, admin } = await loadFixture(
-        deployFixture
-      );
+      const { overlayerWrap, gatekeeper, alice, bob, admin } =
+        await loadFixture(deployFixture);
       const blacklisterAddress = await gatekeeper.getAddress();
       const aliceAddress = await alice.getAddress();
       const bobAddress = await bob.getAddress();
@@ -320,8 +340,9 @@ describe("OverlayerWrap", function () {
         )
       ).to.equal(false);
 
-      await expect(overlayerWrap.connect(alice).disableAccount(blacklisterAddress)).to.be
-        .eventually.rejected;
+      await expect(
+        overlayerWrap.connect(alice).disableAccount(blacklisterAddress)
+      ).to.be.eventually.rejected;
 
       const lastTime = await time.latest();
       await overlayerWrap.connect(gatekeeper).setBlackListTime(lastTime + 1);
@@ -348,7 +369,9 @@ describe("OverlayerWrap", function () {
     });
 
     it("Should change values", async function () {
-      const { overlayerWrap, admin, gatekeeper } = await loadFixture(deployFixture);
+      const { overlayerWrap, admin, gatekeeper } = await loadFixture(
+        deployFixture
+      );
       await overlayerWrap.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("GATEKEEPER_ROLE")),
         await gatekeeper.getAddress()
@@ -378,22 +401,26 @@ describe("OverlayerWrap", function () {
     });
 
     it("Should stop mint", async function () {
-      const { overlayerWrap, admin, gatekeeper } = await loadFixture(deployFixture);
+      const { overlayerWrap, admin, gatekeeper } = await loadFixture(
+        deployFixture
+      );
       await overlayerWrap.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("GATEKEEPER_ROLE")),
         await gatekeeper.getAddress()
       );
-      await expect(overlayerWrap.connect(admin).disableMint()).to.be.eventually.rejected;
+      await expect(overlayerWrap.connect(admin).disableMint()).to.be.eventually
+        .rejected;
       await overlayerWrap.connect(gatekeeper).disableMint();
-      expect(await overlayerWrap.maxMintPerBlock()).to.equal(ethers.parseEther("0"));
+      expect(await overlayerWrap.maxMintPerBlock()).to.equal(
+        ethers.parseEther("0")
+      );
     });
 
     it("Should set emergency mode", async function () {
       const { overlayerWrap, admin } = await loadFixture(deployFixture);
-      expect(await overlayerWrap.connect(admin).setEmergencyStatus(true)).to.emit(
-        overlayerWrap,
-        "MintRedeemManagerEmergencyStatus"
-      );
+      expect(
+        await overlayerWrap.connect(admin).setEmergencyStatus(true)
+      ).to.emit(overlayerWrap, "MintRedeemManagerEmergencyStatus");
     });
   });
 
@@ -423,9 +450,8 @@ describe("OverlayerWrap", function () {
     });
 
     it("Should mint in emergency mode", async function () {
-      const { collateral, acollateral, overlayerWrap, admin, alice } = await loadFixture(
-        deployFixture
-      );
+      const { collateral, acollateral, overlayerWrap, admin, alice } =
+        await loadFixture(deployFixture);
 
       // aTokens are faked
 
@@ -456,9 +482,8 @@ describe("OverlayerWrap", function () {
     });
 
     it("Should not mint if blacklisted", async function () {
-      const { collateral, overlayerWrap, alice, gatekeeper, bob } = await loadFixture(
-        deployFixture
-      );
+      const { collateral, overlayerWrap, alice, gatekeeper, bob } =
+        await loadFixture(deployFixture);
       const blacklisterAddress = await gatekeeper.getAddress();
       await overlayerWrap.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
@@ -469,7 +494,9 @@ describe("OverlayerWrap", function () {
       const latestTime = await time.latest();
       await overlayerWrap.connect(gatekeeper).setBlackListTime(latestTime + 1);
       await time.increase(3600 * 24 * 15 + 1);
-      await overlayerWrap.connect(gatekeeper).disableAccount(await alice.getAddress());
+      await overlayerWrap
+        .connect(gatekeeper)
+        .disableAccount(await alice.getAddress());
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
@@ -480,22 +507,35 @@ describe("OverlayerWrap", function () {
         ),
         overlayerWrap_amount: ethers.parseEther(amount)
       };
-      await expect(overlayerWrap.connect(alice).mint(order)).to.be.eventually.rejected;
+      await expect(overlayerWrap.connect(alice).mint(order)).to.be.eventually
+        .rejected;
 
-      await overlayerWrap.connect(gatekeeper).enableAccount(await alice.getAddress());
+      await overlayerWrap
+        .connect(gatekeeper)
+        .enableAccount(await alice.getAddress());
       // Test transfer
       await overlayerWrap.connect(alice).mint(order);
-      await overlayerWrap.connect(gatekeeper).disableAccount(await alice.getAddress());
-      await expect(overlayerWrap.connect(alice).transfer(await bob.getAddress(), "1")).to
-        .be.eventually.rejected;
-      await overlayerWrap.connect(gatekeeper).enableAccount(await alice.getAddress());
-      await overlayerWrap.connect(gatekeeper).disableAccount(await bob.getAddress());
-      await expect(overlayerWrap.connect(alice).transfer(await bob.getAddress(), "1")).to
-        .be.eventually.rejected;
+      await overlayerWrap
+        .connect(gatekeeper)
+        .disableAccount(await alice.getAddress());
+      await expect(
+        overlayerWrap.connect(alice).transfer(await bob.getAddress(), "1")
+      ).to.be.eventually.rejected;
+      await overlayerWrap
+        .connect(gatekeeper)
+        .enableAccount(await alice.getAddress());
+      await overlayerWrap
+        .connect(gatekeeper)
+        .disableAccount(await bob.getAddress());
+      await expect(
+        overlayerWrap.connect(alice).transfer(await bob.getAddress(), "1")
+      ).to.be.eventually.rejected;
     });
 
     it("Should not mint oh behalf of external benefactors", async function () {
-      const { collateral, overlayerWrap, bob, alice } = await loadFixture(deployFixture);
+      const { collateral, overlayerWrap, bob, alice } = await loadFixture(
+        deployFixture
+      );
       const amount = "10";
       const order = {
         benefactor: bob.address,
@@ -507,11 +547,14 @@ describe("OverlayerWrap", function () {
         ),
         overlayerWrap_amount: ethers.parseEther(amount)
       };
-      await expect(overlayerWrap.connect(alice).mint(order)).to.be.eventually.rejected;
+      await expect(overlayerWrap.connect(alice).mint(order)).to.be.eventually
+        .rejected;
     });
 
     it("Should mint small amount", async function () {
-      const { collateral, overlayerWrap, alice } = await loadFixture(deployFixture);
+      const { collateral, overlayerWrap, alice } = await loadFixture(
+        deployFixture
+      );
       const amount = "0.000001";
       const order = {
         benefactor: alice.address,
@@ -537,7 +580,9 @@ describe("OverlayerWrap", function () {
     });
 
     it("Should not mint on unsufficient balance", async function () {
-      const { collateral, overlayerWrap, alice } = await loadFixture(deployFixture);
+      const { collateral, overlayerWrap, alice } = await loadFixture(
+        deployFixture
+      );
       const amount = "50.00001";
       const order = {
         benefactor: alice.address,
@@ -549,7 +594,8 @@ describe("OverlayerWrap", function () {
         ),
         overlayerWrap_amount: ethers.parseEther(amount)
       };
-      await expect(overlayerWrap.connect(alice).mint(order)).to.be.eventually.rejected;
+      await expect(overlayerWrap.connect(alice).mint(order)).to.be.eventually
+        .rejected;
       expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
         ethers.parseEther("0")
       );
@@ -558,7 +604,9 @@ describe("OverlayerWrap", function () {
 
   describe("Redeem", function () {
     it("Should redeem", async function () {
-      const { collateral, overlayerWrap, alice } = await loadFixture(deployFixture);
+      const { collateral, overlayerWrap, alice } = await loadFixture(
+        deployFixture
+      );
       const amount = "20";
       const order = {
         benefactor: alice.address,
@@ -574,25 +622,27 @@ describe("OverlayerWrap", function () {
       expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
         ethers.parseEther(amount)
       );
-      expect(await collateral.balanceOf(await overlayerWrap.getAddress())).to.equal(
-        ethers.parseUnits(amount, 6)
+      expect(
+        await collateral.balanceOf(await overlayerWrap.getAddress())
+      ).to.equal(ethers.parseUnits(amount, 6));
+      expect(await overlayerWrap.connect(alice).redeem(order)).to.emit(
+        overlayerWrap,
+        "Transfer"
       );
-      expect(await overlayerWrap.connect(alice).redeem(order)).to.emit(overlayerWrap, "Transfer");
       expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
         ethers.parseEther("0")
       );
-      expect(await collateral.balanceOf(await overlayerWrap.getAddress())).to.equal(
-        ethers.parseUnits("0", await collateral.decimals())
-      );
+      expect(
+        await collateral.balanceOf(await overlayerWrap.getAddress())
+      ).to.equal(ethers.parseUnits("0", await collateral.decimals()));
       expect(await collateral.balanceOf(alice.address)).to.equal(
         ethers.parseUnits("50", await collateral.decimals())
       );
     });
 
     it("Should redeem in emergency mode", async function () {
-      const { collateral, acollateral, overlayerWrap, admin, alice } = await loadFixture(
-        deployFixture
-      );
+      const { collateral, acollateral, overlayerWrap, admin, alice } =
+        await loadFixture(deployFixture);
 
       // aTokens are faked
 
@@ -637,9 +687,8 @@ describe("OverlayerWrap", function () {
     });
 
     it("Should not redeem not owned tokens", async function () {
-      const { collateral, overlayerWrap, alice, bob, userAmount } = await loadFixture(
-        deployFixture
-      );
+      const { collateral, overlayerWrap, alice, bob, userAmount } =
+        await loadFixture(deployFixture);
       const amount = "10";
       const order = {
         benefactor: alice.address,
@@ -662,14 +711,13 @@ describe("OverlayerWrap", function () {
         overlayerWrap_amount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
-      await expect(overlayerWrap.connect(bob).redeem(redeemOrder)).to.be.eventually
-        .rejected;
+      await expect(overlayerWrap.connect(bob).redeem(redeemOrder)).to.be
+        .eventually.rejected;
     });
 
     it("Should not redeem on low OverlayerWrap balance", async function () {
-      const { overlayerWrap, collateral, alice, userAmount } = await loadFixture(
-        deployFixture
-      );
+      const { overlayerWrap, collateral, alice, userAmount } =
+        await loadFixture(deployFixture);
       const mintAmount = "10";
       const redeemAmount = "10.000001";
       const order = {
@@ -702,17 +750,17 @@ describe("OverlayerWrap", function () {
       expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
         ethers.parseEther(mintAmount)
       );
-      await expect(overlayerWrap.connect(alice).redeem(redeemOrder)).to.be.eventually
-        .rejected;
+      await expect(overlayerWrap.connect(alice).redeem(redeemOrder)).to.be
+        .eventually.rejected;
       expect(await collateral.balanceOf(alice.address)).to.be.equal(
         ethers.parseUnits(
           (+userAmount - +mintAmount).toFixed(2),
           await collateral.decimals()
         )
       );
-      expect(await collateral.balanceOf(await overlayerWrap.getAddress())).to.be.equal(
-        ethers.parseUnits(mintAmount, await collateral.decimals())
-      );
+      expect(
+        await collateral.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(ethers.parseUnits(mintAmount, await collateral.decimals()));
     });
   });
 });

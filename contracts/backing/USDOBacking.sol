@@ -47,7 +47,8 @@ contract OverlayerWrapBacking is AaveHandler, IOverlayerWrapBackingDefs {
         address asset,
         uint256 amount
     ) external onlyOwner notProtocolAssets(asset) {
-        if (asset == address(0)) revert OverlayerWrapBackingZeroAddressException();
+        if (asset == address(0))
+            revert OverlayerWrapBackingZeroAddressException();
         IERC20(asset).safeTransfer(owner(), amount);
     }
 }

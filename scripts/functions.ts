@@ -25,7 +25,10 @@ export async function deploy_OverlayerWrap(
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
-  console.log("Deploying OverlayerWrap contract with signer:", deployer.address);
+  console.log(
+    "Deploying OverlayerWrap contract with signer:",
+    deployer.address
+  );
 
   const block = await deployer.provider.getBlock("latest");
   const baseFee = block.baseFeePerGas;
@@ -92,9 +95,14 @@ export async function deploy_StakedOverlayerWrap(
     maxFeePerGas: maxFee
   };
 
-  console.log("Deploying StakedOverlayerWrap contract with signer:", deployer.address);
+  console.log(
+    "Deploying StakedOverlayerWrap contract with signer:",
+    deployer.address
+  );
 
-  const ContractSource = await ethers.getContractFactory("StakedOverlayerWrapFront");
+  const ContractSource = await ethers.getContractFactory(
+    "StakedOverlayerWrapFront"
+  );
   const deployedContract = await ContractSource.deploy(
     overlayerWrap,
     deployer.address,
@@ -108,7 +116,9 @@ export async function deploy_StakedOverlayerWrap(
   return await deployedContract.getAddress();
 }
 
-export async function deploy_AirdropOVAReceipt(overlayerWrap: string): Promise<void> {
+export async function deploy_AirdropOVAReceipt(
+  overlayerWrap: string
+): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
   console.log(
@@ -117,7 +127,10 @@ export async function deploy_AirdropOVAReceipt(overlayerWrap: string): Promise<v
   );
 
   const ContractSource = await ethers.getContractFactory("AirdropOVAReceipt");
-  const deployedContract = await ContractSource.deploy(overlayerWrap, deployer.address);
+  const deployedContract = await ContractSource.deploy(
+    overlayerWrap,
+    deployer.address
+  );
   await deployedContract.waitForDeployment();
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
@@ -551,10 +564,20 @@ export async function deploy_OverlayerWrapBacking(
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
-  console.log("Deploying OverlayerWrapBacking contract with signer:", deployer.address);
+  console.log(
+    "Deploying OverlayerWrapBacking contract with signer:",
+    deployer.address
+  );
 
-  const OverlayerWrapBacking = await ethers.getContractFactory("OverlayerWrapBacking");
-  const overlayerWrapbacking = await OverlayerWrapBacking.deploy(admin, treasury, overlayerWrap, soverlayerWrap);
+  const OverlayerWrapBacking = await ethers.getContractFactory(
+    "OverlayerWrapBacking"
+  );
+  const overlayerWrapbacking = await OverlayerWrapBacking.deploy(
+    admin,
+    treasury,
+    overlayerWrap,
+    soverlayerWrap
+  );
   await overlayerWrapbacking.waitForDeployment();
 
   console.log("Contract deployed at:", await overlayerWrapbacking.getAddress());

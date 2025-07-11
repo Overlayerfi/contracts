@@ -13,12 +13,16 @@ async function approve() {
   const [signer] = await ethers.getSigners();
   const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
   const usdtContract = new ethers.Contract(USDT_ADDRESS, USDT_ABI, signer);
-  await usdcContract.connect(signer).approve(OverlayerWrap_ADDRESS, ethers.MaxUint256);
+  await usdcContract
+    .connect(signer)
+    .approve(OverlayerWrap_ADDRESS, ethers.MaxUint256);
   await usdcContract
     .connect(signer)
     .approve(AVAE_V3_POOL_ADDRESS, ethers.MaxUint256);
   await usdtContract.connect(signer).approve(OverlayerWrap_ADDRESS, 0);
-  await usdtContract.connect(signer).approve(OverlayerWrap_ADDRESS, ethers.MaxUint256);
+  await usdtContract
+    .connect(signer)
+    .approve(OverlayerWrap_ADDRESS, ethers.MaxUint256);
   await usdtContract.connect(signer).approve(AVAE_V3_POOL_ADDRESS, 0);
   await usdtContract
     .connect(signer)
@@ -27,7 +31,11 @@ async function approve() {
 
 async function estimate() {
   const [signer] = await ethers.getSigners();
-  const overlayerWrapContract = new ethers.Contract(OverlayerWrap_ADDRESS, OverlayerWrap_ABI.abi, signer);
+  const overlayerWrapContract = new ethers.Contract(
+    OverlayerWrap_ADDRESS,
+    OverlayerWrap_ABI.abi,
+    signer
+  );
   const aaveContract = new ethers.Contract(
     AVAE_V3_POOL_ADDRESS,
     AAVE_POOL_V3_ABI,
@@ -46,7 +54,9 @@ async function estimate() {
 
   await approve();
 
-  const amount0 = await overlayerWrapContract.connect(signer).mint.estimateGas(order);
+  const amount0 = await overlayerWrapContract
+    .connect(signer)
+    .mint.estimateGas(order);
   // From real estimates amount1 should already include amount2 + amount3
   const amount1 = await overlayerWrapContract
     .connect(signer)

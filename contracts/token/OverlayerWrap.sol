@@ -12,7 +12,12 @@ import "./types/MintRedeemManagerTypes.sol";
  * @title OverlayerWrap
  * @notice The Dual Layer stable coin
  */
-contract OverlayerWrap is ERC20Burnable, ERC20Permit, IOverlayerWrapDefs, MintRedeemManager {
+contract OverlayerWrap is
+    ERC20Burnable,
+    ERC20Permit,
+    IOverlayerWrapDefs,
+    MintRedeemManager
+{
     /// @notice The timestamp of the last blacklist activation request
     uint256 public blacklistActivationTime;
 
@@ -112,9 +117,7 @@ contract OverlayerWrap is ERC20Burnable, ERC20Permit, IOverlayerWrapDefs, MintRe
     function redeem(
         MintRedeemManagerTypes.Order calldata order
     ) external nonReentrant {
-        (uint256 toBurn, uint256 back) = _managerRedeem(
-            order
-        );
+        (uint256 toBurn, uint256 back) = _managerRedeem(order);
         if (msg.sender == order.benefactor) {
             _burn(msg.sender, toBurn);
         } else {

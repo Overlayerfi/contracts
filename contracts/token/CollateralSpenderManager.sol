@@ -9,7 +9,10 @@ import "./OverlayerWrapCollateral.sol";
  * @title CollateralSpenderManager
  * @notice This contract handles the collateral spender for OverlayerWrap
  */
-abstract contract CollateralSpenderManager is OverlayerWrapCollateral, ReentrancyGuard {
+abstract contract CollateralSpenderManager is
+    OverlayerWrapCollateral,
+    ReentrancyGuard
+{
     using SafeERC20 for IERC20;
 
     error CollateralSpenderManagerInvalidSpenderAddress();

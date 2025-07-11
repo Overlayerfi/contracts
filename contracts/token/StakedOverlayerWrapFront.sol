@@ -19,7 +19,10 @@ import "../backing/interfaces/IOverlayerWrapBacking.sol";
  * breaking the ERC4626 standard, and enabling the cooldownShares and the
  * cooldownAssets functions.
  */
-contract StakedOverlayerWrapFront is IStakedOverlayerWrapCooldown, StakedOverlayerWrap {
+contract StakedOverlayerWrapFront is
+    IStakedOverlayerWrapCooldown,
+    StakedOverlayerWrap
+{
     using SafeERC20 for IERC20;
 
     mapping(address => UserCooldown) public cooldowns;
@@ -32,13 +35,15 @@ contract StakedOverlayerWrapFront is IStakedOverlayerWrapCooldown, StakedOverlay
 
     /// @notice Ensure cooldownDuration is zero
     modifier ensureCooldownOff() {
-        if (cooldownDuration != 0) revert StakedOverlayerWrapOperationNotAllowed();
+        if (cooldownDuration != 0)
+            revert StakedOverlayerWrapOperationNotAllowed();
         _;
     }
 
     /// @notice Ensure cooldownDuration is gt 0
     modifier ensureCooldownOn() {
-        if (cooldownDuration == 0) revert StakedOverlayerWrapOperationNotAllowed();
+        if (cooldownDuration == 0)
+            revert StakedOverlayerWrapOperationNotAllowed();
         _;
     }
 

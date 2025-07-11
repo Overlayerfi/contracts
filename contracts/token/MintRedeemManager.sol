@@ -169,8 +169,9 @@ abstract contract MintRedeemManager is
         uint256 amount
     ) external nonReentrant whenNotPaused {
         if (approvedCollateralSpender != address(0)) {
-            uint256 collateralBal = IERC20(emergencyMode ? aCollateral.addr : collateral.addr)
-                .balanceOf(address(this));
+            uint256 collateralBal = IERC20(
+                emergencyMode ? aCollateral.addr : collateral.addr
+            ).balanceOf(address(this));
             uint256 amountToSupply = amount == 0 ? collateralBal : amount;
             if (amountToSupply > collateralBal)
                 revert MintRedeemManagerInsufficientFunds();
@@ -189,15 +190,11 @@ abstract contract MintRedeemManager is
         MintRedeemManagerTypes.Order calldata order
     ) internal view {
         if (emergencyMode) {
-            if (
-                !(order.collateral == aCollateral.addr)
-            ) {
+            if (!(order.collateral == aCollateral.addr)) {
                 revert MintRedeemManagerCollateralNotValid();
             }
         } else {
-            if (
-                !(order.collateral == collateral.addr)
-            ) {
+            if (!(order.collateral == collateral.addr)) {
                 revert MintRedeemManagerCollateralNotValid();
             }
         }
@@ -262,10 +259,7 @@ abstract contract MintRedeemManager is
     /// @return back The amount of the underlying or their aToken version returned to user
     function _withdrawFromProtocol(
         uint256 amount
-    )
-        internal
-        returns (uint256 checkedBurnAmount, uint256 back)
-    {
+    ) internal returns (uint256 checkedBurnAmount, uint256 back) {
         if (amount == 0) {
             return (0, 0);
         }
@@ -274,8 +268,9 @@ abstract contract MintRedeemManager is
             uint256 diffDecimals = _decimals -
                 (emergencyMode ? aCollateral.decimals : collateral.decimals);
             uint256 needAmount = amount / (10 ** diffDecimals);
-            uint256 collateralBal = IERC20(emergencyMode ? aCollateral.addr : collateral.addr)
-                .balanceOf(address(this));
+            uint256 collateralBal = IERC20(
+                emergencyMode ? aCollateral.addr : collateral.addr
+            ).balanceOf(address(this));
 
             // Compute the needed amount from backing contract
             uint256 amountFromBacking = 0;
@@ -290,8 +285,7 @@ abstract contract MintRedeemManager is
             }
 
             back = needAmount;
-            checkedBurnAmount =
-                (back * (10 ** diffDecimals));
+            checkedBurnAmount = (back * (10 ** diffDecimals));
         }
     }
 
