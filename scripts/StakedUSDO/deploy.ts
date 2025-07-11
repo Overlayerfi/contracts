@@ -1,5 +1,5 @@
-import { deploy_StakedUSDO } from "../functions";
+import { deploy_StakedOverlayerWrap } from "../functions";
 
-deploy_StakedUSDO("0x72872f101327902fC805637Cccd9A3542ed31e47").catch((err) => {
+deploy_StakedOverlayerWrap("0x72872f101327902fC805637Cccd9A3542ed31e47").catch((err) => {
   console.error("Deployment failed -> " + err);
 });

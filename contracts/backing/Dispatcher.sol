@@ -21,7 +21,7 @@ contract OvaDispatcher is Ownable {
     address public safetyModule;
     address public team;
     address public buyBack;
-    address public immutable usdo;
+    address public immutable overlayerWrap;
 
     uint8 public teamAllocation = 10;
     uint8 public safetyModuleAllocation = 90;
@@ -32,7 +32,7 @@ contract OvaDispatcher is Ownable {
         address team_,
         address safetyModule_,
         address buyBack_,
-        address usdo_
+        address overlayerWrap_
     ) Ownable(admin) {
         if (
             team_ == address(0) ||
@@ -44,7 +44,7 @@ contract OvaDispatcher is Ownable {
         team = team_;
         safetyModule = safetyModule_;
         buyBack = buyBack_;
-        usdo = usdo_;
+        overlayerWrap = overlayerWrap_;
     }
 
     function setAllocations(
@@ -87,13 +87,13 @@ contract OvaDispatcher is Ownable {
     }
 
     function dispatch() external {
-        uint256 bal = IERC20(usdo).balanceOf(address(this));
+        uint256 bal = IERC20(overlayerWrap).balanceOf(address(this));
         uint256 teamAmount = bal.mulDiv(teamAllocation, 100);
         uint256 buyBackAmount = bal.mulDiv(buyBackAllocation, 100);
         uint256 safetyModuleAmount = bal - teamAmount - buyBackAmount;
 
-        IERC20(usdo).safeTransfer(team, teamAmount);
-        IERC20(usdo).safeTransfer(buyBack, buyBackAmount);
-        IERC20(usdo).safeTransfer(safetyModule, safetyModuleAmount);
+        IERC20(overlayerWrap).safeTransfer(team, teamAmount);
+        IERC20(overlayerWrap).safeTransfer(buyBack, buyBackAmount);
+        IERC20(overlayerWrap).safeTransfer(safetyModule, safetyModuleAmount);
     }
 }
