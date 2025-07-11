@@ -3,39 +3,39 @@ pragma solidity 0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IUSDOBackingDefs} from "./interfaces/IUSDOBackingDefs.sol";
-import {IUSDO} from "./interfaces/IUSDO.sol";
+import {IOverlayerWrapBackingDefs} from "./interfaces/IOverlayerWrapBackingDefs.sol";
+import {IOverlayerWrap} from "./interfaces/IOverlayerWrap.sol";
 import {AaveHandler} from "./AaveHandler.sol";
 
 /**
- * @title USDOBacking
+ * @title OverlayerWrapBacking
  * @notice This contract represent the backing allocations manager
  */
-contract USDOBacking is AaveHandler, IUSDOBackingDefs {
+contract OverlayerWrapBacking is AaveHandler, IOverlayerWrapBackingDefs {
     using SafeERC20 for IERC20;
 
     //########################################## MODIFIERS ##########################################
 
     modifier notProtocolAssets(address asset) {
         if (asset == USDT || asset == AUSDT)
-            revert USDOBackingOperationNotAllowed();
+            revert OverlayerWrapBackingOperationNotAllowed();
         _;
     }
 
     ///@notice The constructor
-    ///@dev It accepts to be the USDO collateral spender
+    ///@dev It accepts to be the OverlayerWrap collateral spender
     ///@param admin The contract admin
     ///@param dispatcher The protocol reward dispatcher contract
-    ///@param usdo The USDO contract
-    ///@param susdo The sUSDO contract
+    ///@param overlayerWrap The OverlayerWrap contract
+    ///@param soverlayerWrap The sOverlayerWrap contract
     constructor(
         address admin,
         address dispatcher,
-        address usdo,
-        address susdo
-    ) AaveHandler(admin, dispatcher, usdo, susdo) {
-        IUSDO(usdo).acceptProposedCollateralSpender();
-        emit USDOSpenderAccepted();
+        address overlayerWrap,
+        address soverlayerWrap
+    ) AaveHandler(admin, dispatcher, overlayerWrap, soverlayerWrap) {
+        IOverlayerWrap(overlayerWrap).acceptProposedCollateralSpender();
+        emit OverlayerWrapSpenderAccepted();
     }
 
     //########################################## EXTERNAL FUNCTIONS ##########################################
@@ -47,7 +47,7 @@ contract USDOBacking is AaveHandler, IUSDOBackingDefs {
         address asset,
         uint256 amount
     ) external onlyOwner notProtocolAssets(asset) {
-        if (asset == address(0)) revert USDOBackingZeroAddressException();
+        if (asset == address(0)) revert OverlayerWrapBackingZeroAddressException();
         IERC20(asset).safeTransfer(owner(), amount);
     }
 }

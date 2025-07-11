@@ -3,7 +3,7 @@ import { ethers } from "hardhat";
 import { expect } from "chai";
 import { AUSDC_ADDRESS, AUSDT_ADDRESS } from "../scripts/addresses";
 
-describe("StakedUSDOFront", function () {
+describe("StakedOverlayerWrapFront", function () {
   async function deployFixture() {
     const [admin, alice, bob] = await ethers.getSigners();
 
@@ -21,8 +21,8 @@ describe("StakedUSDOFront", function () {
       defaultTransactionOptions
     );
 
-    const USDO = await ethers.getContractFactory("USDO");
-    const usdo = await USDO.deploy(
+    const OverlayerWrap = await ethers.getContractFactory("OverlayerWrap");
+    const overlayerWrap = await OverlayerWrap.deploy(
       await admin.getAddress(),
       {
         addr: await usdt.getAddress(),
@@ -47,88 +47,88 @@ describe("StakedUSDOFront", function () {
 
     await usdt
       .connect(alice)
-      .approve(await usdo.getAddress(), ethers.MaxUint256);
-    await usdt.connect(bob).approve(await usdo.getAddress(), ethers.MaxUint256);
+      .approve(await overlayerWrap.getAddress(), ethers.MaxUint256);
+    await usdt.connect(bob).approve(await overlayerWrap.getAddress(), ethers.MaxUint256);
     await usdt
       .connect(admin)
-      .approve(await usdo.getAddress(), ethers.MaxUint256);
+      .approve(await overlayerWrap.getAddress(), ethers.MaxUint256);
 
-    // users mint usdo
+    // users mint overlayerWrap
     let mintOrder = {
       benefactor: alice.address,
       beneficiary: alice.address,
       collateral: await usdt.getAddress(),
       collateral_amount: ethers.parseUnits("50", await usdt.decimals()),
-      usdo_amount: ethers.parseEther('50')
+      overlayerWrap_amount: ethers.parseEther('50')
     };
-    await usdo.connect(alice).mint(mintOrder);
+    await overlayerWrap.connect(alice).mint(mintOrder);
     mintOrder.benefactor = bob.address;
     mintOrder.beneficiary = bob.address;
-    await usdo.connect(bob).mint(mintOrder);
+    await overlayerWrap.connect(bob).mint(mintOrder);
     mintOrder.benefactor = admin.address;
     mintOrder.beneficiary = admin.address;
     mintOrder.collateral_amount = ethers.parseUnits(
       "100",
       await usdt.decimals()
     );
-    mintOrder.usdo_amount = ethers.parseEther('100');
-    await usdo.connect(admin).mint(mintOrder);
+    mintOrder.overlayerWrap_amount = ethers.parseEther('100');
+    await overlayerWrap.connect(admin).mint(mintOrder);
 
-    const StakedUSDO = await ethers.getContractFactory("StakedUSDOFront");
-    const stakedusdo = await StakedUSDO.deploy(
-      await usdo.getAddress(),
+    const StakedOverlayerWrap = await ethers.getContractFactory("StakedOverlayerWrapFront");
+    const stakedoverlayerWrap = await StakedOverlayerWrap.deploy(
+      await overlayerWrap.getAddress(),
       admin.address,
       admin.address,
       0
     );
 
-    await stakedusdo.connect(admin).setCooldownDuration(172800); // 2 days
+    await stakedoverlayerWrap.connect(admin).setCooldownDuration(172800); // 2 days
 
     const order = {
       benefactor: admin.address,
       beneficiary: admin.address,
       collateral: await usdt.getAddress(),
       collateral_amount: ethers.parseUnits("1", await usdt.decimals()),
-      usdo_amount: ethers.parseEther("1")
+      overlayerWrap_amount: ethers.parseEther("1")
     };
     await usdt
       .connect(admin)
-      .approve(await usdo.getAddress(), ethers.MaxUint256);
-    await usdo.connect(admin).mint(order);
-    await usdo
+      .approve(await overlayerWrap.getAddress(), ethers.MaxUint256);
+    await overlayerWrap.connect(admin).mint(order);
+    await overlayerWrap
       .connect(admin)
-      .approve(await stakedusdo.getAddress(), ethers.MaxUint256);
+      .approve(await stakedoverlayerWrap.getAddress(), ethers.MaxUint256);
 
     //stake initial amount to avoid donation attack on staking contract
-    await stakedusdo
+    await stakedoverlayerWrap
       .connect(admin)
       .deposit(ethers.parseEther("1"), admin.address);
 
-    await usdo
+    await overlayerWrap
       .connect(alice)
-      .approve(await stakedusdo.getAddress(), ethers.MaxUint256);
-    await usdo
+      .approve(await stakedoverlayerWrap.getAddress(), ethers.MaxUint256);
+    await overlayerWrap
       .connect(bob)
-      .approve(await stakedusdo.getAddress(), ethers.MaxUint256);
-    await usdo
+      .approve(await stakedoverlayerWrap.getAddress(), ethers.MaxUint256);
+    await overlayerWrap
       .connect(admin)
-      .approve(await stakedusdo.getAddress(), ethers.MaxUint256);
+      .approve(await stakedoverlayerWrap.getAddress(), ethers.MaxUint256);
 
-    return { stakedusdo, usdt, usdo, admin, alice, bob };
+    return { stakedoverlayerWrap, usdt, overlayerWrap, admin, alice, bob };
   }
 
   describe("Deployment", function () {
     it("Should set the admin role", async function () {
-      const { stakedusdo, admin } = await loadFixture(deployFixture);
+      const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
       const adminAddress = await admin.getAddress();
-      expect(await stakedusdo.owner()).to.equal(adminAddress);
+      expect(await stakedoverlayerWrap.owner()).to.equal(adminAddress);
     });
 
     it("Should set the rewarder role", async function () {
-      const { stakedusdo, admin } = await loadFixture(deployFixture);
+      const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
       const adminAddress = await admin.getAddress();
       expect(
-        await stakedusdo.hasRole(
+        await stakedoverlayerWrap.hasRole(
           ethers.keccak256(ethers.toUtf8Bytes("REWARDER_ROLE")),
           adminAddress
         )
@@ -136,127 +136,127 @@ describe("StakedUSDOFront", function () {
     });
 
     it("Should not have vesting time", async function () {
-      const { stakedusdo } = await loadFixture(deployFixture);
-      expect(await stakedusdo.vestingAmount()).to.equal(0);
+      const { stakedoverlayerWrap } = await loadFixture(deployFixture);
+      expect(await stakedoverlayerWrap.vestingAmount()).to.equal(0);
     });
   });
 
   describe("Cooldown check", function () {
     it("Should disable ERC4626 withdraw", async function () {
-      const { stakedusdo, alice } = await loadFixture(deployFixture);
+      const { stakedoverlayerWrap, alice } = await loadFixture(deployFixture);
       await expect(
-        stakedusdo.connect(alice).withdraw(0, alice.address, alice.address)
+        stakedoverlayerWrap.connect(alice).withdraw(0, alice.address, alice.address)
       ).to.be.eventually.rejected;
     });
 
     it("Should disable ERC4626 redeem", async function () {
-      const { stakedusdo, alice } = await loadFixture(deployFixture);
+      const { stakedoverlayerWrap, alice } = await loadFixture(deployFixture);
       await expect(
-        stakedusdo.connect(alice).redeem(0, alice.address, alice.address)
+        stakedoverlayerWrap.connect(alice).redeem(0, alice.address, alice.address)
       ).to.be.eventually.rejected;
     });
   });
 
   describe("Blacklist", function () {
     it("Should set blacklist time", async function () {
-      const { stakedusdo, admin } = await loadFixture(deployFixture);
-      await stakedusdo.grantRole(
+      const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
+      await stakedoverlayerWrap.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
         admin.address
       );
       const t = await time.latest();
-      await stakedusdo.connect(admin).setBlackListTime(t + 100);
-      expect(await stakedusdo.blacklistActivationTime()).to.be.equal(t + 100);
+      await stakedoverlayerWrap.connect(admin).setBlackListTime(t + 100);
+      expect(await stakedoverlayerWrap.blacklistActivationTime()).to.be.equal(t + 100);
     });
 
     it("Should not set time < block.timestamp", async function () {
-      const { stakedusdo, admin } = await loadFixture(deployFixture);
-      await stakedusdo.grantRole(
+      const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
+      await stakedoverlayerWrap.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
         admin.address
       );
       const t = await time.latest();
-      await expect(stakedusdo.connect(admin).setBlackListTime(t - 100)).to.be
+      await expect(stakedoverlayerWrap.connect(admin).setBlackListTime(t - 100)).to.be
         .eventually.rejected;
     });
   });
 
   describe("Stake", function () {
     it("Should deposit", async function () {
-      const { stakedusdo, admin, alice, bob } = await loadFixture(
+      const { stakedoverlayerWrap, admin, alice, bob } = await loadFixture(
         deployFixture
       );
-      expect(await stakedusdo.totalAssets()).to.equal(ethers.parseEther("1"));
-      expect(await stakedusdo.totalSupply()).to.equal(ethers.parseEther("1"));
+      expect(await stakedoverlayerWrap.totalAssets()).to.equal(ethers.parseEther("1"));
+      expect(await stakedoverlayerWrap.totalSupply()).to.equal(ethers.parseEther("1"));
       await expect(
-        await stakedusdo
+        await stakedoverlayerWrap
           .connect(alice)
           .deposit(ethers.parseEther("10"), alice.address)
-      ).to.emit(stakedusdo, "Deposit");
+      ).to.emit(stakedoverlayerWrap, "Deposit");
       await expect(
-        await stakedusdo
+        await stakedoverlayerWrap
           .connect(bob)
           .deposit(ethers.parseEther("5"), bob.address)
-      ).to.emit(stakedusdo, "Deposit");
-      expect(await stakedusdo.totalAssets()).to.equal(ethers.parseEther("16"));
-      expect(await stakedusdo.totalSupply()).to.equal(ethers.parseEther("16"));
-      expect(await stakedusdo.balanceOf(alice.address)).to.equal(
+      ).to.emit(stakedoverlayerWrap, "Deposit");
+      expect(await stakedoverlayerWrap.totalAssets()).to.equal(ethers.parseEther("16"));
+      expect(await stakedoverlayerWrap.totalSupply()).to.equal(ethers.parseEther("16"));
+      expect(await stakedoverlayerWrap.balanceOf(alice.address)).to.equal(
         ethers.parseEther("10")
       );
-      expect(await stakedusdo.balanceOf(bob.address)).to.equal(
+      expect(await stakedoverlayerWrap.balanceOf(bob.address)).to.equal(
         ethers.parseEther("5")
       );
-      expect(await stakedusdo.balanceOf(admin.address)).to.equal(
+      expect(await stakedoverlayerWrap.balanceOf(admin.address)).to.equal(
         ethers.parseEther("1")
       );
 
-      expect(await stakedusdo.previewRedeem(ethers.parseEther("1"))).to.equal(
+      expect(await stakedoverlayerWrap.previewRedeem(ethers.parseEther("1"))).to.equal(
         ethers.parseEther("1")
       );
     });
 
     it("Should not not blacklist if not active", async function () {
-      const { stakedusdo, admin, alice } = await loadFixture(deployFixture);
-      await stakedusdo.grantRole(
+      const { stakedoverlayerWrap, admin, alice } = await loadFixture(deployFixture);
+      await stakedoverlayerWrap.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
         admin.address
       );
-      await stakedusdo.connect(admin).setBlackListTime(0);
+      await stakedoverlayerWrap.connect(admin).setBlackListTime(0);
       await time.increase(60 * 60 * 24 * 15 + 1);
       await expect(
-        stakedusdo.connect(admin).addToBlacklist(alice.address, true)
+        stakedoverlayerWrap.connect(admin).addToBlacklist(alice.address, true)
       ).to.be.eventually.rejected;
     });
 
     it("Should not deposit if full blacklisted", async function () {
-      const { stakedusdo, admin, alice } = await loadFixture(deployFixture);
-      await stakedusdo.grantRole(
+      const { stakedoverlayerWrap, admin, alice } = await loadFixture(deployFixture);
+      await stakedoverlayerWrap.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
         admin.address
       );
       const t = await time.latest();
-      await stakedusdo.connect(admin).setBlackListTime(t + 1);
+      await stakedoverlayerWrap.connect(admin).setBlackListTime(t + 1);
       await time.increase(60 * 60 * 24 * 15 + 1);
-      await stakedusdo.connect(admin).addToBlacklist(alice.address, true);
+      await stakedoverlayerWrap.connect(admin).addToBlacklist(alice.address, true);
       await expect(
-        stakedusdo
+        stakedoverlayerWrap
           .connect(alice)
           .deposit(ethers.parseEther("10"), alice.address)
       ).to.be.eventually.rejected;
     });
 
     it("Should not deposit if soft blacklisted", async function () {
-      const { stakedusdo, admin, alice } = await loadFixture(deployFixture);
-      await stakedusdo.grantRole(
+      const { stakedoverlayerWrap, admin, alice } = await loadFixture(deployFixture);
+      await stakedoverlayerWrap.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
         admin.address
       );
       const t = await time.latest();
-      await stakedusdo.connect(admin).setBlackListTime(t + 1);
+      await stakedoverlayerWrap.connect(admin).setBlackListTime(t + 1);
       await time.increase(60 * 60 * 24 * 15 + 1);
-      await stakedusdo.connect(admin).addToBlacklist(alice.address, false);
+      await stakedoverlayerWrap.connect(admin).addToBlacklist(alice.address, false);
       await expect(
-        stakedusdo
+        stakedoverlayerWrap
           .connect(alice)
           .deposit(ethers.parseEther("10"), alice.address)
       ).to.be.eventually.rejected;
@@ -265,110 +265,110 @@ describe("StakedUSDOFront", function () {
 
   describe("Preview Redeem", function () {
     it("Should update preview redeem on asset injection", async function () {
-      const { stakedusdo, admin, usdo, alice, bob } = await loadFixture(
+      const { stakedoverlayerWrap, admin, overlayerWrap, alice, bob } = await loadFixture(
         deployFixture
       );
       await expect(
-        await stakedusdo
+        await stakedoverlayerWrap
           .connect(alice)
           .deposit(ethers.parseEther("10"), alice.address)
-      ).to.emit(stakedusdo, "Deposit");
+      ).to.emit(stakedoverlayerWrap, "Deposit");
       await expect(
-        await stakedusdo
+        await stakedoverlayerWrap
           .connect(bob)
           .deposit(ethers.parseEther("5"), bob.address)
-      ).to.emit(stakedusdo, "Deposit");
-      await usdo
+      ).to.emit(stakedoverlayerWrap, "Deposit");
+      await overlayerWrap
         .connect(admin)
-        .transfer(await stakedusdo.getAddress(), ethers.parseEther("15"));
-      expect(await stakedusdo.totalAssets()).to.equal(ethers.parseEther("31"));
-      expect(await stakedusdo.totalSupply()).to.equal(ethers.parseEther("16"));
+        .transfer(await stakedoverlayerWrap.getAddress(), ethers.parseEther("15"));
+      expect(await stakedoverlayerWrap.totalAssets()).to.equal(ethers.parseEther("31"));
+      expect(await stakedoverlayerWrap.totalSupply()).to.equal(ethers.parseEther("16"));
 
       expect(
-        await stakedusdo.previewRedeem(ethers.parseEther("1"))
+        await stakedoverlayerWrap.previewRedeem(ethers.parseEther("1"))
       ).to.be.greaterThan(ethers.parseEther("1.9"));
       expect(
-        await stakedusdo.previewRedeem(ethers.parseEther("1"))
+        await stakedoverlayerWrap.previewRedeem(ethers.parseEther("1"))
       ).to.be.lessThan(ethers.parseEther("2.0"));
 
       //check unvested amount
-      expect(await stakedusdo.getUnvestedAmount()).to.equal(0);
+      expect(await stakedoverlayerWrap.getUnvestedAmount()).to.equal(0);
 
-      await usdo
+      await overlayerWrap
         .connect(admin)
-        .transfer(await stakedusdo.getAddress(), ethers.parseEther("30"));
+        .transfer(await stakedoverlayerWrap.getAddress(), ethers.parseEther("30"));
 
       expect(
-        await stakedusdo.previewRedeem(ethers.parseEther("1"))
+        await stakedoverlayerWrap.previewRedeem(ethers.parseEther("1"))
       ).to.be.greaterThan(ethers.parseEther("3.8"));
       expect(
-        await stakedusdo.previewRedeem(ethers.parseEther("1"))
+        await stakedoverlayerWrap.previewRedeem(ethers.parseEther("1"))
       ).to.be.lessThan(ethers.parseEther("4.0"));
     });
   });
 
   describe("Cooldown Shares & Unstake", function () {
     it("Should start cooldown", async function () {
-      const { stakedusdo, alice } = await loadFixture(deployFixture);
+      const { stakedoverlayerWrap, alice } = await loadFixture(deployFixture);
       await expect(
-        await stakedusdo
+        await stakedoverlayerWrap
           .connect(alice)
           .deposit(ethers.parseEther("10"), alice.address)
-      ).to.emit(stakedusdo, "Deposit");
-      await stakedusdo.connect(alice).cooldownShares(ethers.parseEther("5"));
-      expect(await stakedusdo.balanceOf(alice.address)).to.equal(
+      ).to.emit(stakedoverlayerWrap, "Deposit");
+      await stakedoverlayerWrap.connect(alice).cooldownShares(ethers.parseEther("5"));
+      expect(await stakedoverlayerWrap.balanceOf(alice.address)).to.equal(
         ethers.parseEther("5")
       );
       expect(
-        (await stakedusdo.cooldowns(alice.address)).underlyingAmount
+        (await stakedoverlayerWrap.cooldowns(alice.address)).underlyingAmount
       ).to.equal(ethers.parseEther("5"));
       const now = await time.latest();
-      expect((await stakedusdo.cooldowns(alice.address)).cooldownEnd).to.equal(
+      expect((await stakedoverlayerWrap.cooldowns(alice.address)).cooldownEnd).to.equal(
         now + 172800
       );
     });
 
     it("Should not unstake before cooldown", async function () {
-      const { stakedusdo, alice } = await loadFixture(deployFixture);
+      const { stakedoverlayerWrap, alice } = await loadFixture(deployFixture);
       await expect(
-        await stakedusdo
+        await stakedoverlayerWrap
           .connect(alice)
           .deposit(ethers.parseEther("10"), alice.address)
-      ).to.emit(stakedusdo, "Deposit");
-      await stakedusdo.connect(alice).cooldownShares(ethers.parseEther("5"));
+      ).to.emit(stakedoverlayerWrap, "Deposit");
+      await stakedoverlayerWrap.connect(alice).cooldownShares(ethers.parseEther("5"));
       const now = await time.latest();
-      expect((await stakedusdo.cooldowns(alice.address)).cooldownEnd).to.equal(
+      expect((await stakedoverlayerWrap.cooldowns(alice.address)).cooldownEnd).to.equal(
         now + 172800
       );
-      await expect(stakedusdo.connect(alice).unstake(alice.address)).to.be
+      await expect(stakedoverlayerWrap.connect(alice).unstake(alice.address)).to.be
         .eventually.rejected;
       await time.increase(172759);
-      await expect(stakedusdo.connect(alice).unstake(alice.address)).to.be
+      await expect(stakedoverlayerWrap.connect(alice).unstake(alice.address)).to.be
         .eventually.rejected;
     });
 
     it("Should unstake after cooldown", async function () {
-      const { stakedusdo, admin, usdo, alice, bob } = await loadFixture(
+      const { stakedoverlayerWrap, admin, overlayerWrap, alice, bob } = await loadFixture(
         deployFixture
       );
-      await stakedusdo
+      await stakedoverlayerWrap
         .connect(alice)
         .deposit(ethers.parseEther("10"), alice.address);
-      await stakedusdo
+      await stakedoverlayerWrap
         .connect(bob)
         .deposit(ethers.parseEther("5"), bob.address);
-      await usdo
+      await overlayerWrap
         .connect(admin)
-        .transfer(await stakedusdo.getAddress(), ethers.parseEther("15"));
-      await stakedusdo.connect(alice).cooldownShares(ethers.parseEther("10"));
-      await stakedusdo.connect(bob).cooldownShares(ethers.parseEther("5"));
+        .transfer(await stakedoverlayerWrap.getAddress(), ethers.parseEther("15"));
+      await stakedoverlayerWrap.connect(alice).cooldownShares(ethers.parseEther("10"));
+      await stakedoverlayerWrap.connect(bob).cooldownShares(ethers.parseEther("5"));
       await time.increase(182759);
-      const beforeAliceBal = ethers.formatEther(await usdo.balanceOf(alice));
-      const beforeBobBal = ethers.formatEther(await usdo.balanceOf(bob));
-      await stakedusdo.connect(alice).unstake(alice.address);
-      await stakedusdo.connect(bob).unstake(bob.address);
-      const afterAliceBal = ethers.formatEther(await usdo.balanceOf(alice));
-      const afterBobBal = ethers.formatEther(await usdo.balanceOf(bob));
+      const beforeAliceBal = ethers.formatEther(await overlayerWrap.balanceOf(alice));
+      const beforeBobBal = ethers.formatEther(await overlayerWrap.balanceOf(bob));
+      await stakedoverlayerWrap.connect(alice).unstake(alice.address);
+      await stakedoverlayerWrap.connect(bob).unstake(bob.address);
+      const afterAliceBal = ethers.formatEther(await overlayerWrap.balanceOf(alice));
+      const afterBobBal = ethers.formatEther(await overlayerWrap.balanceOf(bob));
       expect(
         Number.parseFloat(afterAliceBal) - Number.parseFloat(beforeAliceBal)
       ).to.be.greaterThan(19.0);
@@ -386,40 +386,40 @@ describe("StakedUSDOFront", function () {
 
   describe("ERC4626 flow", function () {
     it("Should unstake immediately", async function () {
-      const { stakedusdo, admin, usdo, alice, bob } = await loadFixture(
+      const { stakedoverlayerWrap, admin, overlayerWrap, alice, bob } = await loadFixture(
         deployFixture
       );
 
       //disable cool down
-      await stakedusdo.connect(admin).setCooldownDuration(0);
+      await stakedoverlayerWrap.connect(admin).setCooldownDuration(0);
 
-      await stakedusdo
+      await stakedoverlayerWrap
         .connect(alice)
         .deposit(ethers.parseEther("10"), alice.address);
-      await stakedusdo
+      await stakedoverlayerWrap
         .connect(bob)
         .deposit(ethers.parseEther("5"), bob.address);
-      await usdo
+      await overlayerWrap
         .connect(admin)
-        .transfer(await stakedusdo.getAddress(), ethers.parseEther("15"));
+        .transfer(await stakedoverlayerWrap.getAddress(), ethers.parseEther("15"));
 
-      expect(await stakedusdo.balanceOf(alice.address)).to.equal(
+      expect(await stakedoverlayerWrap.balanceOf(alice.address)).to.equal(
         ethers.parseEther("10")
       );
-      expect(await stakedusdo.balanceOf(bob.address)).to.equal(
+      expect(await stakedoverlayerWrap.balanceOf(bob.address)).to.equal(
         ethers.parseEther("5")
       );
 
-      const beforeAliceBal = ethers.formatEther(await usdo.balanceOf(alice));
-      const beforeBobBal = ethers.formatEther(await usdo.balanceOf(bob));
-      await stakedusdo
+      const beforeAliceBal = ethers.formatEther(await overlayerWrap.balanceOf(alice));
+      const beforeBobBal = ethers.formatEther(await overlayerWrap.balanceOf(bob));
+      await stakedoverlayerWrap
         .connect(alice)
         .redeem(ethers.parseEther("10"), alice.address, alice.address);
-      await stakedusdo
+      await stakedoverlayerWrap
         .connect(bob)
         .redeem(ethers.parseEther("5"), bob.address, bob.address);
-      const afterAliceBal = ethers.formatEther(await usdo.balanceOf(alice));
-      const afterBobBal = ethers.formatEther(await usdo.balanceOf(bob));
+      const afterAliceBal = ethers.formatEther(await overlayerWrap.balanceOf(alice));
+      const afterBobBal = ethers.formatEther(await overlayerWrap.balanceOf(bob));
       expect(
         Number.parseFloat(afterAliceBal) - Number.parseFloat(beforeAliceBal)
       ).to.be.greaterThan(19.3);

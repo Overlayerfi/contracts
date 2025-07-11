@@ -10,12 +10,12 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 import "../shared/SingleAdminAccessControl.sol";
 import "./CollateralSpenderManager.sol";
 import "./interfaces/IMintRedeemManagerDefs.sol";
-import "./interfaces/IUSDOBacking.sol";
+import "./interfaces/IOverlayerWrapBacking.sol";
 import "./types/MintRedeemManagerTypes.sol";
 
 /**
  * @title MintRedeemManager
- * @notice This contract mints and redeems the USDO contract that inherits this contract
+ * @notice This contract mints and redeems the OverlayerWrap contract that inherits this contract
  */
 abstract contract MintRedeemManager is
     IMintRedeemManagerDefs,
@@ -34,14 +34,14 @@ abstract contract MintRedeemManager is
     /// @notice Parent token decimals
     uint256 internal immutable _decimals;
 
-    /// @notice USDO minted per block
+    /// @notice OverlayerWrap minted per block
     mapping(uint256 => uint256) public mintedPerBlock;
-    /// @notice USDO redeemed per block
+    /// @notice OverlayerWrap redeemed per block
     mapping(uint256 => uint256) public redeemedPerBlock;
 
-    /// @notice Max minted USDO allowed per block
+    /// @notice Max minted OverlayerWrap allowed per block
     uint256 public maxMintPerBlock;
-    /// @notice Max redeemed USDO allowed per block
+    /// @notice Max redeemed OverlayerWrap allowed per block
     uint256 public maxRedeemPerBlock;
 
     /// @notice If protocol is in emergency mode
@@ -49,16 +49,16 @@ abstract contract MintRedeemManager is
 
     /* --------------- MODIFIERS --------------- */
 
-    /// @notice Ensure that the already minted USDO in the actual block plus the amount to be minted is below the maxMintPerBlock
-    /// @param mintAmount The USDO amount to be minted
+    /// @notice Ensure that the already minted OverlayerWrap in the actual block plus the amount to be minted is below the maxMintPerBlock
+    /// @param mintAmount The OverlayerWrap amount to be minted
     modifier belowMaxMintPerBlock(uint256 mintAmount) {
         if (mintedPerBlock[block.number] + mintAmount > maxMintPerBlock)
             revert MintRedeemManagerMaxMintPerBlockExceeded();
         _;
     }
 
-    /// @notice Ensure that the already redeemed USDO in the actual block plus the amount to be redeemed is below the maxRedeemPerBlock
-    /// @param redeemAmount The USDO amount to be redeemed
+    /// @notice Ensure that the already redeemed OverlayerWrap in the actual block plus the amount to be redeemed is below the maxRedeemPerBlock
+    /// @param redeemAmount The OverlayerWrap amount to be redeemed
     modifier belowMaxRedeemPerBlock(uint256 redeemAmount) {
         if (redeemedPerBlock[block.number] + redeemAmount > maxRedeemPerBlock)
             revert MintRedeemManagerMaxRedeemPerBlockExceeded();
@@ -174,7 +174,7 @@ abstract contract MintRedeemManager is
             uint256 amountToSupply = amount == 0 ? collateralBal : amount;
             if (amountToSupply > collateralBal)
                 revert MintRedeemManagerInsufficientFunds();
-            IUSDOBacking(approvedCollateralSpender).supply(
+            IOverlayerWrapBacking(approvedCollateralSpender).supply(
                 amountToSupply
             );
             emit SuppliedToBacking(msg.sender, amountToSupply);
@@ -209,11 +209,11 @@ abstract contract MintRedeemManager is
     /// @param order Struct containing order details
     function _managerMint(
         MintRedeemManagerTypes.Order calldata order
-    ) internal belowMaxMintPerBlock(order.usdo_amount) {
+    ) internal belowMaxMintPerBlock(order.overlayerWrap_amount) {
         // Check for wanted source tokens
         _validateInputTokens(order);
         // Add to the minted amount in this block
-        mintedPerBlock[block.number] += order.usdo_amount;
+        mintedPerBlock[block.number] += order.overlayerWrap_amount;
         _transferCollateral(
             order.collateral_amount,
             order.collateral,
@@ -227,18 +227,18 @@ abstract contract MintRedeemManager is
         MintRedeemManagerTypes.Order calldata order
     )
         internal
-        belowMaxRedeemPerBlock(order.usdo_amount)
+        belowMaxRedeemPerBlock(order.overlayerWrap_amount)
         returns (uint256 amountToBurn, uint256 back)
     {
         // Check for wanted source tokens
         _validateInputTokens(order);
         // Add to the redeemed amount in this block
-        redeemedPerBlock[block.number] += order.usdo_amount;
+        redeemedPerBlock[block.number] += order.overlayerWrap_amount;
 
         (
             uint256 checkedBurnAmount,
             uint256 checkedBack
-        ) = _withdrawFromProtocol(order.usdo_amount);
+        ) = _withdrawFromProtocol(order.overlayerWrap_amount);
 
         _transferToBeneficiary(
             order.beneficiary,
@@ -252,12 +252,12 @@ abstract contract MintRedeemManager is
 
     /// @notice Redeem collateral from the protocol
     /// @dev It will trigger the backing contract (aka approvedCollateralSpender) withdraw method if the collateral is not sufficient
-    /// @dev When calling `IUSDOBacking(approvedCollateralSpender).withdraw(...)`,
+    /// @dev When calling `IOverlayerWrapBacking(approvedCollateralSpender).withdraw(...)`,
     /// it is possible that some standard collateral has not yet been converted into aTokens during emergency mode.
     /// Additionally, if a large amount was minted before entering emergency mode, USDC and USDT collateral might become
     /// locked in this contract until they are eventually transferable under unusual circumstances.
     /// We are aware of this issue, and the necessary funds will be manually provided to the `approvedCollateralSpender` to facilitate withdrawals.
-    /// @param amount The amount of USDO to burn
+    /// @param amount The amount of OverlayerWrap to burn
     /// @return checkedBurnAmount The checked amount to burn
     /// @return back The amount of the underlying or their aToken version returned to user
     function _withdrawFromProtocol(
@@ -284,7 +284,7 @@ abstract contract MintRedeemManager is
             }
             // Retrive funds from backing only if needed
             if (amountFromBacking > 0) {
-                IUSDOBacking(approvedCollateralSpender).withdraw(
+                IOverlayerWrapBacking(approvedCollateralSpender).withdraw(
                     amountFromBacking
                 );
             }

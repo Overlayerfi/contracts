@@ -8,8 +8,8 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 import {IAaveHandlerDefs} from "./interfaces/IAaveHandlerDefs.sol";
 import {IDispatcher} from "./interfaces/IDispatcher.sol";
-import {IsUSDO} from "./interfaces/IsUSDO.sol";
-import {IUSDO} from "./interfaces/IUSDO.sol";
+import {IsOverlayerWrap} from "./interfaces/IsOverlayerWrap.sol";
+import {IOverlayerWrap} from "./interfaces/IOverlayerWrap.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Constants} from "./Constants.sol";
 import "../token/types/MintRedeemManagerTypes.sol";
@@ -33,15 +33,15 @@ abstract contract AaveHandler is
     uint16 private constant AAVE_REFERRAL_CODE = 0;
     /// @notice the time interval needed to changed the AAVE contract
     uint256 public constant PROPOSAL_TIME_INTERVAL = 10 days;
-    /// @notice decimals offset between usdo and usdt/ausdt
+    /// @notice decimals offset between overlayerWrap and usdt/ausdt
     uint256 public constant DECIMALS_DIFF_AMOUNT = 10 ** 12;
 
     //########################################## IMMUTABLE ##########################################
 
-    ///@notice USDO contract address
-    address public immutable USDO;
-    ///@notice sUSDO contract address
-    address public immutable sUSDO;
+    ///@notice OverlayerWrap contract address
+    address public immutable OverlayerWrap;
+    ///@notice sOverlayerWrap contract address
+    address public immutable sOverlayerWrap;
 
     //########################################## PUBLIC STORAGE ##########################################
 
@@ -64,14 +64,14 @@ abstract contract AaveHandler is
 
     ///@notice team reward allocation percentage
     uint8 public ovaDispatcherAllocation = 20;
-    ///@notice usdo reward allocation percentage
-    uint8 public stakedUsdoRewardsAllocation = 80;
+    ///@notice overlayerWrap reward allocation percentage
+    uint8 public stakedOverlayerWrapRewardsAllocation = 80;
 
     //########################################## MODIFIERS ##########################################
 
     modifier onlyProtocol() {
-        if (msg.sender != USDO) {
-            revert AaveHandlerCallerIsNotUsdo();
+        if (msg.sender != OverlayerWrap) {
+            revert AaveHandlerCallerIsNotOverlayerWrap();
         }
         _;
     }
@@ -79,40 +79,40 @@ abstract contract AaveHandler is
     ///@notice The constructor
     ///@param admin The contract admin
     ///@param rewardsDispatcher The protocol rewardsDispatcher contract
-    ///@param usdo The USDO contract
-    ///@param usdo The sUSDO contract
+    ///@param overlayerWrap The OverlayerWrap contract
+    ///@param overlayerWrap The sOverlayerWrap contract
     constructor(
         address admin,
         address rewardsDispatcher,
-        address usdo,
-        address susdo
+        address overlayerWrap,
+        address soverlayerWrap
     ) Ownable(admin) {
         if (admin == address(0)) revert AaveHandlerZeroAddressException();
         if (rewardsDispatcher == address(0))
             revert AaveHandlerZeroAddressException();
-        if (usdo == address(0)) revert AaveHandlerZeroAddressException();
-        if (susdo == address(0)) revert AaveHandlerZeroAddressException();
-        if (usdo == susdo) revert AaveHandlerSameAddressException();
+        if (overlayerWrap == address(0)) revert AaveHandlerZeroAddressException();
+        if (soverlayerWrap == address(0)) revert AaveHandlerZeroAddressException();
+        if (overlayerWrap == soverlayerWrap) revert AaveHandlerSameAddressException();
         OVA_REWARDS_DISPATCHER = rewardsDispatcher;
-        USDO = usdo;
-        sUSDO = susdo;
+        OverlayerWrap = overlayerWrap;
+        sOverlayerWrap = soverlayerWrap;
 
         //approve AAVE
         approveAave(type(uint256).max);
 
-        //approve USDO staking contract
-        approveStakingUSDO(type(uint256).max);
+        //approve OverlayerWrap staking contract
+        approveStakingOverlayerWrap(type(uint256).max);
 
-        //approve USDO contract
-        approveUSDO(type(uint256).max);
+        //approve OverlayerWrap contract
+        approveOverlayerWrap(type(uint256).max);
     }
 
     //########################################## EXTERNAL FUNCTIONS ##########################################
 
-    ///@notice Withraw funds from aave and return all the collateral to USDO
+    ///@notice Withraw funds from aave and return all the collateral to OverlayerWrap
     function adminWithdraw() external onlyOwner nonReentrant {
         uint256 usdtReceived = 0;
-        bool isEmergencyMode = IUSDO(USDO).emergencyMode();
+        bool isEmergencyMode = IOverlayerWrap(OverlayerWrap).emergencyMode();
 
         if (!isEmergencyMode) {
             usdtReceived = IPool(AAVE).withdraw(
@@ -132,7 +132,7 @@ abstract contract AaveHandler is
 
         // Return collateral to protocol token
         IERC20(isEmergencyMode ? AUSDT : USDT).safeTransfer(
-            USDO,
+            OverlayerWrap,
             totalSuppliedUSDT
         );
 
@@ -155,7 +155,7 @@ abstract contract AaveHandler is
 
     ///@notice Compound funds from-to AAVE protocol
     function compound() external nonReentrant {
-        bool isEmergencyMode = IUSDO(USDO).emergencyMode();
+        bool isEmergencyMode = IOverlayerWrap(OverlayerWrap).emergencyMode();
 
         uint256 diff = IERC20(AUSDT).balanceOf(address(this)) -
             totalSuppliedUSDT;
@@ -178,17 +178,17 @@ abstract contract AaveHandler is
                 beneficiary: address(this),
                 collateral: isEmergencyMode ? AUSDT : USDT,
                 collateral_amount: diff,
-                usdo_amount: scaledDiff
+                overlayerWrap_amount: scaledDiff
             });
-        IUSDO(USDO).mint(order);
+        IOverlayerWrap(OverlayerWrap).mint(order);
 
         uint256 amountToStaking = scaledDiff.mulDiv(
-            stakedUsdoRewardsAllocation,
+            stakedOverlayerWrapRewardsAllocation,
             100
         );
-        IsUSDO(sUSDO).transferInRewards(amountToStaking);
+        IsOverlayerWrap(sOverlayerWrap).transferInRewards(amountToStaking);
 
-        IERC20(USDO).safeTransfer(
+        IERC20(OverlayerWrap).safeTransfer(
             OVA_REWARDS_DISPATCHER,
             scaledDiff - amountToStaking
         );
@@ -200,7 +200,7 @@ abstract contract AaveHandler is
     function supply(
         uint256 amountUsdt
     ) external onlyProtocol nonReentrant {
-        bool isEmergencyMode = IUSDO(USDO).emergencyMode();
+        bool isEmergencyMode = IOverlayerWrap(OverlayerWrap).emergencyMode();
         if (amountUsdt > 0) {
             if (isEmergencyMode) {
                 IERC20(AUSDT).safeTransferFrom(
@@ -224,8 +224,8 @@ abstract contract AaveHandler is
         }
 
         // Do not count donations: compute how much we have to increase our supply counters.
-        // We cannot exceed the USDO supply.
-        uint256 normalizedSupply = IUSDO(USDO).totalSupply() /
+        // We cannot exceed the OverlayerWrap supply.
+        uint256 normalizedSupply = IOverlayerWrap(OverlayerWrap).totalSupply() /
             DECIMALS_DIFF_AMOUNT;
         uint256 differenceUsdt = normalizedSupply - totalSuppliedUSDT;
         if (differenceUsdt > amountUsdt) {
@@ -285,7 +285,7 @@ abstract contract AaveHandler is
             revert AaveIntervalNotRespected();
         }
         ovaDispatcherAllocation = proposedOvaDispatcherAllocation;
-        stakedUsdoRewardsAllocation = 100 - ovaDispatcherAllocation;
+        stakedOverlayerWrapRewardsAllocation = 100 - ovaDispatcherAllocation;
 
         emit AaveNewTeamAllocation(ovaDispatcherAllocation);
     }
@@ -309,17 +309,17 @@ abstract contract AaveHandler is
         IERC20(USDT).forceApprove(AAVE, amount);
     }
 
-    ///@notice Approve Staked USDO spending
-    ///@param amount The amount to allow sUSDO as spender
-    function approveStakingUSDO(uint256 amount) public onlyOwner nonReentrant {
-        IERC20(USDO).forceApprove(sUSDO, amount);
+    ///@notice Approve Staked OverlayerWrap spending
+    ///@param amount The amount to allow sOverlayerWrap as spender
+    function approveStakingOverlayerWrap(uint256 amount) public onlyOwner nonReentrant {
+        IERC20(OverlayerWrap).forceApprove(sOverlayerWrap, amount);
     }
 
-    ///@notice Approve USDO spending
-    ///@param amount The amount to allow USDO as spender
-    function approveUSDO(uint256 amount) public onlyOwner nonReentrant {
-        IERC20(USDT).forceApprove(USDO, amount);
-        IERC20(AUSDT).forceApprove(USDO, amount);
+    ///@notice Approve OverlayerWrap spending
+    ///@param amount The amount to allow OverlayerWrap as spender
+    function approveOverlayerWrap(uint256 amount) public onlyOwner nonReentrant {
+        IERC20(USDT).forceApprove(OverlayerWrap, amount);
+        IERC20(AUSDT).forceApprove(OverlayerWrap, amount);
     }
 
     ///@notice Withraw funds from aave protocol
@@ -327,7 +327,7 @@ abstract contract AaveHandler is
     function withdraw(
         uint256 amountUsdt
     ) public onlyProtocol nonReentrant {
-        bool isEmergencyMode = IUSDO(USDO).emergencyMode();
+        bool isEmergencyMode = IOverlayerWrap(OverlayerWrap).emergencyMode();
         if (!isEmergencyMode) {
             _withdrawInternal(amountUsdt, msg.sender);
         } else {

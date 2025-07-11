@@ -10,7 +10,7 @@ interface IAaveHandlerDefs {
 
     error AaveHandlerOperationNotAllowed();
 
-    error AaveHandlerCallerIsNotUsdo();
+    error AaveHandlerCallerIsNotOverlayerWrap();
 
     error AaveHandlerUnexpectedAmount();
 
