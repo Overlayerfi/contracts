@@ -25,9 +25,11 @@ abstract contract OverlayerWrapCollateral is SingleAdminAccessControl {
         MintRedeemManagerTypes.StableCoin memory aCollateral_
     ) {
         if (admin == address(0)) revert CollateralInvalidZeroAddress();
-        if (collateral_.addr == address(0)) revert CollateralInvalidZeroAddress();
+        if (collateral_.addr == address(0))
+            revert CollateralInvalidZeroAddress();
         if (collateral_.decimals == 0) revert CollateralInvalidDecimals();
-        if (aCollateral_.addr == address(0)) revert CollateralInvalidZeroAddress();
+        if (aCollateral_.addr == address(0))
+            revert CollateralInvalidZeroAddress();
         if (aCollateral_.decimals == 0) revert CollateralInvalidDecimals();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);

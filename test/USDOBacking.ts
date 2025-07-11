@@ -95,7 +95,9 @@ describe("OverlayerWrapBacking", function () {
       ethers.MaxUint256
     );
 
-    const StakedOverlayerWrap = await ethers.getContractFactory("StakedOverlayerWrapFront");
+    const StakedOverlayerWrap = await ethers.getContractFactory(
+      "StakedOverlayerWrapFront"
+    );
     const soverlayerWrap = await StakedOverlayerWrap.deploy(
       await overlayerWrap.getAddress(),
       admin.address,
@@ -116,9 +118,13 @@ describe("OverlayerWrapBacking", function () {
       from: admin.address,
       nonce: OverlayerWrapBackingNonce
     });
-    await overlayerWrap.connect(admin).proposeNewCollateralSpender(futureAddress);
+    await overlayerWrap
+      .connect(admin)
+      .proposeNewCollateralSpender(futureAddress);
 
-    const OverlayerWrapBacking = await ethers.getContractFactory("OverlayerWrapBacking");
+    const OverlayerWrapBacking = await ethers.getContractFactory(
+      "OverlayerWrapBacking"
+    );
     const overlayerWrapbacking = await OverlayerWrapBacking.deploy(
       admin.address,
       await dispatcher.getAddress(),
@@ -127,7 +133,9 @@ describe("OverlayerWrapBacking", function () {
       defaultTransactionOptions
     );
 
-    await soverlayerWrap.connect(admin).setOverlayerWrapBacking(await overlayerWrapbacking.getAddress());
+    await soverlayerWrap
+      .connect(admin)
+      .setOverlayerWrapBacking(await overlayerWrapbacking.getAddress());
 
     // Grant rewarder role
     await soverlayerWrap
@@ -137,13 +145,16 @@ describe("OverlayerWrapBacking", function () {
         await overlayerWrapbacking.getAddress()
       );
 
-    const initialCollateralAmount = '1'
+    const initialCollateralAmount = "1";
 
     const order = {
       benefactor: admin.address,
       beneficiary: admin.address,
       collateral: await usdt.getAddress(),
-      collateral_amount: ethers.parseUnits(initialCollateralAmount, await usdt.decimals()),
+      collateral_amount: ethers.parseUnits(
+        initialCollateralAmount,
+        await usdt.decimals()
+      ),
       overlayerWrap_amount: ethers.parseEther(initialCollateralAmount)
     };
     await (usdt.connect(admin) as Contract).approve(
@@ -155,14 +166,16 @@ describe("OverlayerWrapBacking", function () {
       .connect(admin)
       .approve(await soverlayerWrap.getAddress(), ethers.MaxUint256);
 
-
     //stake initial amount to avoid donation attack on staking contract
-    await soverlayerWrap.connect(admin).deposit(ethers.parseEther("1"), admin.address);
+    await soverlayerWrap
+      .connect(admin)
+      .deposit(ethers.parseEther("1"), admin.address);
 
     if (futureAddress !== (await overlayerWrapbacking.getAddress())) {
-      throw new Error("The predicted OverlayerWrapBacking address is not valid");
+      throw new Error(
+        "The predicted OverlayerWrapBacking address is not valid"
+      );
     }
-
 
     return {
       usdt,
@@ -187,8 +200,12 @@ describe("OverlayerWrapBacking", function () {
     });
 
     it("Should set OverlayerWrap collateral spender", async function () {
-      const { overlayerWrapbacking, overlayerWrap } = await loadFixture(deployFixture);
-      expect(await overlayerWrap.getSpender()).to.equal(await overlayerWrapbacking.getAddress());
+      const { overlayerWrapbacking, overlayerWrap } = await loadFixture(
+        deployFixture
+      );
+      expect(await overlayerWrap.getSpender()).to.equal(
+        await overlayerWrapbacking.getAddress()
+      );
     });
   });
 
@@ -197,10 +214,9 @@ describe("OverlayerWrapBacking", function () {
       const { overlayerWrapbacking, admin } = await loadFixture(deployFixture);
       await overlayerWrapbacking.proposeNewAave(admin.address);
       await time.increase(10 * 24 * 60 * 60);
-      expect(await overlayerWrapbacking.connect(admin).acceptProposedAave()).to.emit(
-        overlayerWrapbacking,
-        "AaveNewAaave"
-      );
+      expect(
+        await overlayerWrapbacking.connect(admin).acceptProposedAave()
+      ).to.emit(overlayerWrapbacking, "AaveNewAaave");
     });
   });
 
@@ -210,26 +226,39 @@ describe("OverlayerWrapBacking", function () {
       await overlayerWrapbacking.proposeNewOvaDispatcherAllocation(10);
       await time.increase(10 * 24 * 60 * 60);
       expect(
-        await overlayerWrapbacking.connect(admin).acceptProposedOvaDispatcherAllocation()
+        await overlayerWrapbacking
+          .connect(admin)
+          .acceptProposedOvaDispatcherAllocation()
       ).to.emit(overlayerWrapbacking, "AaveNewTeamAllocation");
     });
   });
 
   describe("Dispatcher change", function () {
     it("Should change team dispatcher address", async function () {
-      const { overlayerWrapbacking, admin, alice } = await loadFixture(deployFixture);
+      const { overlayerWrapbacking, admin, alice } = await loadFixture(
+        deployFixture
+      );
       expect(
-        await overlayerWrapbacking.connect(admin).updateRewardsDispatcher(alice.address)
+        await overlayerWrapbacking
+          .connect(admin)
+          .updateRewardsDispatcher(alice.address)
       ).to.emit(overlayerWrapbacking, "AaveNewTreasury");
     });
   });
 
   describe("Supply", function () {
     it("Should supply to backing", async function () {
-      const {  usdt, overlayerWrap,  ausdt, overlayerWrapbacking, initialCollateralAmount, alice, bob } =
-        await loadFixture(deployFixture);
-      const amount1 = '1990'
-      const amount2 = '2010'
+      const {
+        usdt,
+        overlayerWrap,
+        ausdt,
+        overlayerWrapbacking,
+        initialCollateralAmount,
+        alice,
+        bob
+      } = await loadFixture(deployFixture);
+      const amount1 = "1990";
+      const amount2 = "2010";
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
@@ -242,17 +271,18 @@ describe("OverlayerWrapBacking", function () {
         benefactor: bob.address,
         beneficiary: bob.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(
-          amount2,
-          await usdt.decimals()
-        ),
+        collateral_amount: ethers.parseUnits(amount2, await usdt.decimals()),
         overlayerWrap_amount: ethers.parseEther(amount2)
       };
       await overlayerWrap.connect(bob).mint(newOrder);
-      const totalCollateral = (+amount1 + +amount2 + +initialCollateralAmount).toFixed(2)
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(
-        ethers.parseUnits(totalCollateral, await usdt.decimals())
-      );
+      const totalCollateral = (
+        +amount1 +
+        +amount2 +
+        +initialCollateralAmount
+      ).toFixed(2);
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(ethers.parseUnits(totalCollateral, await usdt.decimals()));
       expect(await overlayerWrap.connect(bob).supplyToBacking(0)).to.emit(
         overlayerWrap,
         "SuppliedToBacking"
@@ -275,8 +305,9 @@ describe("OverlayerWrapBacking", function () {
 
   describe("Redeem", function () {
     it("Should redeem", async function () {
-      const {  usdt, overlayerWrap, alice, initialCollateralAmount } = await loadFixture(deployFixture);
-      const amount = '10'
+      const { usdt, overlayerWrap, alice, initialCollateralAmount } =
+        await loadFixture(deployFixture);
+      const amount = "10";
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
@@ -285,16 +316,20 @@ describe("OverlayerWrapBacking", function () {
         overlayerWrap_amount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
-      const totalCollateral = (+amount + +initialCollateralAmount).toFixed(2)
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(
-        ethers.parseUnits(totalCollateral, await usdt.decimals())
-      );
+      const totalCollateral = (+amount + +initialCollateralAmount).toFixed(2);
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(ethers.parseUnits(totalCollateral, await usdt.decimals()));
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(
         ethers.parseEther(amount)
       );
       await overlayerWrap.connect(alice).redeem(order);
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(0);
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(ethers.parseUnits(initialCollateralAmount, await usdt.decimals()));
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(
+        ethers.parseUnits(initialCollateralAmount, await usdt.decimals())
+      );
       expect(await usdt.balanceOf(alice.address)).to.be.equal(
         ethers.parseUnits("5000", await usdt.decimals())
       );
@@ -302,9 +337,16 @@ describe("OverlayerWrapBacking", function () {
     });
 
     it("Should redeem aToken in emergency", async function () {
-      const {  ausdt,  usdt, overlayerWrap, alice, admin, overlayerWrapbacking, initialCollateralAmount } =
-        await loadFixture(deployFixture);
-      const amount = '10'
+      const {
+        ausdt,
+        usdt,
+        overlayerWrap,
+        alice,
+        admin,
+        overlayerWrapbacking,
+        initialCollateralAmount
+      } = await loadFixture(deployFixture);
+      const amount = "10";
       let order = {
         benefactor: alice.address,
         beneficiary: alice.address,
@@ -312,21 +354,23 @@ describe("OverlayerWrapBacking", function () {
         collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
         overlayerWrap_amount: ethers.parseEther(amount)
       };
-      const totalCollateral = (+amount + +initialCollateralAmount).toFixed(2)
+      const totalCollateral = (+amount + +initialCollateralAmount).toFixed(2);
       await overlayerWrap.connect(alice).mint(order);
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(
-        ethers.parseUnits(totalCollateral, await usdt.decimals())
-      );
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(ethers.parseUnits(totalCollateral, await usdt.decimals()));
 
       await time.increase(60 * 60 * 24 * 30);
 
       // No assets in OverlayerWrap
-      await overlayerWrap.connect(alice).supplyToBacking( 0);
+      await overlayerWrap.connect(alice).supplyToBacking(0);
       // Supply zero amounts
-      await overlayerWrap.connect(alice).supplyToBacking( 0);
+      await overlayerWrap.connect(alice).supplyToBacking(0);
       await overlayerWrap.connect(admin).setEmergencyStatus(true);
 
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(0);
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(0);
       expect(
         await ausdt.balanceOf(await overlayerWrapbacking.getAddress())
       ).to.be.greaterThanOrEqual(
@@ -345,7 +389,9 @@ describe("OverlayerWrapBacking", function () {
       await overlayerWrap.connect(alice).redeem(order);
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(0);
       // All collateral is in aToken
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(0);
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(0);
       expect(await usdt.balanceOf(alice.address)).to.be.equal(
         aliceUsdtBeforeBal
       );
@@ -360,69 +406,85 @@ describe("OverlayerWrapBacking", function () {
     });
 
     it("Donation should not influence", async function () {
-      const { admin,  usdt, overlayerWrap,  ausdt, overlayerWrapbacking, alice, bob, initialCollateralAmount } =
-        await loadFixture(deployFixture);
+      const {
+        admin,
+        usdt,
+        overlayerWrap,
+        ausdt,
+        overlayerWrapbacking,
+        alice,
+        bob,
+        initialCollateralAmount
+      } = await loadFixture(deployFixture);
 
       await usdt
         .connect(admin)
         .transfer(bob.address, ethers.parseUnits("100", 6));
 
-      const amount = '1000'
+      const amount = "1000";
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(
-          amount,
-          await usdt.decimals()
-        ),
+        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
         overlayerWrap_amount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
-      await overlayerWrap.connect(alice).supplyToBacking( 0);
+      await overlayerWrap.connect(alice).supplyToBacking(0);
       // Donate
-      const donationAmount = '50'
+      const donationAmount = "50";
       await usdt
         .connect(bob)
-        .transfer(await overlayerWrap.getAddress(), ethers.parseUnits(donationAmount, 6));
+        .transfer(
+          await overlayerWrap.getAddress(),
+          ethers.parseUnits(donationAmount, 6)
+        );
       // The donation above should only forward assets to the backing contract without modifing the supplied stable coins trakcer
       await overlayerWrap.connect(bob).supplyToBacking(0);
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(
         ethers.parseEther(amount)
       );
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(
-        ethers.parseUnits("0", await usdt.decimals())
-      );
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(ethers.parseUnits("0", await usdt.decimals()));
       expect(
         await ausdt.balanceOf(await overlayerWrapbacking.getAddress())
       ).to.be.greaterThanOrEqual(
-        ethers.parseUnits((+amount + +donationAmount + +initialCollateralAmount).toFixed(2), await ausdt.decimals())
+        ethers.parseUnits(
+          (+amount + +donationAmount + +initialCollateralAmount).toFixed(2),
+          await ausdt.decimals()
+        )
       );
       expect(await overlayerWrapbacking.totalSuppliedUSDT()).to.be.equal(
-        ethers.parseUnits((+amount + +initialCollateralAmount).toFixed(2), await usdt.decimals())
+        ethers.parseUnits(
+          (+amount + +initialCollateralAmount).toFixed(2),
+          await usdt.decimals()
+        )
       );
 
       // Donate
       await usdt
         .connect(bob)
-        .transfer(await overlayerWrap.getAddress(), ethers.parseUnits(donationAmount, 6));
-      await overlayerWrap.connect(bob).supplyToBacking( 0);
+        .transfer(
+          await overlayerWrap.getAddress(),
+          ethers.parseUnits(donationAmount, 6)
+        );
+      await overlayerWrap.connect(bob).supplyToBacking(0);
 
       const redeemOrder = {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(
-          amount,
-          await usdt.decimals()
-        ),
+        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
         overlayerWrap_amount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).redeem(redeemOrder);
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(
         ethers.parseEther("0")
       );
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(0);
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(0);
       // Donation should not influence the supplied usdt and usdt accounting
       expect(await overlayerWrapbacking.totalSuppliedUSDT()).to.be.equal(
         ethers.parseUnits(initialCollateralAmount, await usdt.decimals())
@@ -432,24 +494,36 @@ describe("OverlayerWrapBacking", function () {
       expect(
         await ausdt.balanceOf(await overlayerWrapbacking.getAddress())
       ).to.be.greaterThanOrEqual(
-        ethers.parseUnits((+donationAmount + +donationAmount + +initialCollateralAmount).toFixed(2), await ausdt.decimals()) // We donated 2 times
+        ethers.parseUnits(
+          (
+            +donationAmount +
+            +donationAmount +
+            +initialCollateralAmount
+          ).toFixed(2),
+          await ausdt.decimals()
+        ) // We donated 2 times
       );
       // Initial amount
-      expect(await overlayerWrap.totalSupply()).to.be.equal(ethers.parseEther(initialCollateralAmount));
+      expect(await overlayerWrap.totalSupply()).to.be.equal(
+        ethers.parseEther(initialCollateralAmount)
+      );
     });
 
     it("Should withdraw from backing", async function () {
-      const {  usdt, overlayerWrap,  ausdt, overlayerWrapbacking, alice, initialCollateralAmount } =
-        await loadFixture(deployFixture);
-      const amount = '1000'
+      const {
+        usdt,
+        overlayerWrap,
+        ausdt,
+        overlayerWrapbacking,
+        alice,
+        initialCollateralAmount
+      } = await loadFixture(deployFixture);
+      const amount = "1000";
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(
-          amount,
-          await usdt.decimals()
-        ),
+        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
         overlayerWrap_amount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
@@ -457,40 +531,57 @@ describe("OverlayerWrapBacking", function () {
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(
         ethers.parseEther(amount)
       );
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(
-        ethers.parseUnits("0", await usdt.decimals())
-      );
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(ethers.parseUnits("0", await usdt.decimals()));
       expect(
         await ausdt.balanceOf(await overlayerWrapbacking.getAddress())
       ).to.be.greaterThanOrEqual(
-        ethers.parseUnits((+amount + +initialCollateralAmount * 0.99).toFixed(6), await ausdt.decimals())
+        ethers.parseUnits(
+          (+amount + +initialCollateralAmount * 0.99).toFixed(6),
+          await ausdt.decimals()
+        )
       );
       expect(await overlayerWrapbacking.totalSuppliedUSDT()).to.be.equal(
-        ethers.parseUnits((+amount + +initialCollateralAmount).toFixed(2), await usdt.decimals())
+        ethers.parseUnits(
+          (+amount + +initialCollateralAmount).toFixed(2),
+          await usdt.decimals()
+        )
       );
 
-      const redeemAmount = '500'
+      const redeemAmount = "500";
       const redeemOrder = {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(redeemAmount, await usdt.decimals()),
+        collateral_amount: ethers.parseUnits(
+          redeemAmount,
+          await usdt.decimals()
+        ),
         overlayerWrap_amount: ethers.parseEther(redeemAmount)
       };
       await overlayerWrap.connect(alice).redeem(redeemOrder);
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(
         ethers.parseEther((+amount - +redeemAmount).toFixed(1))
       );
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(0);
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(0);
       expect(await overlayerWrapbacking.totalSuppliedUSDT()).to.be.equal(
-        ethers.parseUnits((+amount - +redeemAmount + +initialCollateralAmount).toFixed(2), await usdt.decimals())
+        ethers.parseUnits(
+          (+amount - +redeemAmount + +initialCollateralAmount).toFixed(2),
+          await usdt.decimals()
+        )
       );
       //################################################################################################################################################
       //account yield for aToken -> use greaterThanOrEqual
       expect(
         await ausdt.balanceOf(await overlayerWrapbacking.getAddress())
       ).to.be.greaterThanOrEqual(
-        ethers.parseUnits((+amount - +redeemAmount + +initialCollateralAmount).toFixed(2), await ausdt.decimals())
+        ethers.parseUnits(
+          (+amount - +redeemAmount + +initialCollateralAmount).toFixed(2),
+          await ausdt.decimals()
+        )
       );
       //################################################################################################################################################
 
@@ -499,7 +590,10 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(redeemAmount, await usdt.decimals()),
+        collateral_amount: ethers.parseUnits(
+          redeemAmount,
+          await usdt.decimals()
+        ),
         overlayerWrap_amount: ethers.parseEther(redeemAmount)
       };
       const ausdtBefore = ethers.formatUnits(
@@ -508,71 +602,98 @@ describe("OverlayerWrapBacking", function () {
       );
       await overlayerWrap.connect(alice).redeem(secondRedeemOrder);
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(0);
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(0);
-      expect(await overlayerWrapbacking.totalSuppliedUSDT()).to.be.equal(ethers.parseUnits(initialCollateralAmount, await usdt.decimals()));
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(0);
+      expect(await overlayerWrapbacking.totalSuppliedUSDT()).to.be.equal(
+        ethers.parseUnits(initialCollateralAmount, await usdt.decimals())
+      );
       //################################################################################################################################################
       //account yield for aToken -> use greaterThanOrEqual
       const ausdtAfter = ethers.formatUnits(
         await ausdt.balanceOf(await overlayerWrapbacking.getAddress()),
         await ausdt.decimals()
       );
-      expect(+ausdtAfter + +redeemAmount).to.be.greaterThanOrEqual(+ausdtBefore);
+      expect(+ausdtAfter + +redeemAmount).to.be.greaterThanOrEqual(
+        +ausdtBefore
+      );
       //################################################################################################################################################
     });
 
     it("Should withdraw from backing aToken", async function () {
-      const {  usdt, overlayerWrap,  ausdt, overlayerWrapbacking, alice, admin, initialCollateralAmount } =
-        await loadFixture(deployFixture);
-      const amount = '1000'
+      const {
+        usdt,
+        overlayerWrap,
+        ausdt,
+        overlayerWrapbacking,
+        alice,
+        admin,
+        initialCollateralAmount
+      } = await loadFixture(deployFixture);
+      const amount = "1000";
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(
-          amount,
-          await usdt.decimals()
-        ),
+        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
         overlayerWrap_amount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
-      await overlayerWrap.connect(alice).supplyToBacking( 0);
+      await overlayerWrap.connect(alice).supplyToBacking(0);
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(
         ethers.parseEther(amount)
       );
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(
-        ethers.parseUnits("0", await usdt.decimals())
-      );
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(ethers.parseUnits("0", await usdt.decimals()));
       expect(
         await ausdt.balanceOf(await overlayerWrapbacking.getAddress())
       ).to.be.greaterThanOrEqual(
-        ethers.parseUnits((+amount + +initialCollateralAmount * 0.99).toFixed(6), await ausdt.decimals())
+        ethers.parseUnits(
+          (+amount + +initialCollateralAmount * 0.99).toFixed(6),
+          await ausdt.decimals()
+        )
       );
       expect(await overlayerWrapbacking.totalSuppliedUSDT()).to.be.equal(
-        ethers.parseUnits((+amount + +initialCollateralAmount).toFixed(2), await usdt.decimals())
+        ethers.parseUnits(
+          (+amount + +initialCollateralAmount).toFixed(2),
+          await usdt.decimals()
+        )
       );
 
-      const redeemAmount = '500'
+      const redeemAmount = "500";
       const redeemOrder = {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(redeemAmount, await usdt.decimals()),
+        collateral_amount: ethers.parseUnits(
+          redeemAmount,
+          await usdt.decimals()
+        ),
         overlayerWrap_amount: ethers.parseEther(redeemAmount)
       };
       await overlayerWrap.connect(alice).redeem(redeemOrder);
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(
         ethers.parseEther((+amount - +redeemAmount).toFixed(1))
       );
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(0);
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(0);
       expect(await overlayerWrapbacking.totalSuppliedUSDT()).to.be.equal(
-        ethers.parseUnits((+amount - +redeemAmount + +initialCollateralAmount).toFixed(1), await usdt.decimals())
+        ethers.parseUnits(
+          (+amount - +redeemAmount + +initialCollateralAmount).toFixed(1),
+          await usdt.decimals()
+        )
       );
       //################################################################################################################################################
       //account yield for aToken -> use greaterThanOrEqual
       expect(
         await ausdt.balanceOf(await overlayerWrapbacking.getAddress())
       ).to.be.greaterThanOrEqual(
-        ethers.parseUnits((+amount - +redeemAmount + +initialCollateralAmount).toFixed(1), await ausdt.decimals())
+        ethers.parseUnits(
+          (+amount - +redeemAmount + +initialCollateralAmount).toFixed(1),
+          await ausdt.decimals()
+        )
       );
       //################################################################################################################################################
 
@@ -590,7 +711,9 @@ describe("OverlayerWrapBacking", function () {
           (+amount - +redeemAmount).toFixed(1),
           await ausdt.decimals()
         ),
-        overlayerWrap_amount: ethers.parseEther((+amount - +redeemAmount).toFixed(1))
+        overlayerWrap_amount: ethers.parseEther(
+          (+amount - +redeemAmount).toFixed(1)
+        )
       };
       const ausdtBefore = ethers.formatUnits(
         await ausdt.balanceOf(await overlayerWrapbacking.getAddress()),
@@ -599,32 +722,36 @@ describe("OverlayerWrapBacking", function () {
       // expect(ausdtBefore).to.be.equal(0);
       await overlayerWrap.connect(alice).redeem(secondRedeemOrder);
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(0);
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(0);
-      expect(await overlayerWrapbacking.totalSuppliedUSDT()).to.be.equal(ethers.parseUnits(initialCollateralAmount, await usdt.decimals()));
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(0);
+      expect(await overlayerWrapbacking.totalSuppliedUSDT()).to.be.equal(
+        ethers.parseUnits(initialCollateralAmount, await usdt.decimals())
+      );
       expect(await ausdt.balanceOf(alice.address)).to.be.greaterThanOrEqual(
-        ethers.parseUnits(((+amount - +redeemAmount) * 0.99).toFixed(6), await ausdt.decimals())
+        ethers.parseUnits(
+          ((+amount - +redeemAmount) * 0.99).toFixed(6),
+          await ausdt.decimals()
+        )
       );
     });
   });
 
   describe("Compound on staking (Integration test)", function () {
     it("Should compound backing contract when staking", async function () {
-      const {  usdt, overlayerWrap, soverlayerWrap, alice } = await loadFixture(
+      const { usdt, overlayerWrap, soverlayerWrap, alice } = await loadFixture(
         deployFixture
       );
-      const amount = '1000'
+      const amount = "1000";
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(
-          amount,
-          await usdt.decimals()
-        ),
+        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
         overlayerWrap_amount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
-      await overlayerWrap.connect(alice).supplyToBacking( 0);
+      await overlayerWrap.connect(alice).supplyToBacking(0);
 
       await overlayerWrap
         .connect(alice)
@@ -658,17 +785,14 @@ describe("OverlayerWrapBacking", function () {
         ausdt,
         overlayerWrapbacking,
         admin,
-        alice,
+        alice
       } = await loadFixture(deployFixture);
-      const amount = '1000'
+      const amount = "1000";
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(
-          amount,
-          await usdt.decimals()
-        ),
+        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
         overlayerWrap_amount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
@@ -686,7 +810,7 @@ describe("OverlayerWrapBacking", function () {
       );
 
       const diffUsdt = new Big(ausdtAfter).minus(ausdtBefore);
-      console.log(diffUsdt.toFixed(4))
+      console.log(diffUsdt.toFixed(4));
 
       //test to fixed 2 decimals
       await overlayerWrapbacking.connect(admin).compound();
@@ -697,7 +821,11 @@ describe("OverlayerWrapBacking", function () {
         diffUsdt.mul(20).div(100).toFixed(2)
       );
 
-      const expectedStakingAssets = diffUsdt.mul(80).div(100).plus(1).toFixed(2);
+      const expectedStakingAssets = diffUsdt
+        .mul(80)
+        .div(100)
+        .plus(1)
+        .toFixed(2);
       const realStakingAssets = (+ethers.formatEther(
         await soverlayerWrap.totalAssets()
       )).toFixed(2);
@@ -714,19 +842,16 @@ describe("OverlayerWrapBacking", function () {
         admin,
         alice
       } = await loadFixture(deployFixture);
-      const amount = '1000'
+      const amount = "1000";
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(
-          amount,
-          await usdt.decimals()
-        ),
+        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
         overlayerWrap_amount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
-      await overlayerWrap.connect(alice).supplyToBacking( 0);
+      await overlayerWrap.connect(alice).supplyToBacking(0);
 
       const ausdtBefore = ethers.formatUnits(
         await ausdt.balanceOf(await overlayerWrapbacking.getAddress()),
@@ -750,27 +875,37 @@ describe("OverlayerWrapBacking", function () {
         diffUsdt.mul(20).div(100).toFixed(2)
       );
 
-      const expectedStakingAssets = diffUsdt.mul(80).div(100).plus(1).toFixed(2);
+      const expectedStakingAssets = diffUsdt
+        .mul(80)
+        .div(100)
+        .plus(1)
+        .toFixed(2);
       const realStakingAssets = (+ethers.formatEther(
         await soverlayerWrap.totalAssets()
       )).toFixed(2);
       expect(realStakingAssets).to.be.equal(expectedStakingAssets);
 
-      const beforeEmergencyTeamAllocation = await overlayerWrap.balanceOf(admin.address);
-      expect(await ausdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(0);
+      const beforeEmergencyTeamAllocation = await overlayerWrap.balanceOf(
+        admin.address
+      );
+      expect(
+        await ausdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(0);
 
-      await overlayerWrap.connect(admin).supplyToBacking( 0);
+      await overlayerWrap.connect(admin).supplyToBacking(0);
       await overlayerWrap.connect(admin).setEmergencyStatus(true);
       await time.increase(2 * 24 * 60 * 60); //2 days
       await overlayerWrapbacking.connect(admin).compound();
 
-      expect(await overlayerWrap.balanceOf(admin.address)).to.be.greaterThanOrEqual(
-        beforeEmergencyTeamAllocation
-      );
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(0);
-      expect(await ausdt.balanceOf(await overlayerWrap.getAddress())).to.be.greaterThan(
-        0
-      );
+      expect(
+        await overlayerWrap.balanceOf(admin.address)
+      ).to.be.greaterThanOrEqual(beforeEmergencyTeamAllocation);
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(0);
+      expect(
+        await ausdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.greaterThan(0);
     });
   });
 
@@ -786,47 +921,61 @@ describe("OverlayerWrapBacking", function () {
         dispatcher,
         initialCollateralAmount
       } = await loadFixture(deployFixture);
-      const amount = '1000'
+      const amount = "1000";
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(
-          amount,
-          await usdt.decimals()
-        ),
+        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
         overlayerWrap_amount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
-      expect(await overlayerWrap.connect(alice).supplyToBacking( 0)).to.emit(
+      expect(await overlayerWrap.connect(alice).supplyToBacking(0)).to.emit(
         overlayerWrap,
         "SuppliedToBacking"
       );
       expect(
         await ausdt.balanceOf(await overlayerWrapbacking.getAddress())
       ).to.be.greaterThanOrEqual(
-        ethers.parseUnits((+amount + +initialCollateralAmount).toFixed(6), await ausdt.decimals())
+        ethers.parseUnits(
+          (+amount + +initialCollateralAmount).toFixed(6),
+          await ausdt.decimals()
+        )
       );
       expect(await overlayerWrapbacking.totalSuppliedUSDT()).to.be.equal(
-        ethers.parseUnits((+amount + +initialCollateralAmount).toFixed(1), await usdt.decimals())
+        ethers.parseUnits(
+          (+amount + +initialCollateralAmount).toFixed(1),
+          await usdt.decimals()
+        )
       );
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(0);
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(0);
 
       await time.increase(12 * 30 * 24 * 60 * 60); //12 months
 
-      let ausdtBal = await ausdt.balanceOf(await overlayerWrapbacking.getAddress());
+      let ausdtBal = await ausdt.balanceOf(
+        await overlayerWrapbacking.getAddress()
+      );
       await overlayerWrapbacking.connect(admin).adminWithdraw();
 
       const atLeastUsdtAdmin =
-        0.98 * (+ethers.formatUnits(ausdtBal, await usdt.decimals()) - (+amount + +initialCollateralAmount));
+        0.98 *
+        (+ethers.formatUnits(ausdtBal, await usdt.decimals()) -
+          (+amount + +initialCollateralAmount));
       expect(
         await usdt.balanceOf(await dispatcher.getAddress())
       ).to.be.greaterThanOrEqual(
         ethers.parseUnits(atLeastUsdtAdmin.toFixed(4), await usdt.decimals())
       );
 
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(
-        ethers.parseUnits((+amount + +initialCollateralAmount).toFixed(1), await usdt.decimals())
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(
+        ethers.parseUnits(
+          (+amount + +initialCollateralAmount).toFixed(1),
+          await usdt.decimals()
+        )
       );
     });
 
@@ -841,45 +990,58 @@ describe("OverlayerWrapBacking", function () {
         dispatcher,
         initialCollateralAmount
       } = await loadFixture(deployFixture);
-      const amount = '1000'
+      const amount = "1000";
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(
-          amount,
-          await usdt.decimals()
-        ),
+        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
         overlayerWrap_amount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
-      expect(await overlayerWrap.connect(alice).supplyToBacking( 0)).to.emit(
+      expect(await overlayerWrap.connect(alice).supplyToBacking(0)).to.emit(
         overlayerWrap,
         "SuppliedToBacking"
       );
       expect(
         await ausdt.balanceOf(await overlayerWrapbacking.getAddress())
       ).to.be.greaterThanOrEqual(
-        ethers.parseUnits(((+amount + +initialCollateralAmount) * 0.99).toFixed(1), await ausdt.decimals())
+        ethers.parseUnits(
+          ((+amount + +initialCollateralAmount) * 0.99).toFixed(1),
+          await ausdt.decimals()
+        )
       );
       expect(
         await ausdt.balanceOf(await overlayerWrapbacking.getAddress())
       ).to.be.lessThanOrEqual(
-        ethers.parseUnits(((+amount + +initialCollateralAmount) * 1.01).toFixed(1), await ausdt.decimals())
+        ethers.parseUnits(
+          ((+amount + +initialCollateralAmount) * 1.01).toFixed(1),
+          await ausdt.decimals()
+        )
       );
       expect(await overlayerWrapbacking.totalSuppliedUSDT()).to.be.equal(
-        ethers.parseUnits((+amount + +initialCollateralAmount).toFixed(1), await usdt.decimals())
+        ethers.parseUnits(
+          (+amount + +initialCollateralAmount).toFixed(1),
+          await usdt.decimals()
+        )
       );
-      expect(await usdt.balanceOf(await overlayerWrap.getAddress())).to.be.equal(0);
+      expect(
+        await usdt.balanceOf(await overlayerWrap.getAddress())
+      ).to.be.equal(0);
 
       await time.increase(12 * 30 * 24 * 60 * 60); //12 months
       await overlayerWrap.connect(admin).setEmergencyStatus(true);
 
-      let ausdtBal = await ausdt.balanceOf(await overlayerWrapbacking.getAddress());
+      let ausdtBal = await ausdt.balanceOf(
+        await overlayerWrapbacking.getAddress()
+      );
       await overlayerWrapbacking.connect(admin).adminWithdraw();
 
       const atLeastUsdtAdmin =
-        0.98 * (+ethers.formatUnits(ausdtBal, await usdt.decimals()) - +amount - +initialCollateralAmount);
+        0.98 *
+        (+ethers.formatUnits(ausdtBal, await usdt.decimals()) -
+          +amount -
+          +initialCollateralAmount);
 
       expect(
         await ausdt.balanceOf(await dispatcher.getAddress())
@@ -890,7 +1052,10 @@ describe("OverlayerWrapBacking", function () {
       expect(
         await ausdt.balanceOf(await overlayerWrap.getAddress())
       ).to.be.greaterThanOrEqual(
-        ethers.parseUnits(((+amount + +initialCollateralAmount) * 0.99).toFixed(1), await ausdt.decimals())
+        ethers.parseUnits(
+          ((+amount + +initialCollateralAmount) * 0.99).toFixed(1),
+          await ausdt.decimals()
+        )
       );
     });
   });
