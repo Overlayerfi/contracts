@@ -6,7 +6,7 @@ pragma solidity 0.8.20;
 import "./StakedOverlayerWrap.sol";
 import "./interfaces/IStakedOverlayerWrapCoolDown.sol";
 import "./OverlayerWrapSilo.sol";
-import "../backing/interfaces/IOverlayerWrapBacking.sol";
+import "../overlayerbacking/interfaces/IOverlayerWrapBacking.sol";
 
 /**
  * @title StakedOverlayerWrapFront
