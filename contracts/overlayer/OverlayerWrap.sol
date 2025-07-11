@@ -52,31 +52,23 @@ contract OverlayerWrap is
     }
 
     /// @notice Constructor
-    /// @param admin The contract admin
-    /// @param collateral_ The main collateral struct
-    /// @param aCollateral_ The main collateral struct, aToken version
-    /// @param maxMintPerBlock_ Max mint amount for each block
-    /// @param maxRedeemPerBlock_ Max redeem amount for each block
     constructor(
-        address admin,
-        MintRedeemManagerTypes.StableCoin memory collateral_,
-        MintRedeemManagerTypes.StableCoin memory aCollateral_,
-        uint256 maxMintPerBlock_,
-        uint256 maxRedeemPerBlock_
+        ConstructorParams memory params
     )
-        ERC20("OverlayerWrap", "OverlayerWrap")
-        ERC20Permit("OverlayerWrap")
-        MintRedeemManager(
-            collateral_,
-            aCollateral_,
-            admin,
-            decimals(),
-            maxMintPerBlock_,
-            maxRedeemPerBlock_
-        )
+        ERC20(params.symbol, params.symbol)
+        ERC20Permit(params.symbol)
+        MintRedeemManager(decimals())
     {
-        if (admin == address(0)) revert OverlayerWrapZeroAddressException();
-        if (decimals() < collateral_.decimals) {
+        MintRedeemManager._initialize(
+            params.collateral,
+            params.aCollateral,
+            params.admin,
+            params.maxMintPerBlock,
+            params.maxRedeemPerBlock
+        );
+        if (params.admin == address(0))
+            revert OverlayerWrapZeroAddressException();
+        if (decimals() < params.collateral.decimals) {
             revert OverlayerWrapInvalidDecimals();
         }
     }

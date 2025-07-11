@@ -67,22 +67,9 @@ abstract contract MintRedeemManager is
 
     /* --------------- CONSTRUCTOR --------------- */
 
-    constructor(
-        MintRedeemManagerTypes.StableCoin memory collateral_,
-        MintRedeemManagerTypes.StableCoin memory aCollateral_,
-        address admin,
-        uint256 decimals,
-        uint256 maxMintPerBlock_,
-        uint256 maxRedeemPerBlock_
-    ) CollateralSpenderManager(admin, collateral_, aCollateral_) {
+    constructor(uint256 decimals) CollateralSpenderManager() {
         if (decimals == 0) revert MintRedeemManagerInvalidDecimals();
         _decimals = decimals;
-
-        // Set the max mint/redeem limits per block
-        _setMaxMintPerBlock(maxMintPerBlock_);
-        _setMaxRedeemPerBlock(maxRedeemPerBlock_);
-
-        emergencyMode = false;
     }
 
     /* --------------- EXTERNAL --------------- */
@@ -183,6 +170,21 @@ abstract contract MintRedeemManager is
     }
 
     /* --------------- INTERNAL --------------- */
+
+    function _initialize(
+        MintRedeemManagerTypes.StableCoin memory collateral_,
+        MintRedeemManagerTypes.StableCoin memory aCollateral_,
+        address admin,
+        uint256 maxMintPerBlock_,
+        uint256 maxRedeemPerBlock_
+    ) internal {
+        CollateralSpenderManager._initalize(admin, collateral_, aCollateral_);
+        // Set the max mint/redeem limits per block
+        _setMaxMintPerBlock(maxMintPerBlock_);
+        _setMaxRedeemPerBlock(maxRedeemPerBlock_);
+
+        emergencyMode = false;
+    }
 
     /// @notice Check order parameters based on protocol emergency status
     /// @param order A struct containing the order

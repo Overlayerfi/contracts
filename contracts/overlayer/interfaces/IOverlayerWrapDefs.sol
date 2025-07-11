@@ -2,8 +2,18 @@
 pragma solidity 0.8.20;
 
 import "./IOverlayerWrapEvents.sol";
+import "../types/MintRedeemManagerTypes.sol";
 
 interface IOverlayerWrapDefs is IOverlayerWrapEvents {
+    struct ConstructorParams {
+        address admin;
+        string name;
+        string symbol;
+        MintRedeemManagerTypes.StableCoin collateral;
+        MintRedeemManagerTypes.StableCoin aCollateral;
+        uint256 maxMintPerBlock;
+        uint256 maxRedeemPerBlock;
+    }
     /// @notice Zero address not allowed
     error OverlayerWrapZeroAddressException();
     /// @notice The asset decimals can not be larger that the underlying decimals
