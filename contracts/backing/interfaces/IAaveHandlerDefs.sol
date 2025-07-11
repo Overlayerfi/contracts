@@ -24,9 +24,9 @@ interface IAaveHandlerDefs {
 
     event AaveActionFailed(string message, bytes reason);
 
-    event AaveWithdraw(uint256 usdc, uint256 usdt);
+    event AaveWithdraw(uint256 usdt);
 
-    event AaveSupply(uint256 usdc, uint256 usdt);
+    event AaveSupply(uint256 usdt);
 
     event AaveNewAave(address indexed addr);
 
@@ -34,5 +34,5 @@ interface IAaveHandlerDefs {
 
     event AaveNewRewardsDispatcher(address indexed addr);
 
-    event AaveSwapPosition(uint256 usdc, uint256 usdt, uint256 out);
+    event AaveSwapPosition(uint256 usdt, uint256 out);
 }

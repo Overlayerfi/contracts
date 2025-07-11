@@ -36,11 +36,9 @@ abstract contract CollateralSpenderManager is USDOCollateral, ReentrancyGuard {
 
     constructor(
         address admin,
-        MintRedeemManagerTypes.StableCoin memory usdc_,
-        MintRedeemManagerTypes.StableCoin memory usdt_,
-        MintRedeemManagerTypes.StableCoin memory aUsdc_,
-        MintRedeemManagerTypes.StableCoin memory aUsdt_
-    ) USDOCollateral(admin, usdc_, usdt_, aUsdc_, aUsdt_) {}
+        MintRedeemManagerTypes.StableCoin memory collateral_,
+        MintRedeemManagerTypes.StableCoin memory aCollateral_
+    ) USDOCollateral(admin, collateral_, aCollateral_) {}
 
     /// @notice View the spender
     /// @return The active spender
@@ -76,25 +74,15 @@ abstract contract CollateralSpenderManager is USDOCollateral, ReentrancyGuard {
         approvedCollateralSpender = proposedSpender;
         // Remove allowance of old spender
         if (oldSpender != address(0)) {
-            IERC20(usdc.addr).forceApprove(oldSpender, 0);
-            IERC20(usdt.addr).forceApprove(oldSpender, 0);
-            IERC20(aUsdc.addr).forceApprove(oldSpender, 0);
-            IERC20(aUsdt.addr).forceApprove(oldSpender, 0);
+            IERC20(collateral.addr).forceApprove(oldSpender, 0);
+            IERC20(aCollateral.addr).forceApprove(oldSpender, 0);
         }
         // Add allowance for new spender
-        IERC20(usdc.addr).forceApprove(
+        IERC20(collateral.addr).forceApprove(
             approvedCollateralSpender,
             type(uint256).max
         );
-        IERC20(usdt.addr).forceApprove(
-            approvedCollateralSpender,
-            type(uint256).max
-        );
-        IERC20(aUsdc.addr).forceApprove(
-            approvedCollateralSpender,
-            type(uint256).max
-        );
-        IERC20(aUsdt.addr).forceApprove(
+        IERC20(aCollateral.addr).forceApprove(
             approvedCollateralSpender,
             type(uint256).max
         );
