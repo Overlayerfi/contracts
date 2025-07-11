@@ -162,11 +162,11 @@ describe("OverlayerWrapBacking", function () {
       benefactor: admin.address,
       beneficiary: admin.address,
       collateral: await usdt.getAddress(),
-      collateral_amount: ethers.parseUnits(
+      collateralAmount: ethers.parseUnits(
         initialCollateralAmount,
         await usdt.decimals()
       ),
-      overlayerWrap_amount: ethers.parseEther(initialCollateralAmount)
+      overlayerWrapAmount: ethers.parseEther(initialCollateralAmount)
     };
     await (usdt.connect(admin) as Contract).approve(
       await overlayerWrap.getAddress(),
@@ -274,16 +274,16 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(amount1, await usdt.decimals()),
-        overlayerWrap_amount: ethers.parseEther(amount1)
+        collateralAmount: ethers.parseUnits(amount1, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount1)
       };
       await overlayerWrap.connect(alice).mint(order);
       const newOrder = {
         benefactor: bob.address,
         beneficiary: bob.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(amount2, await usdt.decimals()),
-        overlayerWrap_amount: ethers.parseEther(amount2)
+        collateralAmount: ethers.parseUnits(amount2, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount2)
       };
       await overlayerWrap.connect(bob).mint(newOrder);
       const totalCollateral = (
@@ -323,8 +323,8 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        collateralAmount: ethers.parseUnits(amount, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
       const totalCollateral = (+amount + +initialCollateralAmount).toFixed(2);
@@ -362,8 +362,8 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        collateralAmount: ethers.parseUnits(amount, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       const totalCollateral = (+amount + +initialCollateralAmount).toFixed(2);
       await overlayerWrap.connect(alice).mint(order);
@@ -394,8 +394,8 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await ausdt.getAddress(),
-        collateral_amount: ethers.parseUnits(amount, await ausdt.decimals()),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        collateralAmount: ethers.parseUnits(amount, await ausdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).redeem(order);
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(0);
@@ -437,8 +437,8 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        collateralAmount: ethers.parseUnits(amount, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
       await overlayerWrap.connect(alice).supplyToBacking(0);
@@ -486,8 +486,8 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        collateralAmount: ethers.parseUnits(amount, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).redeem(redeemOrder);
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(
@@ -534,8 +534,8 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        collateralAmount: ethers.parseUnits(amount, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
       await overlayerWrap.connect(alice).supplyToBacking(0);
@@ -565,11 +565,11 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(
+        collateralAmount: ethers.parseUnits(
           redeemAmount,
           await usdt.decimals()
         ),
-        overlayerWrap_amount: ethers.parseEther(redeemAmount)
+        overlayerWrapAmount: ethers.parseEther(redeemAmount)
       };
       await overlayerWrap.connect(alice).redeem(redeemOrder);
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(
@@ -601,11 +601,11 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(
+        collateralAmount: ethers.parseUnits(
           redeemAmount,
           await usdt.decimals()
         ),
-        overlayerWrap_amount: ethers.parseEther(redeemAmount)
+        overlayerWrapAmount: ethers.parseEther(redeemAmount)
       };
       const ausdtBefore = ethers.formatUnits(
         await ausdt.balanceOf(await overlayerWrapbacking.getAddress()),
@@ -646,8 +646,8 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        collateralAmount: ethers.parseUnits(amount, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
       await overlayerWrap.connect(alice).supplyToBacking(0);
@@ -677,11 +677,11 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(
+        collateralAmount: ethers.parseUnits(
           redeemAmount,
           await usdt.decimals()
         ),
-        overlayerWrap_amount: ethers.parseEther(redeemAmount)
+        overlayerWrapAmount: ethers.parseEther(redeemAmount)
       };
       await overlayerWrap.connect(alice).redeem(redeemOrder);
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(
@@ -718,11 +718,11 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await ausdt.getAddress(),
-        collateral_amount: ethers.parseUnits(
+        collateralAmount: ethers.parseUnits(
           (+amount - +redeemAmount).toFixed(1),
           await ausdt.decimals()
         ),
-        overlayerWrap_amount: ethers.parseEther(
+        overlayerWrapAmount: ethers.parseEther(
           (+amount - +redeemAmount).toFixed(1)
         )
       };
@@ -758,8 +758,8 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        collateralAmount: ethers.parseUnits(amount, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
       await overlayerWrap.connect(alice).supplyToBacking(0);
@@ -803,8 +803,8 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        collateralAmount: ethers.parseUnits(amount, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
       await overlayerWrap.connect(alice).supplyToBacking(0);
@@ -858,8 +858,8 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        collateralAmount: ethers.parseUnits(amount, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
       await overlayerWrap.connect(alice).supplyToBacking(0);
@@ -937,8 +937,8 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        collateralAmount: ethers.parseUnits(amount, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
       expect(await overlayerWrap.connect(alice).supplyToBacking(0)).to.emit(
@@ -1006,8 +1006,8 @@ describe("OverlayerWrapBacking", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateral_amount: ethers.parseUnits(amount, await usdt.decimals()),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        collateralAmount: ethers.parseUnits(amount, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
       expect(await overlayerWrap.connect(alice).supplyToBacking(0)).to.emit(
