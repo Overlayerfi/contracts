@@ -82,14 +82,14 @@ contract OverlayerWrap is
         if (order.benefactor != msg.sender)
             revert MintRedeemManagerInvalidBenefactor();
         _managerMint(order);
-        _mint(order.beneficiary, order.overlayerWrap_amount);
+        _mint(order.beneficiary, order.overlayerWrapAmount);
         emit Mint(
             msg.sender,
             order.benefactor,
             order.beneficiary,
             order.collateral,
-            order.collateral_amount,
-            order.overlayerWrap_amount
+            order.collateralAmount,
+            order.overlayerWrapAmount
         );
     }
 

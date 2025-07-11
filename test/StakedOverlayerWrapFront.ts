@@ -73,8 +73,8 @@ describe("StakedOverlayerWrapFront", function () {
       benefactor: alice.address,
       beneficiary: alice.address,
       collateral: await usdt.getAddress(),
-      collateral_amount: ethers.parseUnits("50", await usdt.decimals()),
-      overlayerWrap_amount: ethers.parseEther("50")
+      collateralAmount: ethers.parseUnits("50", await usdt.decimals()),
+      overlayerWrapAmount: ethers.parseEther("50")
     };
     await overlayerWrap.connect(alice).mint(mintOrder);
     mintOrder.benefactor = bob.address;
@@ -82,11 +82,11 @@ describe("StakedOverlayerWrapFront", function () {
     await overlayerWrap.connect(bob).mint(mintOrder);
     mintOrder.benefactor = admin.address;
     mintOrder.beneficiary = admin.address;
-    mintOrder.collateral_amount = ethers.parseUnits(
+    mintOrder.collateralAmount = ethers.parseUnits(
       "100",
       await usdt.decimals()
     );
-    mintOrder.overlayerWrap_amount = ethers.parseEther("100");
+    mintOrder.overlayerWrapAmount = ethers.parseEther("100");
     await overlayerWrap.connect(admin).mint(mintOrder);
 
     const StakedOverlayerWrap = await ethers.getContractFactory(
@@ -105,8 +105,8 @@ describe("StakedOverlayerWrapFront", function () {
       benefactor: admin.address,
       beneficiary: admin.address,
       collateral: await usdt.getAddress(),
-      collateral_amount: ethers.parseUnits("1", await usdt.decimals()),
-      overlayerWrap_amount: ethers.parseEther("1")
+      collateralAmount: ethers.parseUnits("1", await usdt.decimals()),
+      overlayerWrapAmount: ethers.parseEther("1")
     };
     await usdt
       .connect(admin)

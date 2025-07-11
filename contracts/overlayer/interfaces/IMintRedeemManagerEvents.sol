@@ -17,8 +17,8 @@ interface IMintRedeemManagerEvents {
         address indexed benefactor,
         address indexed beneficiary,
         address collateral,
-        uint256 collateral_amount,
-        uint256 overlayerWrap_amount
+        uint256 collateralAmount,
+        uint256 overlayerWrapAmount
     );
 
     /// @notice Event emitted when funds are redeemed
@@ -27,8 +27,8 @@ interface IMintRedeemManagerEvents {
         address indexed benefactor,
         address indexed beneficiary,
         address collateral,
-        uint256 collateral_amount,
-        uint256 overlayerWrap_amount
+        uint256 collateralAmount,
+        uint256 overlayerWrapAmount
     );
 
     /// @notice Event emitted when the max mint per block is changed

@@ -49,7 +49,7 @@ async function estimate() {
     collateral_usdc: USDC_ADDRESS,
     collateral_usdt_amount: ethers.parseUnits("10000", 6),
     collateral_usdc_amount: ethers.parseUnits("10000", 6),
-    overlayerWrap_amount: ethers.parseEther("20000")
+    overlayerWrapAmount: ethers.parseEther("20000")
   };
 
   await approve();

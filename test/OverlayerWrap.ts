@@ -447,8 +447,8 @@ describe("OverlayerWrap", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await collateral.getAddress(),
-        collateral_amount: ethers.parseUnits("20", await collateral.decimals()),
-        overlayerWrap_amount: ethers.parseEther("20")
+        collateralAmount: ethers.parseUnits("20", await collateral.decimals()),
+        overlayerWrapAmount: ethers.parseEther("20")
       };
       const contractAddr = await overlayerWrap.getAddress();
       expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
@@ -478,11 +478,11 @@ describe("OverlayerWrap", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await acollateral.getAddress(),
-        collateral_amount: ethers.parseUnits(
+        collateralAmount: ethers.parseUnits(
           amount,
           await acollateral.decimals()
         ),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
       expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
@@ -515,11 +515,11 @@ describe("OverlayerWrap", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await collateral.getAddress(),
-        collateral_amount: ethers.parseUnits(
+        collateralAmount: ethers.parseUnits(
           amount,
           await collateral.decimals()
         ),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await expect(overlayerWrap.connect(alice).mint(order)).to.be.eventually
         .rejected;
@@ -555,11 +555,11 @@ describe("OverlayerWrap", function () {
         benefactor: bob.address,
         beneficiary: alice.address,
         collateral: await collateral.getAddress(),
-        collateral_amount: ethers.parseUnits(
+        collateralAmount: ethers.parseUnits(
           amount,
           await collateral.decimals()
         ),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await expect(overlayerWrap.connect(alice).mint(order)).to.be.eventually
         .rejected;
@@ -574,11 +574,11 @@ describe("OverlayerWrap", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await collateral.getAddress(),
-        collateral_amount: ethers.parseUnits(
+        collateralAmount: ethers.parseUnits(
           amount,
           await collateral.decimals()
         ),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       const contractAddr = await overlayerWrap.getAddress();
       expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
@@ -602,11 +602,11 @@ describe("OverlayerWrap", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await collateral.getAddress(),
-        collateral_amount: ethers.parseUnits(
+        collateralAmount: ethers.parseUnits(
           amount,
           await collateral.decimals()
         ),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await expect(overlayerWrap.connect(alice).mint(order)).to.be.eventually
         .rejected;
@@ -626,11 +626,11 @@ describe("OverlayerWrap", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await collateral.getAddress(),
-        collateral_amount: ethers.parseUnits(
+        collateralAmount: ethers.parseUnits(
           amount,
           await collateral.decimals()
         ),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
       expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
@@ -670,11 +670,11 @@ describe("OverlayerWrap", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await acollateral.getAddress(),
-        collateral_amount: ethers.parseUnits(
+        collateralAmount: ethers.parseUnits(
           amount,
           await acollateral.decimals()
         ),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
       expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
@@ -708,21 +708,21 @@ describe("OverlayerWrap", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await collateral.getAddress(),
-        collateral_amount: ethers.parseUnits(
+        collateralAmount: ethers.parseUnits(
           amount,
           await collateral.decimals()
         ),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       const redeemOrder = {
         benefactor: alice.address,
         beneficiary: bob.address,
         collateral: await collateral.getAddress(),
-        collateral_amount: ethers.parseUnits(
+        collateralAmount: ethers.parseUnits(
           amount,
           await collateral.decimals()
         ),
-        overlayerWrap_amount: ethers.parseEther(amount)
+        overlayerWrapAmount: ethers.parseEther(amount)
       };
       await overlayerWrap.connect(alice).mint(order);
       await expect(overlayerWrap.connect(bob).redeem(redeemOrder)).to.be
@@ -738,11 +738,11 @@ describe("OverlayerWrap", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await collateral.getAddress(),
-        collateral_amount: ethers.parseUnits(
+        collateralAmount: ethers.parseUnits(
           mintAmount,
           await collateral.decimals()
         ),
-        overlayerWrap_amount: ethers.parseEther(mintAmount)
+        overlayerWrapAmount: ethers.parseEther(mintAmount)
       };
       await overlayerWrap.connect(alice).mint(order);
       expect(await collateral.balanceOf(alice.address)).to.be.equal(
@@ -755,11 +755,11 @@ describe("OverlayerWrap", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await collateral.getAddress(),
-        collateral_amount: ethers.parseUnits(
+        collateralAmount: ethers.parseUnits(
           redeemAmount,
           await collateral.decimals()
         ),
-        overlayerWrap_amount: ethers.parseEther(redeemAmount)
+        overlayerWrapAmount: ethers.parseEther(redeemAmount)
       };
       expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
         ethers.parseEther(mintAmount)
