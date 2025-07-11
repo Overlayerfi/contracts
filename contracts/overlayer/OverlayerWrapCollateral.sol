@@ -19,11 +19,11 @@ abstract contract OverlayerWrapCollateral is SingleAdminAccessControl {
     MintRedeemManagerTypes.StableCoin public collateral;
     MintRedeemManagerTypes.StableCoin public aCollateral;
 
-    constructor(
+    function _initialize(
         address admin,
         MintRedeemManagerTypes.StableCoin memory collateral_,
         MintRedeemManagerTypes.StableCoin memory aCollateral_
-    ) {
+    ) internal {
         if (admin == address(0)) revert CollateralInvalidZeroAddress();
         if (collateral_.addr == address(0))
             revert CollateralInvalidZeroAddress();

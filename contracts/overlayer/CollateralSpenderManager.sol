@@ -37,11 +37,15 @@ abstract contract CollateralSpenderManager is
     /// @notice The last proposal time
     uint256 public proposalTime;
 
-    constructor(
+    constructor() OverlayerWrapCollateral() {}
+
+    function _initalize(
         address admin,
         MintRedeemManagerTypes.StableCoin memory collateral_,
         MintRedeemManagerTypes.StableCoin memory aCollateral_
-    ) OverlayerWrapCollateral(admin, collateral_, aCollateral_) {}
+    ) internal {
+        OverlayerWrapCollateral._initialize(admin, collateral_, aCollateral_);
+    }
 
     /// @notice View the spender
     /// @return The active spender

@@ -21,19 +21,24 @@ describe("StakedOverlayerWrapFront", function () {
       defaultTransactionOptions
     );
 
-    const OverlayerWrap = await ethers.getContractFactory("OverlayerWrap");
-    const overlayerWrap = await OverlayerWrap.deploy(
-      await admin.getAddress(),
-      {
+    const args = {
+      admin: await admin.getAddress(),
+      name: "wrap",
+      symbol: "wrap",
+      collateral: {
         addr: await usdt.getAddress(),
         decimals: await usdt.decimals()
       },
-      {
+      aCollateral: {
         addr: AUSDT_ADDRESS,
         decimals: 6
       },
-      ethers.parseEther("100000000"),
-      ethers.parseEther("100000000"),
+      maxMintPerBlock: ethers.parseEther("100000000"),
+      maxRedeemPerBlock: ethers.parseEther("100000000")
+    };
+    const OverlayerWrap = await ethers.getContractFactory("OverlayerWrap");
+    const overlayerWrap = await OverlayerWrap.deploy(
+      args,
       defaultTransactionOptions
     );
 

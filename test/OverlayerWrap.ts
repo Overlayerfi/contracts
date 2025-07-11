@@ -28,18 +28,23 @@ describe("OverlayerWrap", function () {
     );
 
     const Contract = await ethers.getContractFactory("OverlayerWrap");
-    const overlayerWrap = await Contract.deploy(
-      await admin.getAddress(),
-      {
+    const args = {
+      admin: await admin.getAddress(),
+      name: "wrap",
+      symbol: "wrap",
+      collateral: {
         addr: await collateral.getAddress(),
         decimals: await collateral.decimals()
       },
-      {
+      aCollateral: {
         addr: await acollateral.getAddress(),
         decimals: await acollateral.decimals()
       },
-      ethers.parseEther("100000000"),
-      ethers.parseEther("100000000"),
+      maxMintPerBlock: ethers.parseEther("100000000"),
+      maxRedeemPerBlock: ethers.parseEther("100000000")
+    };
+    const overlayerWrap = await Contract.deploy(
+      args,
       defaultTransactionOptions
     );
 

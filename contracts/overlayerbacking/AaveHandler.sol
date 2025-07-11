@@ -12,7 +12,7 @@ import {IsOverlayerWrap} from "./interfaces/IsOverlayerWrap.sol";
 import {IOverlayerWrap} from "./interfaces/IOverlayerWrap.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Constants} from "./Constants.sol";
-import "../token/types/MintRedeemManagerTypes.sol";
+import "../overlayer/types/MintRedeemManagerTypes.sol";
 
 /**
  * @title AaveHandler

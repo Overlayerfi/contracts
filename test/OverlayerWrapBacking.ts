@@ -50,19 +50,24 @@ describe("OverlayerWrapBacking", function () {
     const ausdt = new ethers.Contract(AUSDT_ADDRESS, ERC20_ABI, admin.provider);
     const aweth = new ethers.Contract(AWETH_ADDRESS, ERC20_ABI, admin.provider);
 
-    const OverlayerWrap = await ethers.getContractFactory("OverlayerWrap");
-    const overlayerWrap = await OverlayerWrap.deploy(
-      await admin.getAddress(),
-      {
+    const args = {
+      admin: await admin.getAddress(),
+      name: "wrap",
+      symbol: "wrap",
+      collateral: {
         addr: await usdt.getAddress(),
         decimals: await usdt.decimals()
       },
-      {
+      aCollateral: {
         addr: await ausdt.getAddress(),
         decimals: await ausdt.decimals()
       },
-      ethers.parseEther("100000000"),
-      ethers.parseEther("100000000"),
+      maxMintPerBlock: ethers.parseEther("100000000"),
+      maxRedeemPerBlock: ethers.parseEther("100000000")
+    };
+    const OverlayerWrap = await ethers.getContractFactory("OverlayerWrap");
+    const overlayerWrap = await OverlayerWrap.deploy(
+      args,
       defaultTransactionOptions
     );
 

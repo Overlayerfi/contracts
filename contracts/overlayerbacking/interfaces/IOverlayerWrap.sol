@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "../../token/types/MintRedeemManagerTypes.sol";
+import "../../overlayer/types/MintRedeemManagerTypes.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IOverlayerWrap is IERC20 {
