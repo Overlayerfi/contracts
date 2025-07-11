@@ -44,8 +44,5 @@ interface IMintRedeemManagerEvents {
     );
 
     /// @notice Event emitted when collateral has been supplied to the backing contract
-    event SuppliedToBacking(
-        address indexed supplier,
-        uint256 amount
-    );
+    event SuppliedToBacking(address indexed supplier, uint256 amount);
 }
