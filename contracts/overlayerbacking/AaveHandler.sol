@@ -175,8 +175,8 @@ abstract contract AaveHandler is
                 benefactor: address(this),
                 beneficiary: address(this),
                 collateral: isEmergencyMode ? AUSDT : USDT,
-                collateral_amount: diff,
-                overlayerWrap_amount: scaledDiff
+                collateralAmount: diff,
+                overlayerWrapAmount: scaledDiff
             });
         IOverlayerWrap(OverlayerWrap).mint(order);
 

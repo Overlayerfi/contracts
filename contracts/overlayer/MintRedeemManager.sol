@@ -208,13 +208,13 @@ abstract contract MintRedeemManager is
     /// @param order Struct containing order details
     function _managerMint(
         MintRedeemManagerTypes.Order calldata order
-    ) internal belowMaxMintPerBlock(order.overlayerWrap_amount) {
+    ) internal belowMaxMintPerBlock(order.overlayerWrapAmount) {
         // Check for wanted source tokens
         _validateInputTokens(order);
         // Add to the minted amount in this block
-        mintedPerBlock[block.number] += order.overlayerWrap_amount;
+        mintedPerBlock[block.number] += order.overlayerWrapAmount;
         _transferCollateral(
-            order.collateral_amount,
+            order.collateralAmount,
             order.collateral,
             address(this)
         );
@@ -226,18 +226,18 @@ abstract contract MintRedeemManager is
         MintRedeemManagerTypes.Order calldata order
     )
         internal
-        belowMaxRedeemPerBlock(order.overlayerWrap_amount)
+        belowMaxRedeemPerBlock(order.overlayerWrapAmount)
         returns (uint256 amountToBurn, uint256 back)
     {
         // Check for wanted source tokens
         _validateInputTokens(order);
         // Add to the redeemed amount in this block
-        redeemedPerBlock[block.number] += order.overlayerWrap_amount;
+        redeemedPerBlock[block.number] += order.overlayerWrapAmount;
 
         (
             uint256 checkedBurnAmount,
             uint256 checkedBack
-        ) = _withdrawFromProtocol(order.overlayerWrap_amount);
+        ) = _withdrawFromProtocol(order.overlayerWrapAmount);
 
         _transferToBeneficiary(
             order.beneficiary,
