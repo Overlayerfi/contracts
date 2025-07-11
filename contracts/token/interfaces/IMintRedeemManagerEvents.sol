@@ -11,14 +11,14 @@ interface IMintRedeemManagerEvents {
     /// @notice Event for signaling emergency mode status
     event MintRedeemManagerEmergencyStatus(bool status);
 
-    /// @notice Event emitted when USDO is minted
+    /// @notice Event emitted when OverlayerWrap is minted
     event Mint(
         address indexed minter,
         address indexed benefactor,
         address indexed beneficiary,
         address collateral,
         uint256 collateral_amount,
-        uint256 usdo_amount
+        uint256 overlayerWrap_amount
     );
 
     /// @notice Event emitted when funds are redeemed
@@ -28,7 +28,7 @@ interface IMintRedeemManagerEvents {
         address indexed beneficiary,
         address collateral,
         uint256 collateral_amount,
-        uint256 usdo_amount
+        uint256 overlayerWrap_amount
     );
 
     /// @notice Event emitted when the max mint per block is changed

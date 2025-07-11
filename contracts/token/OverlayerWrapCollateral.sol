@@ -5,10 +5,10 @@ import "../shared/SingleAdminAccessControl.sol";
 import "./types/MintRedeemManagerTypes.sol";
 
 /**
- * @title USDOCollateral
- * @notice This contract handles the collateral definitions for USDO
+ * @title OverlayerWrapCollateral
+ * @notice This contract handles the collateral definitions for OverlayerWrap
  */
-abstract contract USDOCollateral is SingleAdminAccessControl {
+abstract contract OverlayerWrapCollateral is SingleAdminAccessControl {
     error CollateralInvalidZeroAddress();
 
     error CollateralInvalidDecimals();

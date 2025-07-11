@@ -5,14 +5,14 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "./MintRedeemManager.sol";
-import "./interfaces/IUSDODefs.sol";
+import "./interfaces/IOverlayerWrapDefs.sol";
 import "./types/MintRedeemManagerTypes.sol";
 
 /**
- * @title USDO
+ * @title OverlayerWrap
  * @notice The Dual Layer stable coin
  */
-contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
+contract OverlayerWrap is ERC20Burnable, ERC20Permit, IOverlayerWrapDefs, MintRedeemManager {
     /// @notice The timestamp of the last blacklist activation request
     uint256 public blacklistActivationTime;
 
@@ -29,7 +29,7 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
     /// @notice Ensure account is not blacklisted
     modifier notDisabled(address account) {
         if (hasRole(BLACKLISTED_ROLE, account)) {
-            revert USDOAccountDisabled();
+            revert OverlayerWrapAccountDisabled();
         }
         _;
     }
@@ -41,7 +41,7 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
             blacklistActivationTime + BLACKLIST_ACTIVATION_TIME >
             block.timestamp
         ) {
-            revert USDOBlacklistNotActive();
+            revert OverlayerWrapBlacklistNotActive();
         }
         _;
     }
@@ -59,8 +59,8 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
         uint256 maxMintPerBlock_,
         uint256 maxRedeemPerBlock_
     )
-        ERC20("USDO", "USDO")
-        ERC20Permit("USDO")
+        ERC20("OverlayerWrap", "OverlayerWrap")
+        ERC20Permit("OverlayerWrap")
         MintRedeemManager(
             collateral_,
             aCollateral_,
@@ -70,9 +70,9 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
             maxRedeemPerBlock_
         )
     {
-        if (admin == address(0)) revert USDOZeroAddressException();
+        if (admin == address(0)) revert OverlayerWrapZeroAddressException();
         if (decimals() < collateral_.decimals) {
-            revert USDOInvalidDecimals();
+            revert OverlayerWrapInvalidDecimals();
         }
     }
 
@@ -85,14 +85,14 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
         if (order.benefactor != msg.sender)
             revert MintRedeemManagerInvalidBenefactor();
         _managerMint(order);
-        _mint(order.beneficiary, order.usdo_amount);
+        _mint(order.beneficiary, order.overlayerWrap_amount);
         emit Mint(
             msg.sender,
             order.benefactor,
             order.beneficiary,
             order.collateral,
             order.collateral_amount,
-            order.usdo_amount
+            order.overlayerWrap_amount
         );
     }
 
@@ -101,7 +101,7 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
     /// @param time The timestamp.
     function setBlackListTime(uint256 time) external onlyRole(CONTROLLER_ROLE) {
         if (time > 0 && time < block.timestamp) {
-            revert USDOBlacklistTimeNotValid();
+            revert OverlayerWrapBlacklistTimeNotValid();
         }
         blacklistActivationTime = time;
     }

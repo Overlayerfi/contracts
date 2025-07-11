@@ -5,27 +5,27 @@ import {
   USDC_ADDRESS,
   USDT_ADDRESS
 } from "./addresses";
-import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
+import STAKED_USDX_ABI from "../artifacts/contracts/token/StakedOverlayerWrapFront.sol/StakedOverlayerWrapFront.json";
 import rOVA_ABI from "../artifacts/contracts/token/rOVA.sol/rOVA.json";
 import rOVAV2_ABI from "../artifacts/contracts/token/rOVAV2.sol/rOVAV2.json";
 import OVAWHITELIST_ABI from "../artifacts/contracts/whitelist/OvaWhitelist.sol/OvaWhitelist.json";
 import SUBSCRIPTIONCONSUMERSEPOLIA_ABI from "../artifacts/contracts/sepolialottery/OvaExtractorSepolia.sol/OvaExtractorSepolia.json";
 import TESTMATH_ABI from "../artifacts/contracts/test/TestMath.sol/TestMath.json";
 import LIQUIDITY_ABI from "../artifacts/contracts/liquidity/Liquidity.sol/Liquidity.json";
-import USDO_ABI from "../artifacts/contracts/token/USDO.sol/USDO.json";
+import OverlayerWrap_ABI from "../artifacts/contracts/token/OverlayerWrap.sol/OverlayerWrap.json";
 import OVAREFERRAL_ABI from "../artifacts/contracts/token/OvaReferral.sol/OvaReferral.json";
-import SUSDO_ABI from "../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
+import SOverlayerWrap_ABI from "../artifacts/contracts/token/StakedOverlayerWrapFront.sol/StakedOverlayerWrapFront.json";
 import { ILiquidity } from "./types";
 import { USDC_ABI } from "./abi/USDC_abi";
 import { USDT_ABI } from "./abi/USDT_abi";
 
-export async function deploy_USDO(
+export async function deploy_OverlayerWrap(
   approveDeployerCollateral?: boolean,
   baseGasFeeMult?: number
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
-  console.log("Deploying USDO contract with signer:", deployer.address);
+  console.log("Deploying OverlayerWrap contract with signer:", deployer.address);
 
   const block = await deployer.provider.getBlock("latest");
   const baseFee = block.baseFeePerGas;
@@ -35,7 +35,7 @@ export async function deploy_USDO(
     maxFeePerGas: maxFee
   };
 
-  const ContractSource = await ethers.getContractFactory("USDO");
+  const ContractSource = await ethers.getContractFactory("OverlayerWrap");
   const deployedContract = await ContractSource.deploy(
     deployer.address,
     {
@@ -78,8 +78,8 @@ export async function deploy_USDO(
   return await deployedContract.getAddress();
 }
 
-export async function deploy_StakedUSDO(
-  usdo: string,
+export async function deploy_StakedOverlayerWrap(
+  overlayerWrap: string,
   baseGasFeeMult?: number
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
@@ -92,11 +92,11 @@ export async function deploy_StakedUSDO(
     maxFeePerGas: maxFee
   };
 
-  console.log("Deploying StakedUSDO contract with signer:", deployer.address);
+  console.log("Deploying StakedOverlayerWrap contract with signer:", deployer.address);
 
-  const ContractSource = await ethers.getContractFactory("StakedUSDOFront");
+  const ContractSource = await ethers.getContractFactory("StakedOverlayerWrapFront");
   const deployedContract = await ContractSource.deploy(
-    usdo,
+    overlayerWrap,
     deployer.address,
     deployer.address,
     0,
@@ -108,7 +108,7 @@ export async function deploy_StakedUSDO(
   return await deployedContract.getAddress();
 }
 
-export async function deploy_AirdropOVAReceipt(usdo: string): Promise<void> {
+export async function deploy_AirdropOVAReceipt(overlayerWrap: string): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
   console.log(
@@ -117,7 +117,7 @@ export async function deploy_AirdropOVAReceipt(usdo: string): Promise<void> {
   );
 
   const ContractSource = await ethers.getContractFactory("AirdropOVAReceipt");
-  const deployedContract = await ContractSource.deploy(usdo, deployer.address);
+  const deployedContract = await ContractSource.deploy(overlayerWrap, deployer.address);
   await deployedContract.waitForDeployment();
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
@@ -203,7 +203,7 @@ export async function deploy_LiquidityAirdropReward(
   return await deployedContract.getAddress();
 }
 
-export async function StakedUSDO_setCooldownStaking(
+export async function StakedOverlayerWrap_setCooldownStaking(
   addr: string,
   seconds: number
 ): Promise<void> {
@@ -501,12 +501,12 @@ export async function grantRole(
   console.log("Role granted");
 }
 
-export async function USDO_proposeNewCollateralSpender(
+export async function OverlayerWrap_proposeNewCollateralSpender(
   addr: string,
   spender: string
 ) {
   const [admin] = await ethers.getSigners();
-  const contract = new ethers.Contract(addr, USDO_ABI.abi, admin);
+  const contract = new ethers.Contract(addr, OverlayerWrap_ABI.abi, admin);
   console.log("Proposing new collateral spender:", spender);
   await (contract.connect(admin) as Contract).proposeNewCollateralSpender(
     spender
@@ -514,23 +514,23 @@ export async function USDO_proposeNewCollateralSpender(
   console.log("Spender proposed");
 }
 
-export async function USDO_mint(addr: string, order: any) {
+export async function OverlayerWrap_mint(addr: string, order: any) {
   const [admin] = await ethers.getSigners();
-  const contract = new ethers.Contract(addr, USDO_ABI.abi, admin);
-  console.log("Minting USDO with account:", admin.address);
+  const contract = new ethers.Contract(addr, OverlayerWrap_ABI.abi, admin);
+  console.log("Minting OverlayerWrap with account:", admin.address);
   await (contract.connect(admin) as Contract).mint(order);
-  console.log("USDO minted");
+  console.log("OverlayerWrap minted");
 }
 
-export async function StakedUSDO_deposit(
+export async function StakedOverlayerWrap_deposit(
   addr: string,
   amount: string,
   recipient: string
 ) {
   const [admin] = await ethers.getSigners();
-  const contract = new ethers.Contract(addr, SUSDO_ABI.abi, admin);
+  const contract = new ethers.Contract(addr, SOverlayerWrap_ABI.abi, admin);
   console.log(
-    "Depositing USDO into staking account with singer:",
+    "Depositing OverlayerWrap into staking account with singer:",
     admin.address
   );
   await (contract.connect(admin) as Contract).deposit(
@@ -538,27 +538,27 @@ export async function StakedUSDO_deposit(
     recipient
   );
   console.log(
-    "USDO staked, sUSDO balance:",
+    "OverlayerWrap staked, sOverlayerWrap balance:",
     ethers.formatEther(await contract.balanceOf(admin.address))
   );
 }
 
-export async function deploy_USDOBacking(
+export async function deploy_OverlayerWrapBacking(
   admin: string,
   treasury: string,
-  usdo: string,
-  susdo: string
+  overlayerWrap: string,
+  soverlayerWrap: string
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
-  console.log("Deploying USDOBacking contract with signer:", deployer.address);
+  console.log("Deploying OverlayerWrapBacking contract with signer:", deployer.address);
 
-  const USDOBacking = await ethers.getContractFactory("USDOBacking");
-  const usdobacking = await USDOBacking.deploy(admin, treasury, usdo, susdo);
-  await usdobacking.waitForDeployment();
+  const OverlayerWrapBacking = await ethers.getContractFactory("OverlayerWrapBacking");
+  const overlayerWrapbacking = await OverlayerWrapBacking.deploy(admin, treasury, overlayerWrap, soverlayerWrap);
+  await overlayerWrapbacking.waitForDeployment();
 
-  console.log("Contract deployed at:", await usdobacking.getAddress());
-  return await usdobacking.getAddress();
+  console.log("Contract deployed at:", await overlayerWrapbacking.getAddress());
+  return await overlayerWrapbacking.getAddress();
 }
 
 export function decodeCustomError(error: any, abi: any) {
@@ -959,11 +959,11 @@ export async function rOVA_removeBatch(
 export async function deploy_SepoliaFauct(
   usdc: string,
   usdt: string,
-  usdo_usdc: string,
-  usdo_usdt: string
+  overlayerWrap_usdc: string,
+  overlayerWrap_usdt: string
 ): Promise<void> {
   const [deployer] = await ethers.getSigners();
-  for (const c of [usdc, usdt, usdo_usdc, usdo_usdt]) {
+  for (const c of [usdc, usdt, overlayerWrap_usdc, overlayerWrap_usdt]) {
     if (!ethers.isAddress(c)) {
       throw new Error(`${c} is not a valid address`);
     }
@@ -978,8 +978,8 @@ export async function deploy_SepoliaFauct(
   const deployedContract = await ContractSource.deploy(
     usdc,
     usdt,
-    usdo_usdc,
-    usdo_usdt
+    overlayerWrap_usdc,
+    overlayerWrap_usdt
   );
   await deployedContract.waitForDeployment();
 

@@ -2,28 +2,28 @@
 
 pragma solidity 0.8.20;
 
-import "./IStakedUSDO.sol";
+import "./IStakedOverlayerWrap.sol";
 
 struct UserCooldown {
     uint104 cooldownEnd;
     uint152 underlyingAmount;
 }
 
-interface IStakedUSDOCooldown is IStakedUSDO {
+interface IStakedOverlayerWrapCooldown is IStakedOverlayerWrap {
     // Events //
     /// @notice Event emitted when cooldown duration updates
-    event IStakedUSDOCooldownDurationUpdated(
+    event IStakedOverlayerWrapCooldownDurationUpdated(
         uint24 previousDuration,
         uint24 newDuration
     );
 
     // Errors //
     /// @notice Error emitted when the shares amount to redeem is greater than the shares balance of the owner
-    error IStakedUSDOCooldownExcessiveRedeemAmount();
+    error IStakedOverlayerWrapCooldownExcessiveRedeemAmount();
     /// @notice Error emitted when the shares amount to withdraw is greater than the shares balance of the owner
-    error IStakedUSDOCooldownExcessiveWithdrawAmount();
+    error IStakedOverlayerWrapCooldownExcessiveWithdrawAmount();
     /// @notice Error emitted when cooldown value is invalid
-    error IStakedUSDOCooldownInvalidCooldown();
+    error IStakedOverlayerWrapCooldownInvalidCooldown();
 
     function cooldownAssets(uint256 assets) external returns (uint256 shares);
 

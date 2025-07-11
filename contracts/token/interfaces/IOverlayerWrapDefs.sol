@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.20;
 
-import "./IUSDOEvents.sol";
+import "./IOverlayerWrapEvents.sol";
 
-interface IUSDODefs is IUSDOEvents {
+interface IOverlayerWrapDefs is IOverlayerWrapEvents {
     /// @notice Zero address not allowed
-    error USDOZeroAddressException();
+    error OverlayerWrapZeroAddressException();
     /// @notice The asset decimals can not be larger that the underlying decimals
-    error USDOInvalidDecimals();
+    error OverlayerWrapInvalidDecimals();
     /// @notice An account has been disabled from performing transactions
-    error USDOAccountDisabled();
+    error OverlayerWrapAccountDisabled();
     /// @notice Blacklist not active
-    error USDOBlacklistNotActive();
+    error OverlayerWrapBlacklistNotActive();
     /// @notice Blacklist time not valid
-    error USDOBlacklistTimeNotValid();
+    error OverlayerWrapBlacklistTimeNotValid();
     /// @notice A blacklist event
     event DisableAccount(address account);
     /// @notice A reverted blacklist event

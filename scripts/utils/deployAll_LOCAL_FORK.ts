@@ -1,20 +1,20 @@
 import { ethers } from "hardhat";
 import { Contract } from "ethers";
 import {
-  deploy_USDO,
-  deploy_StakedUSDO,
+  deploy_OverlayerWrap,
+  deploy_StakedOverlayerWrap,
   //deploy_StakingRewardsDistributor,
   deploy_LiquidityAirdropReward,
   deploy_Liquidity,
   deploy_OVA,
   Liquidity_addReward,
   Liquidity_addPool,
-  StakedUSDO_setCooldownStaking,
+  StakedOverlayerWrap_setCooldownStaking,
   grantRole,
-  USDO_proposeNewCollateralSpender,
-  deploy_USDOBacking,
-  USDO_mint,
-  StakedUSDO_deposit,
+  OverlayerWrap_proposeNewCollateralSpender,
+  deploy_OverlayerWrapBacking,
+  OverlayerWrap_mint,
+  StakedOverlayerWrap_deposit,
   deploy_AirdropReward,
   deploy_AirdropPoolCurveStableStake,
   deploy_AirdropSingleStableStake,
@@ -27,8 +27,8 @@ import {
   Liquidity_updateReferral
 } from "../functions";
 import OVA_ABI from "../../artifacts/contracts/token/OVA.sol/OVA.json";
-import USDO_ABI from "../../artifacts/contracts/token/USDO.sol/USDO.json";
-import SUSDO_ABI from "../../artifacts/contracts/token/StakedUSDOFront.sol/StakedUSDOFront.json";
+import OverlayerWrap_ABI from "../../artifacts/contracts/token/OverlayerWrap.sol/OverlayerWrap.json";
+import SOverlayerWrap_ABI from "../../artifacts/contracts/token/StakedOverlayerWrapFront.sol/StakedOverlayerWrapFront.json";
 import CURVE_STABLE_STAKE_ABI from "../../artifacts/contracts/liquidity/CurveStableStake.sol/CurveStableStake.json";
 import SINGLE_STABLE_STAKE_ABI from "../../artifacts/contracts/liquidity/SingleStableStake.sol/SingleStableStake.json";
 import OVA_REFERRAL_ABI from "../../artifacts/contracts/token/OvaReferral.sol/OvaReferral.json";
@@ -62,11 +62,11 @@ async function main() {
     const latestTime: number = Math.floor(new Date().getTime() / 1000);
     console.log("Latest time", latestTime);
 
-    // 1. Deploy USDO
-    const usdoAddr = await deploy_USDO(true, 2);
+    // 1. Deploy OverlayerWrap
+    const overlayerWrapAddr = await deploy_OverlayerWrap(true, 2);
 
-    // 2. Deploy sUSDO
-    const susdoAddr = await deploy_StakedUSDO(usdoAddr, 2);
+    // 2. Deploy sOverlayerWrap
+    const soverlayerWrapAddr = await deploy_StakedOverlayerWrap(overlayerWrapAddr, 2);
 
     // 3. Deploy airdrop points (also referral contract)
     const ovaReferralAddress = await deploy_AirdropReward(
@@ -143,7 +143,7 @@ async function main() {
       87600,
       1
     );
-    // Fake USDT-USDO pool with tri pool DAI-USDC-USDT LP
+    // Fake USDT-OverlayerWrap pool with tri pool DAI-USDC-USDT LP
     const endTimeStamp = latestTime + 60 * 60 * 24 * 30 * 6;
     console.log(endTimeStamp);
     await CurveStableStake_addWithNumCoinsAndPool(
@@ -161,7 +161,7 @@ async function main() {
     await SingleStableStake_addPool(
       singleStableStakeContract,
       admin,
-      usdoAddr,
+      overlayerWrapAddr,
       ovaReferralAddress,
       1,
       endTimeStamp,
@@ -171,7 +171,7 @@ async function main() {
     await SingleStableStake_addPool(
       singleStableStakePremiumContract,
       admin,
-      usdoAddr,
+      overlayerWrapAddr,
       ovaReferralAddress,
       1,
       endTimeStamp,
@@ -179,8 +179,8 @@ async function main() {
       true
     );
 
-    // 8. Remove cool down from sUSDO
-    await StakedUSDO_setCooldownStaking(susdoAddr, 0); // 1 minute
+    // 8. Remove cool down from sOverlayerWrap
+    await StakedOverlayerWrap_setCooldownStaking(soverlayerWrapAddr, 0); // 1 minute
 
     // 9. Get some stable coins
     await swap("200", "50");
@@ -249,36 +249,36 @@ async function main() {
       ethers.formatEther(await curveLpContract.balanceOf(admin.address))
     );
 
-    // 10. Grant role in USDO
+    // 10. Grant role in OverlayerWrap
     await grantRole(
-      usdoAddr,
-      USDO_ABI.abi,
+      overlayerWrapAddr,
+      OverlayerWrap_ABI.abi,
       "COLLATERAL_MANAGER_ROLE",
       admin.address
     );
 
-    // 11. Deploy and propose the USDO collateral spender (the backing contract)
-    const USDOBackingNonce = (await admin.getNonce()) + 1;
+    // 11. Deploy and propose the OverlayerWrap collateral spender (the backing contract)
+    const OverlayerWrapBackingNonce = (await admin.getNonce()) + 1;
     const futureAddress = getContractAddress({
       from: admin.address,
-      nonce: USDOBackingNonce
+      nonce: OverlayerWrapBackingNonce
     });
-    await USDO_proposeNewCollateralSpender(usdoAddr, futureAddress);
-    const usdobackingAddr = await deploy_USDOBacking(
+    await OverlayerWrap_proposeNewCollateralSpender(overlayerWrapAddr, futureAddress);
+    const overlayerWrapbackingAddr = await deploy_OverlayerWrapBacking(
       admin.address,
       treasuryAddr,
-      usdoAddr,
-      susdoAddr
+      overlayerWrapAddr,
+      soverlayerWrapAddr
     );
 
-    if (futureAddress !== usdobackingAddr) {
-      throw new Error("The predicted USDOBacking address is not valid");
+    if (futureAddress !== overlayerWrapbackingAddr) {
+      throw new Error("The predicted OverlayerWrapBacking address is not valid");
     }
 
     // 12. Grant to the backing contract the rewarder role
-    await grantRole(susdoAddr, SUSDO_ABI.abi, "REWARDER_ROLE", usdobackingAddr);
+    await grantRole(soverlayerWrapAddr, SOverlayerWrap_ABI.abi, "REWARDER_ROLE", overlayerWrapbackingAddr);
 
-    // 13. Mint and stake initial USDO
+    // 13. Mint and stake initial OverlayerWrap
     const order = {
       benefactor: admin.address,
       beneficiary: admin.address,
@@ -286,15 +286,15 @@ async function main() {
       collateral_usdc: USDC_ADDRESS,
       collateral_usdt_amount: ethers.parseUnits("0.5", 6),
       collateral_usdc_amount: ethers.parseUnits("0.5", 6),
-      usdo_amount: ethers.parseEther("1")
+      overlayerWrap_amount: ethers.parseEther("1")
     };
-    await USDO_mint(usdoAddr, order);
-    const usdoContract = new ethers.Contract(usdoAddr, USDO_ABI.abi, admin);
-    await (usdoContract.connect(admin) as Contract).approve(
-      susdoAddr,
+    await OverlayerWrap_mint(overlayerWrapAddr, order);
+    const overlayerWrapContract = new ethers.Contract(overlayerWrapAddr, OverlayerWrap_ABI.abi, admin);
+    await (overlayerWrapContract.connect(admin) as Contract).approve(
+      soverlayerWrapAddr,
       ethers.MaxUint256
     );
-    await StakedUSDO_deposit(susdoAddr, "1", admin.address);
+    await StakedOverlayerWrap_deposit(soverlayerWrapAddr, "1", admin.address);
 
     // 14. Set staking pools inside the referral contract
     await AirdropReward_setStakingPools(ovaReferralAddress, [

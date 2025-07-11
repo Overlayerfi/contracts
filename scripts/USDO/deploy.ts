@@ -1,5 +1,5 @@
-import { deploy_USDO } from "../functions";
+import { deploy_OverlayerWrap } from "../functions";
 
-deploy_USDO().catch((err) => {
+deploy_OverlayerWrap().catch((err) => {
   console.error("Deployment failed -> " + err);
 });

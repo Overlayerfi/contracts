@@ -1,6 +1,6 @@
-import { StakedUSDO_setCooldownStaking } from "../functions";
+import { StakedOverlayerWrap_setCooldownStaking } from "../functions";
 
-StakedUSDO_setCooldownStaking(
+StakedOverlayerWrap_setCooldownStaking(
   "0x9E7ef64F17E79366e70C1Fdc01E1A00323e1FCF8",
   60
 ).catch((err) => {
