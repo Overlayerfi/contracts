@@ -16,27 +16,19 @@ abstract contract USDOCollateral is SingleAdminAccessControl {
     /* --------------- STATE VARIABLES --------------- */
 
     /// @notice Supported assets
-    MintRedeemManagerTypes.StableCoin public usdt;
-    MintRedeemManagerTypes.StableCoin public usdc;
-    MintRedeemManagerTypes.StableCoin public aUsdt;
-    MintRedeemManagerTypes.StableCoin public aUsdc;
+    MintRedeemManagerTypes.StableCoin public collateral;
+    MintRedeemManagerTypes.StableCoin public aCollateral;
 
     constructor(
         address admin,
-        MintRedeemManagerTypes.StableCoin memory usdc_,
-        MintRedeemManagerTypes.StableCoin memory usdt_,
-        MintRedeemManagerTypes.StableCoin memory aUsdc_,
-        MintRedeemManagerTypes.StableCoin memory aUsdt_
+        MintRedeemManagerTypes.StableCoin memory collateral_,
+        MintRedeemManagerTypes.StableCoin memory aCollateral_
     ) {
         if (admin == address(0)) revert CollateralInvalidZeroAddress();
-        if (usdc_.addr == address(0)) revert CollateralInvalidZeroAddress();
-        if (usdt_.addr == address(0)) revert CollateralInvalidZeroAddress();
-        if (usdc_.decimals == 0) revert CollateralInvalidDecimals();
-        if (usdt_.decimals == 0) revert CollateralInvalidDecimals();
-        if (aUsdc_.addr == address(0)) revert CollateralInvalidZeroAddress();
-        if (aUsdt_.addr == address(0)) revert CollateralInvalidZeroAddress();
-        if (aUsdc_.decimals == 0) revert CollateralInvalidDecimals();
-        if (aUsdt_.decimals == 0) revert CollateralInvalidDecimals();
+        if (collateral_.addr == address(0)) revert CollateralInvalidZeroAddress();
+        if (collateral_.decimals == 0) revert CollateralInvalidDecimals();
+        if (aCollateral_.addr == address(0)) revert CollateralInvalidZeroAddress();
+        if (aCollateral_.decimals == 0) revert CollateralInvalidDecimals();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
@@ -44,9 +36,7 @@ abstract contract USDOCollateral is SingleAdminAccessControl {
             _grantRole(DEFAULT_ADMIN_ROLE, admin);
         }
 
-        usdc = usdc_;
-        usdt = usdt_;
-        aUsdc = aUsdc_;
-        aUsdt = aUsdt_;
+        collateral = collateral_;
+        aCollateral = aCollateral_;
     }
 }

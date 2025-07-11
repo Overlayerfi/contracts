@@ -48,28 +48,22 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
 
     /// @notice Constructor
     /// @param admin The contract admin
-    /// @param usdc_ The usdc stablecoin struct
-    /// @param usdc_ The usdt stablecoin struct
-    /// @param usdc_ The ausdc stablecoin struct
-    /// @param usdt_ The ausdt stablecoin struct
+    /// @param collateral_ The main collateral struct
+    /// @param aCollateral_ The main collateral struct, aToken version
     /// @param maxMintPerBlock_ Max mint amount for each block
     /// @param maxRedeemPerBlock_ Max redeem amount for each block
     constructor(
         address admin,
-        MintRedeemManagerTypes.StableCoin memory usdc_,
-        MintRedeemManagerTypes.StableCoin memory usdt_,
-        MintRedeemManagerTypes.StableCoin memory aUsdc_,
-        MintRedeemManagerTypes.StableCoin memory aUsdt_,
+        MintRedeemManagerTypes.StableCoin memory collateral_,
+        MintRedeemManagerTypes.StableCoin memory aCollateral_,
         uint256 maxMintPerBlock_,
         uint256 maxRedeemPerBlock_
     )
         ERC20("USDO", "USDO")
         ERC20Permit("USDO")
         MintRedeemManager(
-            usdc_,
-            usdt_,
-            aUsdc_,
-            aUsdt_,
+            collateral_,
+            aCollateral_,
             admin,
             decimals(),
             maxMintPerBlock_,
@@ -77,7 +71,7 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
         )
     {
         if (admin == address(0)) revert USDOZeroAddressException();
-        if (decimals() < usdc_.decimals || decimals() < usdt_.decimals) {
+        if (decimals() < collateral_.decimals) {
             revert USDOInvalidDecimals();
         }
     }
@@ -96,10 +90,8 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
             msg.sender,
             order.benefactor,
             order.beneficiary,
-            order.collateral_usdc,
-            order.collateral_usdt,
-            order.collateral_usdc_amount,
-            order.collateral_usdt_amount,
+            order.collateral,
+            order.collateral_amount,
             order.usdo_amount
         );
     }
@@ -120,7 +112,7 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
     function redeem(
         MintRedeemManagerTypes.Order calldata order
     ) external nonReentrant {
-        (uint256 toBurn, uint256 usdcBack, uint256 usdtBack) = _managerRedeem(
+        (uint256 toBurn, uint256 back) = _managerRedeem(
             order
         );
         if (msg.sender == order.benefactor) {
@@ -132,10 +124,8 @@ contract USDO is ERC20Burnable, ERC20Permit, IUSDODefs, MintRedeemManager {
             msg.sender,
             order.benefactor,
             order.beneficiary,
-            order.collateral_usdc,
-            order.collateral_usdt,
-            usdcBack,
-            usdtBack,
+            order.collateral,
+            back,
             toBurn
         );
     }

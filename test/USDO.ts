@@ -12,33 +12,18 @@ describe("USDO", function () {
       maxFeePerGas: baseFee * BigInt(10)
     };
 
-    const Usdc = await ethers.getContractFactory("SixDecimalsUsd");
-    const usdc = await Usdc.deploy(
+    const Collateral = await ethers.getContractFactory("SixDecimalsUsd");
+    const collateral = await Collateral.deploy(
       1000,
-      "USDC",
-      "USDC",
+      "COLLATERAL",
+      "COLLATERAL",
       defaultTransactionOptions
     );
-    const aUsdc = await ethers.getContractFactory("SixDecimalsUsd");
-    const ausdc = await aUsdc.deploy(
+    const aCollateral = await ethers.getContractFactory("SixDecimalsUsd");
+    const acollateral = await aCollateral.deploy(
       1000,
-      "aUSDC",
-      "aUSDC",
-      defaultTransactionOptions
-    );
-
-    const Usdt = await ethers.getContractFactory("SixDecimalsUsd");
-    const usdt = await Usdt.deploy(
-      1000,
-      "USDT",
-      "USDT",
-      defaultTransactionOptions
-    );
-    const aUsdt = await ethers.getContractFactory("SixDecimalsUsd");
-    const ausdt = await aUsdt.deploy(
-      1000,
-      "aUSDT",
-      "aUSDT",
+      "aCOLLATERAL",
+      "aCOLLATERAL",
       defaultTransactionOptions
     );
 
@@ -46,80 +31,81 @@ describe("USDO", function () {
     const usdo = await Contract.deploy(
       await admin.getAddress(),
       {
-        addr: await usdc.getAddress(),
-        decimals: await usdc.decimals()
+        addr: await collateral.getAddress(),
+        decimals: await collateral.decimals()
       },
       {
-        addr: await usdt.getAddress(),
-        decimals: await usdt.decimals()
-      },
-      {
-        addr: await ausdc.getAddress(),
-        decimals: 6
-      },
-      {
-        addr: await ausdt.getAddress(),
-        decimals: 6
+        addr: await acollateral.getAddress(),
+        decimals: await acollateral.decimals()
       },
       ethers.parseEther("100000000"),
       ethers.parseEther("100000000"),
       defaultTransactionOptions
     );
 
+    const userAmount = "50";
+
     //send some usdc and usdt to users
-    await usdc
+    await collateral
       .connect(admin)
-      .transfer(alice.address, ethers.parseUnits("50", await usdc.decimals()));
-    await ausdc
+      .transfer(
+        alice.address,
+        ethers.parseUnits(userAmount, await collateral.decimals())
+      );
+    await acollateral
       .connect(admin)
-      .transfer(alice.address, ethers.parseUnits("50", await usdc.decimals()));
-    await usdc
+      .transfer(
+        alice.address,
+        ethers.parseUnits(userAmount, await acollateral.decimals())
+      );
+    await collateral
       .connect(admin)
-      .transfer(bob.address, ethers.parseUnits("50", await usdc.decimals()));
-    await usdt
+      .transfer(
+        bob.address,
+        ethers.parseUnits(userAmount, await collateral.decimals())
+      );
+    await acollateral
       .connect(admin)
-      .transfer(alice.address, ethers.parseUnits("50", await usdt.decimals()));
-    await ausdt
-      .connect(admin)
-      .transfer(alice.address, ethers.parseUnits("50", await usdt.decimals()));
-    await usdt
-      .connect(admin)
-      .transfer(bob.address, ethers.parseUnits("50", await usdt.decimals()));
+      .transfer(
+        bob.address,
+        ethers.parseUnits(userAmount, await acollateral.decimals())
+      );
 
-    await usdc
+    await collateral
       .connect(alice)
       .approve(
         await usdo.getAddress(),
-        ethers.parseUnits("50", await usdc.decimals())
+        ethers.parseUnits(userAmount, await collateral.decimals())
       );
-    await usdc
+    await collateral
       .connect(bob)
       .approve(
         await usdo.getAddress(),
-        ethers.parseUnits("50", await usdc.decimals())
+        ethers.parseUnits(userAmount, await collateral.decimals())
       );
-    await usdt
+    await acollateral
       .connect(alice)
       .approve(
         await usdo.getAddress(),
-        ethers.parseUnits("50", await usdt.decimals())
+        ethers.parseUnits(userAmount, await acollateral.decimals())
       );
-    await usdt
+    await acollateral
       .connect(bob)
       .approve(
         await usdo.getAddress(),
-        ethers.parseUnits("50", await usdt.decimals())
+        ethers.parseUnits(userAmount, await acollateral.decimals())
       );
 
-    //prepare contract for withdrawals
-    await usdc
-      .connect(admin)
-      .transfer(await usdo.getAddress(), ethers.parseUnits("100", 6));
-    await usdt
-      .connect(admin)
-      .transfer(await usdo.getAddress(), ethers.parseUnits("100", 6));
-
-    return { ausdc, ausdt, usdc, usdt, usdo, admin, gatekeeper, alice, bob };
+    return {
+      collateral,
+      acollateral,
+      usdo,
+      admin,
+      gatekeeper,
+      alice,
+      bob,
+      userAmount
+    };
   }
 
   describe("Deployment", function () {
@@ -132,14 +118,14 @@ describe("USDO", function () {
 
   describe("Deployment", function () {
     it("Should pause", async function () {
-      const { usdo, admin, usdt, usdc } = await loadFixture(deployFixture);
+      const { usdo, admin, collateral } = await loadFixture(deployFixture);
       await usdo.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("GATEKEEPER_ROLE")),
         admin.address
       );
       await usdo.connect(admin).pause();
       expect(await usdo.paused()).to.equal(true);
-      await expect(usdo.connect(admin).supplyToBacking(0, 0)).to.be.eventually
+      await expect(usdo.connect(admin).supplyToBacking(0)).to.be.eventually
         .rejected;
     });
 
@@ -413,16 +399,14 @@ describe("USDO", function () {
 
   describe("Mint", function () {
     it("Should mint", async function () {
-      const { usdc, usdt, usdo, admin, alice } = await loadFixture(
+      const { collateral, usdo, admin, alice } = await loadFixture(
         deployFixture
       );
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
-        collateral_usdt: await usdt.getAddress(),
-        collateral_usdc: await usdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits("10", await usdt.decimals()),
-        collateral_usdc_amount: ethers.parseUnits("10", await usdc.decimals()),
+        collateral: await collateral.getAddress(),
+        collateral_amount: ethers.parseUnits("20", await collateral.decimals()),
         usdo_amount: ethers.parseEther("20")
       };
       const contractAddr = await usdo.getAddress();
@@ -433,84 +417,55 @@ describe("USDO", function () {
       expect(await usdo.balanceOf(alice.address)).to.equal(
         ethers.parseEther("20")
       );
-      expect(await usdt.balanceOf(contractAddr)).to.equal(
-        ethers.parseUnits("110", await usdt.decimals())
-      );
-      expect(await usdc.balanceOf(contractAddr)).to.equal(
-        ethers.parseUnits("110", await usdc.decimals())
+      expect(await collateral.balanceOf(contractAddr)).to.equal(
+        ethers.parseUnits("20", await collateral.decimals())
       );
     });
 
     it("Should mint in emergency mode", async function () {
-      const { usdc, ausdc, ausdt, usdt, usdo, admin, alice } =
-        await loadFixture(deployFixture);
+      const { collateral, acollateral, usdo, admin, alice } = await loadFixture(
+        deployFixture
+      );
 
       // aTokens are faked
 
       const contractAddr = await usdo.getAddress();
-      const beforeBalUsdc = await usdc.balanceOf(contractAddr);
-      const beforeBalUsdt = await usdt.balanceOf(contractAddr);
+      const beforeBal = await collateral.balanceOf(contractAddr);
 
       const amount = "10";
       await usdo.connect(admin).setEmergencyStatus(true);
       let order = {
         benefactor: alice.address,
         beneficiary: alice.address,
-        collateral_usdt: await ausdt.getAddress(),
-        collateral_usdc: await ausdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits(
+        collateral: await acollateral.getAddress(),
+        collateral_amount: ethers.parseUnits(
           amount,
-          await ausdt.decimals()
+          await acollateral.decimals()
         ),
-        collateral_usdc_amount: ethers.parseUnits(
-          amount,
-          await ausdt.decimals()
-        ),
-        usdo_amount: ethers.parseEther((+amount * 2).toFixed(0))
-      };
-      await expect(usdo.connect(alice).mint(order)).to.be.eventually.rejected;
-
-      await ausdc.connect(alice).approve(contractAddr, ethers.MaxUint256);
-      await ausdt.connect(alice).approve(contractAddr, ethers.MaxUint256);
-      order = {
-        benefactor: alice.address,
-        beneficiary: alice.address,
-        collateral_usdt: await ausdt.getAddress(),
-        collateral_usdc: await ausdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits(
-          amount,
-          await ausdt.decimals()
-        ),
-        collateral_usdc_amount: ethers.parseUnits(
-          amount,
-          await ausdt.decimals()
-        ),
-        usdo_amount: ethers.parseEther((+amount * 2).toFixed(0))
+        usdo_amount: ethers.parseEther(amount)
       };
       await usdo.connect(alice).mint(order);
       expect(await usdo.balanceOf(alice.address)).to.equal(
-        ethers.parseEther("20")
+        ethers.parseEther(amount)
       );
-      expect(await ausdc.balanceOf(contractAddr)).to.equal(
-        ethers.parseUnits(amount, await ausdc.decimals())
-      );
-      expect(await ausdt.balanceOf(contractAddr)).to.equal(
-        ethers.parseUnits(amount, await ausdt.decimals())
+      expect(await acollateral.balanceOf(contractAddr)).to.equal(
+        ethers.parseUnits(amount, await acollateral.decimals())
       );
       // Initial leftover
-      expect(await usdc.balanceOf(contractAddr)).to.equal(beforeBalUsdc);
-      expect(await usdt.balanceOf(contractAddr)).to.equal(beforeBalUsdt);
+      expect(await collateral.balanceOf(contractAddr)).to.equal(beforeBal);
     });
 
     it("Should not mint if blacklisted", async function () {
-      const { usdc, usdt, usdo, admin, alice, gatekeeper, bob } =
-        await loadFixture(deployFixture);
+      const { collateral, usdo, alice, gatekeeper, bob } = await loadFixture(
+        deployFixture
+      );
       const blacklisterAddress = await gatekeeper.getAddress();
       await usdo.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
         blacklisterAddress
       );
       // Test mint
+      const amount = "10";
       const latestTime = await time.latest();
       await usdo.connect(gatekeeper).setBlackListTime(latestTime + 1);
       await time.increase(3600 * 24 * 15 + 1);
@@ -518,11 +473,12 @@ describe("USDO", function () {
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
-        collateral_usdt: await usdt.getAddress(),
-        collateral_usdc: await usdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits("10", await usdt.decimals()),
-        collateral_usdc_amount: ethers.parseUnits("10", await usdc.decimals()),
-        usdo_amount: ethers.parseEther("20")
+        collateral: await collateral.getAddress(),
+        collateral_amount: ethers.parseUnits(
+          amount,
+          await collateral.decimals()
+        ),
+        usdo_amount: ethers.parseEther(amount)
       };
       await expect(usdo.connect(alice).mint(order)).to.be.eventually.rejected;
 
@@ -539,33 +495,33 @@ describe("USDO", function () {
     });
 
     it("Should not mint oh behalf of external benefactors", async function () {
-      const { usdc, usdt, usdo, admin, bob, alice } = await loadFixture(
-        deployFixture
-      );
+      const { collateral, usdo, bob, alice } = await loadFixture(deployFixture);
+      const amount = "10";
       const order = {
         benefactor: bob.address,
         beneficiary: alice.address,
-        collateral_usdt: await usdt.getAddress(),
-        collateral_usdc: await usdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits("10", await usdt.decimals()),
-        collateral_usdc_amount: ethers.parseUnits("10", await usdc.decimals()),
-        usdo_amount: ethers.parseEther("20")
+        collateral: await collateral.getAddress(),
+        collateral_amount: ethers.parseUnits(
+          amount,
+          await collateral.decimals()
+        ),
+        usdo_amount: ethers.parseEther(amount)
       };
       await expect(usdo.connect(alice).mint(order)).to.be.eventually.rejected;
     });
 
     it("Should mint small amount", async function () {
-      const { usdc, usdt, usdo, admin, alice } = await loadFixture(
-        deployFixture
-      );
+      const { collateral, usdo, alice } = await loadFixture(deployFixture);
+      const amount = "0.000001";
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
-        collateral_usdt: await usdt.getAddress(),
-        collateral_usdc: await usdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits("1", await usdt.decimals()),
-        collateral_usdc_amount: ethers.parseUnits("1", await usdc.decimals()),
-        usdo_amount: ethers.parseEther("2")
+        collateral: await collateral.getAddress(),
+        collateral_amount: ethers.parseUnits(
+          amount,
+          await collateral.decimals()
+        ),
+        usdo_amount: ethers.parseEther(amount)
       };
       const contractAddr = await usdo.getAddress();
       expect(await usdo.balanceOf(alice.address)).to.equal(
@@ -573,97 +529,25 @@ describe("USDO", function () {
       );
       await usdo.connect(alice).mint(order);
       expect(await usdo.balanceOf(alice.address)).to.equal(
-        ethers.parseEther("2")
+        ethers.parseEther(amount)
       );
-      expect(await usdt.balanceOf(contractAddr)).to.equal(
-        ethers.parseUnits("101", await usdt.decimals())
-      );
-      expect(await usdc.balanceOf(contractAddr)).to.equal(
-        ethers.parseUnits("101", await usdc.decimals())
-      );
-    });
-
-    it("Should mint too small amount", async function () {
-      const { admin, usdc, usdt, usdo, alice } = await loadFixture(
-        deployFixture
-      );
-      const order = {
-        benefactor: alice.address,
-        beneficiary: alice.address,
-        collateral_usdt: await usdt.getAddress(),
-        collateral_usdc: await usdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits(
-          "0.9999",
-          await usdt.decimals()
-        ),
-        collateral_usdc_amount: ethers.parseUnits(
-          "0.9999",
-          await usdc.decimals()
-        ),
-        usdo_amount: ethers.parseEther("1.9998")
-      };
-      const contractAddr = await usdo.getAddress();
-      await expect(usdo.connect(alice).mint(order)).to.not.be.eventually
-        .rejected;
-      expect(await usdo.balanceOf(alice.address)).to.equal(
-        ethers.parseEther((0.9999 * 2).toString())
-      );
-      expect(await usdt.balanceOf(contractAddr)).to.equal(
-        ethers.parseUnits("100.9999", await usdt.decimals())
-      );
-      expect(await usdc.balanceOf(contractAddr)).to.equal(
-        ethers.parseUnits("100.9999", await usdc.decimals())
-      );
-    });
-
-    it("Should not mint on wrong ratio", async function () {
-      const { usdc, usdt, usdo, alice } = await loadFixture(deployFixture);
-      const order = {
-        benefactor: alice.address,
-        beneficiary: alice.address,
-        collateral_usdt: await usdt.getAddress(),
-        collateral_usdc: await usdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits("10", await usdt.decimals()),
-        collateral_usdc_amount: ethers.parseUnits(
-          "9.9999",
-          await usdc.decimals()
-        ),
-        usdo_amount: ethers.parseEther("20")
-      };
-      await expect(usdo.connect(alice).mint(order)).to.be.eventually.rejected;
-      expect(await usdo.balanceOf(alice.address)).to.equal(
-        ethers.parseEther("0")
-      );
-      order.collateral_usdc_amount = ethers.parseUnits(
-        "10",
-        await usdc.decimals()
-      );
-      order.collateral_usdt_amount = ethers.parseUnits(
-        "10.00001",
-        await usdc.decimals()
-      );
-      await expect(usdo.connect(alice).mint(order)).to.be.eventually.rejected;
-      expect(await usdo.balanceOf(alice.address)).to.equal(
-        ethers.parseEther("0")
+      expect(await collateral.balanceOf(contractAddr)).to.equal(
+        ethers.parseUnits(amount, await collateral.decimals())
       );
     });
 
     it("Should not mint on unsufficient balance", async function () {
-      const { usdc, usdt, usdo, alice } = await loadFixture(deployFixture);
+      const { collateral, usdo, alice } = await loadFixture(deployFixture);
+      const amount = "50.00001";
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
-        collateral_usdt: await usdt.getAddress(),
-        collateral_usdc: await usdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits(
-          "50.001",
-          await usdt.decimals()
+        collateral: await collateral.getAddress(),
+        collateral_amount: ethers.parseUnits(
+          amount,
+          await collateral.decimals()
         ),
-        collateral_usdc_amount: ethers.parseUnits(
-          "50.001",
-          await usdc.decimals()
-        ),
-        usdo_amount: ethers.parseEther("20")
+        usdo_amount: ethers.parseEther(amount)
       };
       await expect(usdo.connect(alice).mint(order)).to.be.eventually.rejected;
       expect(await usdo.balanceOf(alice.address)).to.equal(
@@ -674,132 +558,108 @@ describe("USDO", function () {
 
   describe("Redeem", function () {
     it("Should redeem", async function () {
-      const { usdc, usdt, usdo, admin, alice } = await loadFixture(
-        deployFixture
-      );
+      const { collateral, usdo, alice } = await loadFixture(deployFixture);
+      const amount = "20";
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
-        collateral_usdt: await usdt.getAddress(),
-        collateral_usdc: await usdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits("10", await usdt.decimals()),
-        collateral_usdc_amount: ethers.parseUnits("10", await usdc.decimals()),
-        usdo_amount: ethers.parseEther("20")
+        collateral: await collateral.getAddress(),
+        collateral_amount: ethers.parseUnits(
+          amount,
+          await collateral.decimals()
+        ),
+        usdo_amount: ethers.parseEther(amount)
       };
       await usdo.connect(alice).mint(order);
       expect(await usdo.balanceOf(alice.address)).to.equal(
-        ethers.parseEther("20")
+        ethers.parseEther(amount)
       );
-      expect(await usdc.balanceOf(await usdo.getAddress())).to.equal(
-        ethers.parseUnits("110", 6)
-      );
-      expect(await usdt.balanceOf(await usdo.getAddress())).to.equal(
-        ethers.parseUnits("110", 6)
+      expect(await collateral.balanceOf(await usdo.getAddress())).to.equal(
+        ethers.parseUnits(amount, 6)
       );
       expect(await usdo.connect(alice).redeem(order)).to.emit(usdo, "Transfer");
       expect(await usdo.balanceOf(alice.address)).to.equal(
         ethers.parseEther("0")
       );
-      expect(await usdt.balanceOf(await usdo.getAddress())).to.equal(
-        ethers.parseUnits("100", await usdt.decimals())
+      expect(await collateral.balanceOf(await usdo.getAddress())).to.equal(
+        ethers.parseUnits("0", await collateral.decimals())
       );
-      expect(await usdc.balanceOf(await usdo.getAddress())).to.equal(
-        ethers.parseUnits("100", await usdc.decimals())
-      );
-      expect(await usdt.balanceOf(alice.address)).to.equal(
-        ethers.parseUnits("50", await usdt.decimals())
-      );
-      expect(await usdc.balanceOf(alice.address)).to.equal(
-        ethers.parseUnits("50", await usdc.decimals())
+      expect(await collateral.balanceOf(alice.address)).to.equal(
+        ethers.parseUnits("50", await collateral.decimals())
       );
     });
 
     it("Should redeem in emergency mode", async function () {
-      const { usdc, ausdc, ausdt, usdt, usdo, admin, alice } =
-        await loadFixture(deployFixture);
+      const { collateral, acollateral, usdo, admin, alice } = await loadFixture(
+        deployFixture
+      );
 
       // aTokens are faked
 
       const contractAddr = await usdo.getAddress();
-      const beforeBalUsdc = await usdc.balanceOf(contractAddr);
-      const beforeBalUsdt = await usdt.balanceOf(contractAddr);
+      const beforeBal = await collateral.balanceOf(contractAddr);
 
       const amount = "10";
       await usdo.connect(admin).setEmergencyStatus(true);
 
-      await ausdc.connect(alice).approve(contractAddr, ethers.MaxUint256);
-      await ausdt.connect(alice).approve(contractAddr, ethers.MaxUint256);
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
-        collateral_usdt: await ausdt.getAddress(),
-        collateral_usdc: await ausdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits(
+        collateral: await acollateral.getAddress(),
+        collateral_amount: ethers.parseUnits(
           amount,
-          await ausdt.decimals()
+          await acollateral.decimals()
         ),
-        collateral_usdc_amount: ethers.parseUnits(
-          amount,
-          await ausdt.decimals()
-        ),
-        usdo_amount: ethers.parseEther((+amount * 2).toFixed(0))
+        usdo_amount: ethers.parseEther(amount)
       };
       await usdo.connect(alice).mint(order);
       expect(await usdo.balanceOf(alice.address)).to.equal(
-        ethers.parseEther("20")
+        ethers.parseEther(amount)
       );
-      expect(await ausdc.balanceOf(contractAddr)).to.equal(
-        ethers.parseUnits(amount, await ausdc.decimals())
-      );
-      expect(await ausdt.balanceOf(contractAddr)).to.equal(
-        ethers.parseUnits(amount, await ausdt.decimals())
+      expect(await acollateral.balanceOf(contractAddr)).to.equal(
+        ethers.parseUnits(amount, await acollateral.decimals())
       );
       // Initial leftover
-      expect(await usdc.balanceOf(contractAddr)).to.equal(beforeBalUsdc);
-      expect(await usdt.balanceOf(contractAddr)).to.equal(beforeBalUsdt);
+      expect(await collateral.balanceOf(contractAddr)).to.equal(beforeBal);
 
       await usdo.connect(alice).redeem(order);
       expect(await usdo.balanceOf(alice.address)).to.equal(
         ethers.parseEther("0")
       );
-      expect(await ausdc.balanceOf(contractAddr)).to.equal(
-        ethers.parseUnits("0", await ausdc.decimals())
+      expect(await acollateral.balanceOf(contractAddr)).to.equal(
+        ethers.parseUnits("0", await acollateral.decimals())
       );
-      expect(await ausdt.balanceOf(contractAddr)).to.equal(
-        ethers.parseUnits("0", await ausdt.decimals())
-      );
-      expect(await ausdc.balanceOf(alice.address)).to.equal(
-        ethers.parseUnits("50", await ausdc.decimals()) // Initial value
-      );
-      expect(await ausdt.balanceOf(alice.address)).to.equal(
-        ethers.parseUnits("50", await ausdt.decimals()) // Initial value
+      expect(await acollateral.balanceOf(alice.address)).to.equal(
+        ethers.parseUnits("50", await acollateral.decimals()) // Initial value
       );
       // Initial leftover
-      expect(await usdc.balanceOf(contractAddr)).to.equal(beforeBalUsdc);
-      expect(await usdt.balanceOf(contractAddr)).to.equal(beforeBalUsdt);
+      expect(await collateral.balanceOf(contractAddr)).to.equal(beforeBal);
     });
 
     it("Should not redeem not owned tokens", async function () {
-      const { usdc, usdt, usdo, admin, alice, bob } = await loadFixture(
+      const { collateral, usdo, alice, bob, userAmount } = await loadFixture(
         deployFixture
       );
+      const amount = "10";
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
-        collateral_usdt: await usdt.getAddress(),
-        collateral_usdc: await usdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits("10", await usdt.decimals()),
-        collateral_usdc_amount: ethers.parseUnits("10", await usdc.decimals()),
-        usdo_amount: ethers.parseEther("20")
+        collateral: await collateral.getAddress(),
+        collateral_amount: ethers.parseUnits(
+          amount,
+          await collateral.decimals()
+        ),
+        usdo_amount: ethers.parseEther(amount)
       };
       const redeemOrder = {
         benefactor: alice.address,
         beneficiary: bob.address,
-        collateral_usdt: await usdt.getAddress(),
-        collateral_usdc: await usdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits("10", await usdt.decimals()),
-        collateral_usdc_amount: ethers.parseUnits("10", await usdc.decimals()),
-        usdo_amount: ethers.parseEther("20")
+        collateral: await collateral.getAddress(),
+        collateral_amount: ethers.parseUnits(
+          amount,
+          await collateral.decimals()
+        ),
+        usdo_amount: ethers.parseEther(amount)
       };
       await usdo.connect(alice).mint(order);
       await expect(usdo.connect(bob).redeem(redeemOrder)).to.be.eventually
@@ -807,56 +667,51 @@ describe("USDO", function () {
     });
 
     it("Should not redeem on low USDO balance", async function () {
-      const { usdc, usdt, usdo, admin, alice } = await loadFixture(
+      const { usdo, collateral, alice, userAmount } = await loadFixture(
         deployFixture
       );
+      const mintAmount = "10";
+      const redeemAmount = "10.000001";
       const order = {
         benefactor: alice.address,
         beneficiary: alice.address,
-        collateral_usdt: await usdt.getAddress(),
-        collateral_usdc: await usdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits("10", await usdt.decimals()),
-        collateral_usdc_amount: ethers.parseUnits("10", await usdc.decimals()),
-        usdo_amount: ethers.parseEther("20")
+        collateral: await collateral.getAddress(),
+        collateral_amount: ethers.parseUnits(
+          mintAmount,
+          await collateral.decimals()
+        ),
+        usdo_amount: ethers.parseEther(mintAmount)
       };
       await usdo.connect(alice).mint(order);
-      expect(await usdc.balanceOf(alice.address)).to.be.equal(
-        ethers.parseUnits("40", await usdc.decimals())
-      );
-      expect(await usdt.balanceOf(alice.address)).to.be.equal(
-        ethers.parseUnits("40", await usdt.decimals())
+      expect(await collateral.balanceOf(alice.address)).to.be.equal(
+        ethers.parseUnits(
+          (+userAmount - +mintAmount).toFixed(2),
+          await collateral.decimals()
+        )
       );
       const redeemOrder = {
         benefactor: alice.address,
         beneficiary: alice.address,
-        collateral_usdt: await usdt.getAddress(),
-        collateral_usdc: await usdc.getAddress(),
-        collateral_usdt_amount: ethers.parseUnits(
-          "10.0001",
-          await usdt.decimals()
+        collateral: await collateral.getAddress(),
+        collateral_amount: ethers.parseUnits(
+          redeemAmount,
+          await collateral.decimals()
         ),
-        collateral_usdc_amount: ethers.parseUnits(
-          "10.0001",
-          await usdc.decimals()
-        ),
-        usdo_amount: ethers.parseEther("20.0002")
+        usdo_amount: ethers.parseEther(redeemAmount)
       };
       expect(await usdo.balanceOf(alice.address)).to.equal(
-        ethers.parseEther("20")
+        ethers.parseEther(mintAmount)
       );
       await expect(usdo.connect(alice).redeem(redeemOrder)).to.be.eventually
         .rejected;
-      expect(await usdc.balanceOf(alice.address)).to.be.equal(
-        ethers.parseUnits("40", await usdc.decimals())
+      expect(await collateral.balanceOf(alice.address)).to.be.equal(
+        ethers.parseUnits(
+          (+userAmount - +mintAmount).toFixed(2),
+          await collateral.decimals()
+        )
       );
-      expect(await usdt.balanceOf(alice.address)).to.be.equal(
-        ethers.parseUnits("40", await usdt.decimals())
-      );
-      expect(await usdc.balanceOf(await usdo.getAddress())).to.be.equal(
-        ethers.parseUnits("110", await usdc.decimals())
-      );
-      expect(await usdt.balanceOf(await usdo.getAddress())).to.be.equal(
-        ethers.parseUnits("110", await usdt.decimals())
+      expect(await collateral.balanceOf(await usdo.getAddress())).to.be.equal(
+        ethers.parseUnits(mintAmount, await collateral.decimals())
       );
     });
   });

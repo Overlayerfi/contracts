@@ -2,6 +2,6 @@
 pragma solidity 0.8.20;
 
 interface IUSDOBacking {
-    function supply(uint256 amountA, uint256 amountB) external;
-    function withdraw(uint256 amountA, uint256 amountB) external;
+    function supply(uint256 amount) external;
+    function withdraw(uint256 amount) external;
 }

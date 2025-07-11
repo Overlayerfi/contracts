@@ -7,10 +7,8 @@ library MintRedeemManagerTypes {
     struct Order {
         address benefactor;
         address beneficiary;
-        address collateral_usdt;
-        address collateral_usdc;
-        uint256 collateral_usdt_amount;
-        uint256 collateral_usdc_amount;
+        address collateral;
+        uint256 collateral_amount;
         uint256 usdo_amount;
     }
 

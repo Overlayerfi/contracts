@@ -13,9 +13,6 @@ describe("StakedUSDOFront", function () {
       maxFeePerGas: baseFee * BigInt(10)
     };
 
-    const Usdc = await ethers.getContractFactory("SixDecimalsUsd");
-    const usdc = await Usdc.deploy(1000, "", "USDC", defaultTransactionOptions);
-
     const Usdt = await ethers.getContractFactory("FixedSupplyERC20");
     const usdt = await Usdt.deploy(
       1000,
@@ -28,16 +25,8 @@ describe("StakedUSDOFront", function () {
     const usdo = await USDO.deploy(
       await admin.getAddress(),
       {
-        addr: await usdc.getAddress(),
-        decimals: await usdc.decimals()
-      },
-      {
         addr: await usdt.getAddress(),
         decimals: await usdt.decimals()
-      },
-      {
-        addr: AUSDC_ADDRESS,
-        decimals: 6
       },
       {
         addr: AUSDT_ADDRESS,
@@ -49,12 +38,6 @@ describe("StakedUSDOFront", function () {
     );
 
     //send some usdc and usdt to users
-    await usdc
-      .connect(admin)
-      .transfer(alice.address, ethers.parseUnits("50", await usdc.decimals()));
-    await usdc
-      .connect(admin)
-      .transfer(bob.address, ethers.parseUnits("50", await usdc.decimals()));
     await usdt
       .connect(admin)
       .transfer(alice.address, ethers.parseUnits("50", await usdt.decimals()));
@@ -62,13 +45,6 @@ describe("StakedUSDOFront", function () {
       .connect(admin)
       .transfer(bob.address, ethers.parseUnits("50", await usdt.decimals()));
 
-    await usdc
-      .connect(alice)
-      .approve(await usdo.getAddress(), ethers.MaxUint256);
-    await usdc.connect(bob).approve(await usdo.getAddress(), ethers.MaxUint256);
-    await usdc
-      .connect(admin)
-      .approve(await usdo.getAddress(), ethers.MaxUint256);
     await usdt
       .connect(alice)
       .approve(await usdo.getAddress(), ethers.MaxUint256);
@@ -81,11 +57,9 @@ describe("StakedUSDOFront", function () {
     let mintOrder = {
       benefactor: alice.address,
       beneficiary: alice.address,
-      collateral_usdt: await usdt.getAddress(),
-      collateral_usdc: await usdc.getAddress(),
-      collateral_usdt_amount: ethers.parseUnits("50", await usdt.decimals()),
-      collateral_usdc_amount: ethers.parseUnits("50", await usdc.decimals()),
-      usdo_amount: ethers.parseEther((50 * 2).toString())
+      collateral: await usdt.getAddress(),
+      collateral_amount: ethers.parseUnits("50", await usdt.decimals()),
+      usdo_amount: ethers.parseEther('50')
     };
     await usdo.connect(alice).mint(mintOrder);
     mintOrder.benefactor = bob.address;
@@ -93,15 +67,11 @@ describe("StakedUSDOFront", function () {
     await usdo.connect(bob).mint(mintOrder);
     mintOrder.benefactor = admin.address;
     mintOrder.beneficiary = admin.address;
-    mintOrder.collateral_usdc_amount = ethers.parseUnits(
-      "100",
-      await usdc.decimals()
-    );
-    mintOrder.collateral_usdt_amount = ethers.parseUnits(
+    mintOrder.collateral_amount = ethers.parseUnits(
       "100",
       await usdt.decimals()
     );
-    mintOrder.usdo_amount = ethers.parseEther((100 * 2).toString());
+    mintOrder.usdo_amount = ethers.parseEther('100');
     await usdo.connect(admin).mint(mintOrder);
 
     const StakedUSDO = await ethers.getContractFactory("StakedUSDOFront");
@@ -117,15 +87,10 @@ describe("StakedUSDOFront", function () {
     const order = {
       benefactor: admin.address,
       beneficiary: admin.address,
-      collateral_usdt: await usdt.getAddress(),
-      collateral_usdc: await usdc.getAddress(),
-      collateral_usdt_amount: ethers.parseUnits("0.5", await usdt.decimals()),
-      collateral_usdc_amount: ethers.parseUnits("0.5", await usdc.decimals()),
+      collateral: await usdt.getAddress(),
+      collateral_amount: ethers.parseUnits("1", await usdt.decimals()),
       usdo_amount: ethers.parseEther("1")
     };
-    await usdc
-      .connect(admin)
-      .approve(await usdo.getAddress(), ethers.MaxUint256);
     await usdt
       .connect(admin)
       .approve(await usdo.getAddress(), ethers.MaxUint256);
@@ -149,7 +114,7 @@ describe("StakedUSDOFront", function () {
       .connect(admin)
       .approve(await stakedusdo.getAddress(), ethers.MaxUint256);
 
-    return { stakedusdo, usdc, usdt, usdo, admin, alice, bob };
+    return { stakedusdo, usdt, usdo, admin, alice, bob };
   }
 
   describe("Deployment", function () {

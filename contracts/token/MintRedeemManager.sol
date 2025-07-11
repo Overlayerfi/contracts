@@ -68,15 +68,13 @@ abstract contract MintRedeemManager is
     /* --------------- CONSTRUCTOR --------------- */
 
     constructor(
-        MintRedeemManagerTypes.StableCoin memory usdc_,
-        MintRedeemManagerTypes.StableCoin memory usdt_,
-        MintRedeemManagerTypes.StableCoin memory aUsdc_,
-        MintRedeemManagerTypes.StableCoin memory aUsdt_,
+        MintRedeemManagerTypes.StableCoin memory collateral_,
+        MintRedeemManagerTypes.StableCoin memory aCollateral_,
         address admin,
         uint256 decimals,
         uint256 maxMintPerBlock_,
         uint256 maxRedeemPerBlock_
-    ) CollateralSpenderManager(admin, usdc_, usdt_, aUsdc_, aUsdt_) {
+    ) CollateralSpenderManager(admin, collateral_, aCollateral_) {
         if (decimals == 0) revert MintRedeemManagerInvalidDecimals();
         _decimals = decimals;
 
@@ -102,19 +100,11 @@ abstract contract MintRedeemManager is
     function approveCollateral() external onlyRole(COLLATERAL_MANAGER_ROLE) {
         if (approvedCollateralSpender == address(0))
             revert MintRedeemManagerInvalidZeroAddress();
-        IERC20(usdc.addr).forceApprove(
+        IERC20(collateral.addr).forceApprove(
             approvedCollateralSpender,
             type(uint256).max
         );
-        IERC20(usdt.addr).forceApprove(
-            approvedCollateralSpender,
-            type(uint256).max
-        );
-        IERC20(aUsdc.addr).forceApprove(
-            approvedCollateralSpender,
-            type(uint256).max
-        );
-        IERC20(aUsdt.addr).forceApprove(
+        IERC20(aCollateral.addr).forceApprove(
             approvedCollateralSpender,
             type(uint256).max
         );
@@ -174,53 +164,24 @@ abstract contract MintRedeemManager is
 
     /// @notice Supply funds to the active backing contract (aka approvedCollateralSpender)
     /// @dev The approveCollateralSpender will colect the funds, as the only entity allowed to do so
-    /// @param amountUsdc The amount of USDC to supply
-    /// @param amountUsdt The amount of USDT to supply
+    /// @param amount The amount to supply
     function supplyToBacking(
-        uint256 amountUsdc,
-        uint256 amountUsdt
+        uint256 amount
     ) external nonReentrant whenNotPaused {
         if (approvedCollateralSpender != address(0)) {
-            uint256 usdcBal = IERC20(emergencyMode ? aUsdc.addr : usdc.addr)
+            uint256 collateralBal = IERC20(emergencyMode ? aCollateral.addr : collateral.addr)
                 .balanceOf(address(this));
-            uint256 usdtBal = IERC20(emergencyMode ? aUsdt.addr : usdt.addr)
-                .balanceOf(address(this));
-            uint256 usdcToSupply = amountUsdc == 0 ? usdcBal : amountUsdc;
-            uint256 usdtToSupply = amountUsdt == 0 ? usdtBal : amountUsdt;
-            if (usdcToSupply > usdcBal || usdtToSupply > usdtBal)
+            uint256 amountToSupply = amount == 0 ? collateralBal : amount;
+            if (amountToSupply > collateralBal)
                 revert MintRedeemManagerInsufficientFunds();
             IUSDOBacking(approvedCollateralSpender).supply(
-                usdcToSupply,
-                usdtToSupply
+                amountToSupply
             );
-            emit SuppliedToBacking(msg.sender, usdcToSupply, usdtToSupply);
+            emit SuppliedToBacking(msg.sender, amountToSupply);
         }
     }
 
     /* --------------- INTERNAL --------------- */
-
-    /// @notice Check mint and redeem invariant
-    /// @dev This invariant holds only if _decimals >= usdc.decimals >= usdt.decimals
-    /// @param order A struct containing the order
-    function _validateInvariant(
-        MintRedeemManagerTypes.Order calldata order
-    ) internal view {
-        uint256 usdcDecimalsDiff = _decimals -
-            (emergencyMode ? aUsdc.decimals : usdc.decimals);
-        uint256 usdtDecimalsDiff = _decimals -
-            (emergencyMode ? aUsdt.decimals : usdt.decimals);
-        uint256 usdcAmountNormalized = order.collateral_usdc_amount *
-            (10 ** usdcDecimalsDiff);
-        uint256 usdtAmountNormalized = order.collateral_usdt_amount *
-            (10 ** usdtDecimalsDiff);
-        if (usdcAmountNormalized != usdtAmountNormalized) {
-            revert MintRedeemManagerDifferentAssetsAmounts();
-        }
-        // Their sum must be equal to USDO amount
-        if (usdcAmountNormalized + usdtAmountNormalized != order.usdo_amount) {
-            revert MintRedeemManagerInvalidAssetAmounts();
-        }
-    }
 
     /// @notice Check order parameters based on protocol emergency status
     /// @param order A struct containing the order
@@ -229,15 +190,13 @@ abstract contract MintRedeemManager is
     ) internal view {
         if (emergencyMode) {
             if (
-                !(order.collateral_usdc == aUsdc.addr &&
-                    order.collateral_usdt == aUsdt.addr)
+                !(order.collateral == aCollateral.addr)
             ) {
                 revert MintRedeemManagerCollateralNotValid();
             }
         } else {
             if (
-                !(order.collateral_usdc == usdc.addr &&
-                    order.collateral_usdt == usdt.addr)
+                !(order.collateral == collateral.addr)
             ) {
                 revert MintRedeemManagerCollateralNotValid();
             }
@@ -251,19 +210,13 @@ abstract contract MintRedeemManager is
     function _managerMint(
         MintRedeemManagerTypes.Order calldata order
     ) internal belowMaxMintPerBlock(order.usdo_amount) {
-        _validateInvariant(order);
         // Check for wanted source tokens
         _validateInputTokens(order);
         // Add to the minted amount in this block
         mintedPerBlock[block.number] += order.usdo_amount;
         _transferCollateral(
-            order.collateral_usdc_amount,
-            order.collateral_usdc,
-            address(this)
-        );
-        _transferCollateral(
-            order.collateral_usdt_amount,
-            order.collateral_usdt,
+            order.collateral_amount,
+            order.collateral,
             address(this)
         );
     }
@@ -275,9 +228,8 @@ abstract contract MintRedeemManager is
     )
         internal
         belowMaxRedeemPerBlock(order.usdo_amount)
-        returns (uint256 amountToBurn, uint256 usdcBack, uint256 usdtBack)
+        returns (uint256 amountToBurn, uint256 back)
     {
-        _validateInvariant(order);
         // Check for wanted source tokens
         _validateInputTokens(order);
         // Add to the redeemed amount in this block
@@ -285,24 +237,17 @@ abstract contract MintRedeemManager is
 
         (
             uint256 checkedBurnAmount,
-            uint256 checkedUsdcBack,
-            uint256 checkedUsdtBack
+            uint256 checkedBack
         ) = _withdrawFromProtocol(order.usdo_amount);
 
         _transferToBeneficiary(
             order.beneficiary,
-            order.collateral_usdc,
-            checkedUsdcBack
-        );
-        _transferToBeneficiary(
-            order.beneficiary,
-            order.collateral_usdt,
-            checkedUsdtBack
+            order.collateral,
+            checkedBack
         );
 
         amountToBurn = checkedBurnAmount;
-        usdcBack = checkedUsdcBack;
-        usdtBack = checkedUsdtBack;
+        back = checkedBack;
     }
 
     /// @notice Redeem collateral from the protocol
@@ -314,53 +259,39 @@ abstract contract MintRedeemManager is
     /// We are aware of this issue, and the necessary funds will be manually provided to the `approvedCollateralSpender` to facilitate withdrawals.
     /// @param amount The amount of USDO to burn
     /// @return checkedBurnAmount The checked amount to burn
-    /// @return usdcBack The amount of USDC or their aToken version returned to user
-    /// @return usdtBack The amount of USDT or their aToken version returned to user
+    /// @return back The amount of the underlying or their aToken version returned to user
     function _withdrawFromProtocol(
         uint256 amount
     )
         internal
-        returns (uint256 checkedBurnAmount, uint256 usdcBack, uint256 usdtBack)
+        returns (uint256 checkedBurnAmount, uint256 back)
     {
         if (amount == 0) {
-            return (0, 0, 0);
+            return (0, 0);
         }
         //Here does hold the inveriant that _decimals >= token.decimals
         unchecked {
-            uint256 diffDecimalsUsdc = _decimals -
-                (emergencyMode ? aUsdc.decimals : usdc.decimals);
-            uint256 diffDecimalsUsdt = _decimals -
-                (emergencyMode ? aUsdt.decimals : usdt.decimals);
-            uint256 halfAmount = amount / 2;
-            uint256 needAmountUsdc = halfAmount / (10 ** diffDecimalsUsdc);
-            uint256 needAmountUsdt = halfAmount / (10 ** diffDecimalsUsdt);
-            uint256 usdcBal = IERC20(emergencyMode ? aUsdc.addr : usdc.addr)
-                .balanceOf(address(this));
-            uint256 usdtBal = IERC20(emergencyMode ? aUsdt.addr : usdt.addr)
+            uint256 diffDecimals = _decimals -
+                (emergencyMode ? aCollateral.decimals : collateral.decimals);
+            uint256 needAmount = amount / (10 ** diffDecimals);
+            uint256 collateralBal = IERC20(emergencyMode ? aCollateral.addr : collateral.addr)
                 .balanceOf(address(this));
 
             // Compute the needed amount from backing contract
-            uint256 amountFromBackingUsdc = 0;
-            uint256 amountFromBackingUsdt = 0;
-            if (needAmountUsdc > usdcBal) {
-                amountFromBackingUsdc = needAmountUsdc - usdcBal;
-            }
-            if (needAmountUsdt > usdtBal) {
-                amountFromBackingUsdt = needAmountUsdt - usdtBal;
+            uint256 amountFromBacking = 0;
+            if (needAmount > collateralBal) {
+                amountFromBacking = needAmount - collateralBal;
             }
             // Retrive funds from backing only if needed
-            if (amountFromBackingUsdc > 0 || amountFromBackingUsdt > 0) {
+            if (amountFromBacking > 0) {
                 IUSDOBacking(approvedCollateralSpender).withdraw(
-                    amountFromBackingUsdc,
-                    amountFromBackingUsdt
+                    amountFromBacking
                 );
             }
 
-            usdcBack = needAmountUsdc;
-            usdtBack = needAmountUsdt;
+            back = needAmount;
             checkedBurnAmount =
-                (usdcBack * (10 ** diffDecimalsUsdc)) +
-                (usdtBack * (10 ** diffDecimalsUsdt));
+                (back * (10 ** diffDecimals));
         }
     }
 

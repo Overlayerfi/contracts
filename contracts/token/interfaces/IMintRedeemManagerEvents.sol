@@ -16,10 +16,8 @@ interface IMintRedeemManagerEvents {
         address indexed minter,
         address indexed benefactor,
         address indexed beneficiary,
-        address collateral_usdc,
-        address collateral_usdt,
-        uint256 collateral_usdc_amount,
-        uint256 collateral_usdt_amount,
+        address collateral,
+        uint256 collateral_amount,
         uint256 usdo_amount
     );
 
@@ -28,10 +26,8 @@ interface IMintRedeemManagerEvents {
         address indexed redeemer,
         address indexed benefactor,
         address indexed beneficiary,
-        address collateral_usdc,
-        address collateral_usdt,
-        uint256 collateral_usdc_amount,
-        uint256 collateral_usdt_amount,
+        address collateral,
+        uint256 collateral_amount,
         uint256 usdo_amount
     );
 
@@ -50,7 +46,6 @@ interface IMintRedeemManagerEvents {
     /// @notice Event emitted when collateral has been supplied to the backing contract
     event SuppliedToBacking(
         address indexed supplier,
-        uint256 amountUsdc,
-        uint256 amountUsdt
+        uint256 amount
     );
 }

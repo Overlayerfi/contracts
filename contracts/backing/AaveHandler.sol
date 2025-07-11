@@ -33,7 +33,7 @@ abstract contract AaveHandler is
     uint16 private constant AAVE_REFERRAL_CODE = 0;
     /// @notice the time interval needed to changed the AAVE contract
     uint256 public constant PROPOSAL_TIME_INTERVAL = 10 days;
-    /// @notice decimals offset between usdo and usdc/usdt
+    /// @notice decimals offset between usdo and usdt/ausdt
     uint256 public constant DECIMALS_DIFF_AMOUNT = 10 ** 12;
 
     //########################################## IMMUTABLE ##########################################
@@ -49,8 +49,6 @@ abstract contract AaveHandler is
     address public AAVE = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     ///@notice Protocol rewardsDispatcher
     address public OVA_REWARDS_DISPATCHER;
-    ///@notice Amount of total supplied USDC
-    uint256 public totalSuppliedUSDC;
     ///@notice Amount of total supplied USDT
     uint256 public totalSuppliedUSDT;
     /// @notice the proposed new spender
@@ -113,54 +111,31 @@ abstract contract AaveHandler is
 
     ///@notice Withraw funds from aave and return all the collateral to USDO
     function adminWithdraw() external onlyOwner nonReentrant {
-        uint256 usdcReceived = 0;
         uint256 usdtReceived = 0;
         bool isEmergencyMode = IUSDO(USDO).emergencyMode();
 
         if (!isEmergencyMode) {
-            usdcReceived = IPool(AAVE).withdraw(
-                USDC,
-                IERC20(AUSDC).balanceOf(address(this)),
-                address(this)
-            );
             usdtReceived = IPool(AAVE).withdraw(
                 USDT,
                 IERC20(AUSDT).balanceOf(address(this)),
                 address(this)
             );
         } else {
-            usdcReceived = IERC20(AUSDC).balanceOf(address(this));
             usdtReceived = IERC20(AUSDT).balanceOf(address(this));
         }
 
         if (
-            usdcReceived < totalSuppliedUSDC || usdtReceived < totalSuppliedUSDT
+            usdtReceived < totalSuppliedUSDT
         ) {
             revert AaveHandlerAaveWithrawFailed();
         }
 
         // Return collateral to protocol token
-        IERC20(isEmergencyMode ? AUSDC : USDC).safeTransfer(
-            USDO,
-            totalSuppliedUSDC
-        );
         IERC20(isEmergencyMode ? AUSDT : USDT).safeTransfer(
             USDO,
             totalSuppliedUSDT
         );
 
-        if (usdcReceived > totalSuppliedUSDC) {
-            uint usdcDiff = 0;
-            unchecked {
-                usdcDiff = usdcReceived - totalSuppliedUSDC;
-            }
-            if (usdcDiff > 0) {
-                IERC20(isEmergencyMode ? AUSDC : USDC).safeTransfer(
-                    OVA_REWARDS_DISPATCHER,
-                    usdcDiff
-                );
-            }
-        }
         if (usdtReceived > totalSuppliedUSDT) {
             uint256 usdtDiff = 0;
             unchecked {
@@ -175,7 +150,6 @@ abstract contract AaveHandler is
         }
 
         // Reset state
-        totalSuppliedUSDC = 0;
         totalSuppliedUSDT = 0;
     }
 
@@ -183,25 +157,16 @@ abstract contract AaveHandler is
     function compound() external nonReentrant {
         bool isEmergencyMode = IUSDO(USDO).emergencyMode();
 
-        uint256 diffUSDC = IERC20(AUSDC).balanceOf(address(this)) -
-            totalSuppliedUSDC;
-        uint256 diffUSDT = IERC20(AUSDT).balanceOf(address(this)) -
+        uint256 diff = IERC20(AUSDT).balanceOf(address(this)) -
             totalSuppliedUSDT;
-        if (diffUSDC == 0 || diffUSDT == 0) {
+        uint256 scaledDiff = diff * DECIMALS_DIFF_AMOUNT;
+        if (diff == 0) {
             return;
         }
-        // Decimals difference are harcoded as they don't mutate
-        uint256 minAmountBetween = Math.min(
-            diffUSDC * DECIMALS_DIFF_AMOUNT,
-            diffUSDT * DECIMALS_DIFF_AMOUNT
-        );
-        uint256 usdcWithdrawAmount = minAmountBetween / DECIMALS_DIFF_AMOUNT;
-        uint256 usdtWithdrawAmount = minAmountBetween / DECIMALS_DIFF_AMOUNT;
 
         if (!isEmergencyMode) {
             _withdrawInternalAave(
-                usdcWithdrawAmount,
-                usdtWithdrawAmount,
+                diff,
                 address(this)
             );
         }
@@ -211,15 +176,13 @@ abstract contract AaveHandler is
             .Order({
                 benefactor: address(this),
                 beneficiary: address(this),
-                collateral_usdt: isEmergencyMode ? AUSDT : USDT,
-                collateral_usdc: isEmergencyMode ? AUSDC : USDC,
-                collateral_usdt_amount: usdtWithdrawAmount,
-                collateral_usdc_amount: usdcWithdrawAmount,
-                usdo_amount: minAmountBetween * 2
+                collateral: isEmergencyMode ? AUSDT : USDT,
+                collateral_amount: diff,
+                usdo_amount: scaledDiff
             });
         IUSDO(USDO).mint(order);
 
-        uint256 amountToStaking = minAmountBetween.mulDiv(
+        uint256 amountToStaking = scaledDiff.mulDiv(
             stakedUsdoRewardsAllocation,
             100
         );
@@ -227,46 +190,23 @@ abstract contract AaveHandler is
 
         IERC20(USDO).safeTransfer(
             OVA_REWARDS_DISPATCHER,
-            minAmountBetween - amountToStaking
+            scaledDiff - amountToStaking
         );
         IDispatcher(OVA_REWARDS_DISPATCHER).dispatch();
     }
 
     ///@notice Supply funds to AAVE protocol
-    ///@param amountUsdc The amount to supply intended as USDC or their aToken version
     ///@param amountUsdt The amount to supply intended as USDT or their aToken version
     function supply(
-        uint256 amountUsdc,
         uint256 amountUsdt
     ) external onlyProtocol nonReentrant {
         bool isEmergencyMode = IUSDO(USDO).emergencyMode();
-        if (amountUsdc > 0) {
-            if (isEmergencyMode) {
-                IERC20(AUSDC).safeTransferFrom(
-                    msg.sender,
-                    address(this),
-                    amountUsdc
-                );
-            } else {
-                IERC20(USDC).safeTransferFrom(
-                    msg.sender,
-                    address(this),
-                    amountUsdc
-                );
-                IPool(AAVE).supply(
-                    USDC,
-                    amountUsdc,
-                    address(this),
-                    AAVE_REFERRAL_CODE
-                );
-            }
-        }
         if (amountUsdt > 0) {
             if (isEmergencyMode) {
                 IERC20(AUSDT).safeTransferFrom(
                     msg.sender,
                     address(this),
-                    amountUsdc
+                    amountUsdt
                 );
             } else {
                 IERC20(USDT).safeTransferFrom(
@@ -285,20 +225,15 @@ abstract contract AaveHandler is
 
         // Do not count donations: compute how much we have to increase our supply counters.
         // We cannot exceed the USDO supply.
-        uint256 halfSupply = (IUSDO(USDO).totalSupply() / 2) /
+        uint256 normalizedSupply = IUSDO(USDO).totalSupply() /
             DECIMALS_DIFF_AMOUNT;
-        uint256 differenceUsdc = halfSupply - totalSuppliedUSDC;
-        uint256 differenceUsdt = halfSupply - totalSuppliedUSDT;
-        if (differenceUsdc > amountUsdc) {
-            revert AaveHandlerUnexpectedAmount();
-        }
+        uint256 differenceUsdt = normalizedSupply - totalSuppliedUSDT;
         if (differenceUsdt > amountUsdt) {
             revert AaveHandlerUnexpectedAmount();
         }
-        totalSuppliedUSDC += Math.min(amountUsdc, differenceUsdc);
         totalSuppliedUSDT += Math.min(amountUsdt, differenceUsdt);
 
-        emit AaveSupply(amountUsdc, amountUsdt);
+        emit AaveSupply(amountUsdt);
     }
 
     ///@notice Propose a new aave contract
@@ -334,10 +269,8 @@ abstract contract AaveHandler is
         AAVE = proposedAave;
         // Remove allowance of old spender
         if (oldAave != address(0)) {
-            IERC20(USDC).forceApprove(oldAave, 0);
             IERC20(USDT).forceApprove(oldAave, 0);
         }
-        IERC20(USDC).forceApprove(AAVE, type(uint256).max);
         IERC20(USDT).forceApprove(AAVE, type(uint256).max);
 
         emit AaveNewAave(AAVE);
@@ -373,7 +306,6 @@ abstract contract AaveHandler is
     ///@notice Approve aave spending
     ///@param amount The amount to allow aave as spender
     function approveAave(uint256 amount) public onlyOwner nonReentrant {
-        IERC20(USDC).forceApprove(AAVE, amount);
         IERC20(USDT).forceApprove(AAVE, amount);
     }
 
@@ -386,24 +318,20 @@ abstract contract AaveHandler is
     ///@notice Approve USDO spending
     ///@param amount The amount to allow USDO as spender
     function approveUSDO(uint256 amount) public onlyOwner nonReentrant {
-        IERC20(USDC).forceApprove(USDO, amount);
         IERC20(USDT).forceApprove(USDO, amount);
-        IERC20(AUSDC).forceApprove(USDO, amount);
         IERC20(AUSDT).forceApprove(USDO, amount);
     }
 
     ///@notice Withraw funds from aave protocol
-    ///@param amountUsdc The amount to withdraw intended as USDC or their aToken version
     ///@param amountUsdt The amount to withdraw intended as USDT or their aToken version
     function withdraw(
-        uint256 amountUsdc,
         uint256 amountUsdt
     ) public onlyProtocol nonReentrant {
         bool isEmergencyMode = IUSDO(USDO).emergencyMode();
         if (!isEmergencyMode) {
-            _withdrawInternal(amountUsdc, amountUsdt, msg.sender);
+            _withdrawInternal(amountUsdt, msg.sender);
         } else {
-            _withdrawInternalEmergency(amountUsdc, amountUsdt, msg.sender);
+            _withdrawInternalEmergency(amountUsdt, msg.sender);
         }
     }
 
@@ -416,19 +344,10 @@ abstract contract AaveHandler is
     //########################################## INTERNAL FUNCTIONS ##########################################
 
     /// @notice Update the supplied usdc and usdt counter
-    /// @param usdcTaken The amount of usdc removed from the backing supply
     /// @param usdtTaken The amount of usdt removed from the backing supply
     function updateSuppliedAmounts(
-        uint256 usdcTaken,
         uint256 usdtTaken
     ) internal {
-        if (usdcTaken > totalSuppliedUSDC) {
-            totalSuppliedUSDC = 0;
-        } else {
-            unchecked {
-                totalSuppliedUSDC -= usdcTaken;
-            }
-        }
         if (usdtTaken > totalSuppliedUSDT) {
             totalSuppliedUSDT = 0;
         } else {
@@ -439,71 +358,57 @@ abstract contract AaveHandler is
     }
 
     ///@notice Withraw funds taking aTokens directly
-    ///@param amountUsdc The amount to withdraw intended as aUSDC
     ///@param amountUsdt The amount to withdraw intended as aUSDT
     ///@param recipient The collateral recipient
     function _withdrawInternalEmergency(
-        uint256 amountUsdc,
         uint256 amountUsdt,
         address recipient
     ) internal {
-        uint256 aUsdcBal = IERC20(AUSDC).balanceOf(address(this));
         uint256 aUsdtBal = IERC20(AUSDT).balanceOf(address(this));
-        if (aUsdcBal < amountUsdc || aUsdtBal < amountUsdt) {
+        if (aUsdtBal < amountUsdt) {
             revert AaveHandlerInsufficientABalance();
         }
-        IERC20(AUSDC).safeTransfer(recipient, amountUsdc);
         IERC20(AUSDT).safeTransfer(recipient, amountUsdt);
 
-        updateSuppliedAmounts(amountUsdc, amountUsdt);
+        updateSuppliedAmounts(amountUsdt);
     }
 
     ///@notice Withraw funds from aave and update supply counters
-    ///@param amountUsdc The amount to withdraw intended as USDC
     ///@param amountUsdt The amount to withdraw intended as USDT
     ///@param recipient The collateral recipient
     function _withdrawInternal(
-        uint256 amountUsdc,
         uint256 amountUsdt,
         address recipient
     ) internal {
-        (uint256 usdcReceived, uint256 usdtReceived) = _withdrawInternalAave(
-            amountUsdc,
+        (uint256 usdtReceived) = _withdrawInternalAave(
             amountUsdt,
             recipient
         );
 
-        updateSuppliedAmounts(usdcReceived, usdtReceived);
+        updateSuppliedAmounts(usdtReceived);
     }
 
     ///@notice Withraw funds to aave
-    ///@param amountUsdc The amount to withdraw intended as USDC
     ///@param amountUsdt The amount to withdraw intended as USDT
     ///@param recipient The collateral recipient
+    ///@return Amount of usdt received
     function _withdrawInternalAave(
-        uint256 amountUsdc,
         uint256 amountUsdt,
         address recipient
-    ) internal returns (uint256, uint256) {
-        if (IERC20(AUSDC).balanceOf(address(this)) < amountUsdc)
-            revert AaveHandlerInsufficientBalance();
+    ) internal returns (uint256) {
         if (IERC20(AUSDT).balanceOf(address(this)) < amountUsdt)
             revert AaveHandlerInsufficientBalance();
-        uint256 usdcReceived = 0;
         uint256 usdtReceived = 0;
-        if (amountUsdc > 0) {
-            usdcReceived = IPool(AAVE).withdraw(USDC, amountUsdc, recipient);
-        }
         if (amountUsdt > 0) {
             usdtReceived = IPool(AAVE).withdraw(USDT, amountUsdt, recipient);
         }
 
-        if ((amountUsdc != usdcReceived) || (amountUsdt != usdtReceived)) {
+        if (amountUsdt != usdtReceived) {
             revert AaveHandlerAaveWithrawFailed();
         }
 
-        emit AaveWithdraw(usdcReceived, usdtReceived);
+        emit AaveWithdraw(usdtReceived);
 
-        return (usdcReceived, usdtReceived);
+        return (usdtReceived);
     }
 }

@@ -17,7 +17,7 @@ contract USDOBacking is AaveHandler, IUSDOBackingDefs {
     //########################################## MODIFIERS ##########################################
 
     modifier notProtocolAssets(address asset) {
-        if (asset == USDC || asset == USDT || asset == AUSDC || asset == AUSDT)
+        if (asset == USDT || asset == AUSDT)
             revert USDOBackingOperationNotAllowed();
         _;
     }
