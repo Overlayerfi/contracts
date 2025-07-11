@@ -9,7 +9,7 @@ library MintRedeemManagerTypes {
         address beneficiary;
         address collateral;
         uint256 collateral_amount;
-        uint256 usdo_amount;
+        uint256 overlayerWrap_amount;
     }
 
     struct StableCoin {

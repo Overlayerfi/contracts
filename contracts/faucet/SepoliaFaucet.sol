@@ -9,8 +9,8 @@ contract SepoliaFaucet is Ownable {
 
     IERC20 public tokenUSDC;
     IERC20 public tokenUSDT;
-    IERC20 public tokenUSDOUSDC;
-    IERC20 public tokenUSDOUSDT;
+    IERC20 public tokenOverlayerWrapUSDC;
+    IERC20 public tokenOverlayerWrapUSDT;
 
     // Constants for token amounts based on decimals:
     // For tokens with 6 decimals: 10 * 10^6
@@ -22,13 +22,13 @@ contract SepoliaFaucet is Ownable {
     constructor(
         address _tokenUSDC,
         address _tokenUSDT,
-        address _tokenUSDOUSDC,
-        address _tokenUSDOUSDT
+        address _tokenOverlayerWrapUSDC,
+        address _tokenOverlayerWrapUSDT
     ) Ownable(msg.sender) {
         tokenUSDC = IERC20(_tokenUSDC);
         tokenUSDT = IERC20(_tokenUSDT);
-        tokenUSDOUSDC = IERC20(_tokenUSDOUSDC);
-        tokenUSDOUSDT = IERC20(_tokenUSDOUSDT);
+        tokenOverlayerWrapUSDC = IERC20(_tokenOverlayerWrapUSDC);
+        tokenOverlayerWrapUSDT = IERC20(_tokenOverlayerWrapUSDT);
     }
 
     /// @notice Only the owner can call this faucet function.
@@ -41,7 +41,7 @@ contract SepoliaFaucet is Ownable {
         tokenUSDC.safeTransfer(recipient, SIX_DECIMAL_AMOUNT);
         tokenUSDT.safeTransfer(recipient, SIX_DECIMAL_AMOUNT);
 
-        tokenUSDOUSDT.safeTransfer(recipient, EIGHTEEN_DECIMAL_AMOUNT);
-        tokenUSDOUSDC.safeTransfer(recipient, EIGHTEEN_DECIMAL_AMOUNT);
+        tokenOverlayerWrapUSDT.safeTransfer(recipient, EIGHTEEN_DECIMAL_AMOUNT);
+        tokenOverlayerWrapUSDC.safeTransfer(recipient, EIGHTEEN_DECIMAL_AMOUNT);
     }
 }

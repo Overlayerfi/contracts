@@ -3,28 +3,28 @@ pragma solidity 0.8.20;
 
 /* solhint-disable var-name-mixedcase */
 
-import "./StakedUSDO.sol";
-import "./interfaces/IStakedUSDOCoolDown.sol";
-import "./USDOSilo.sol";
-import "../backing/interfaces/IUSDOBacking.sol";
+import "./StakedOverlayerWrap.sol";
+import "./interfaces/IStakedOverlayerWrapCoolDown.sol";
+import "./OverlayerWrapSilo.sol";
+import "../backing/interfaces/IOverlayerWrapBacking.sol";
 
 /**
- * @title StakedUSDOFront
- * @notice The StakedUSDOFront contract allows users to
- * stake USDO tokens and earn a portion of protocol yield. This is the public entrypoint
+ * @title StakedOverlayerWrapFront
+ * @notice The StakedOverlayerWrapFront contract allows users to
+ * stake OverlayerWrap tokens and earn a portion of protocol yield. This is the public entrypoint
  * @dev If cooldown duration is set to
- * zero, the StakedUSDOFront behavior changes to follow ERC4626 standard and
+ * zero, the StakedOverlayerWrapFront behavior changes to follow ERC4626 standard and
  * disables cooldownShares and cooldownAssets methods. If cooldown duration is
  * greater than zero, the ERC4626 withdrawal and redeem functions are disabled,
  * breaking the ERC4626 standard, and enabling the cooldownShares and the
  * cooldownAssets functions.
  */
-contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
+contract StakedOverlayerWrapFront is IStakedOverlayerWrapCooldown, StakedOverlayerWrap {
     using SafeERC20 for IERC20;
 
     mapping(address => UserCooldown) public cooldowns;
 
-    USDOSilo public immutable SILO;
+    OverlayerWrapSilo public immutable SILO;
 
     uint24 public constant MAX_COOLDOWN_DURATION = 90 days;
 
@@ -32,18 +32,18 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
 
     /// @notice Ensure cooldownDuration is zero
     modifier ensureCooldownOff() {
-        if (cooldownDuration != 0) revert StakedUSDOOperationNotAllowed();
+        if (cooldownDuration != 0) revert StakedOverlayerWrapOperationNotAllowed();
         _;
     }
 
     /// @notice Ensure cooldownDuration is gt 0
     modifier ensureCooldownOn() {
-        if (cooldownDuration == 0) revert StakedUSDOOperationNotAllowed();
+        if (cooldownDuration == 0) revert StakedOverlayerWrapOperationNotAllowed();
         _;
     }
 
-    /// @notice Constructor for StakedUSDOFront contract.
-    /// @param _asset The address of the USDO token.
+    /// @notice Constructor for StakedOverlayerWrapFront contract.
+    /// @param _asset The address of the OverlayerWrap token.
     /// @param initialRewarder The address of the initial rewarder.
     /// @param _owner The address of the admin role.
     /// @param vestingPeriod The rewards vesting period
@@ -52,8 +52,8 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
         address initialRewarder,
         address _owner,
         uint256 vestingPeriod
-    ) StakedUSDO(_asset, initialRewarder, _owner, vestingPeriod) {
-        SILO = new USDOSilo(address(this), address(_asset));
+    ) StakedOverlayerWrap(_asset, initialRewarder, _owner, vestingPeriod) {
+        SILO = new OverlayerWrapSilo(address(this), address(_asset));
         cooldownDuration = MAX_COOLDOWN_DURATION;
     }
 
@@ -67,8 +67,8 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
         address receiver,
         address _owner
     ) public virtual override ensureCooldownOff returns (uint256) {
-        if (usdoBacking != address(0)) {
-            IUSDOBacking(usdoBacking).compound();
+        if (overlayerWrapBacking != address(0)) {
+            IOverlayerWrapBacking(overlayerWrapBacking).compound();
         }
         return super.withdraw(assets, receiver, _owner);
     }
@@ -81,8 +81,8 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
         address receiver,
         address _owner
     ) public virtual override ensureCooldownOff returns (uint256) {
-        if (usdoBacking != address(0)) {
-            IUSDOBacking(usdoBacking).compound();
+        if (overlayerWrapBacking != address(0)) {
+            IOverlayerWrapBacking(overlayerWrapBacking).compound();
         }
         return super.redeem(shares, receiver, _owner);
     }
@@ -94,8 +94,8 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
         UserCooldown storage userCooldown = cooldowns[msg.sender];
         uint256 assets = userCooldown.underlyingAmount;
 
-        if (usdoBacking != address(0)) {
-            IUSDOBacking(usdoBacking).compound();
+        if (overlayerWrapBacking != address(0)) {
+            IOverlayerWrapBacking(overlayerWrapBacking).compound();
         }
 
         if (
@@ -106,7 +106,7 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
 
             SILO.withdraw(receiver, assets);
         } else {
-            revert IStakedUSDOCooldownInvalidCooldown();
+            revert IStakedOverlayerWrapCooldownInvalidCooldown();
         }
     }
 
@@ -116,10 +116,10 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
         uint256 assets
     ) external ensureCooldownOn returns (uint256 shares) {
         if (assets > maxWithdraw(msg.sender))
-            revert IStakedUSDOCooldownExcessiveWithdrawAmount();
+            revert IStakedOverlayerWrapCooldownExcessiveWithdrawAmount();
 
-        if (usdoBacking != address(0)) {
-            IUSDOBacking(usdoBacking).compound();
+        if (overlayerWrapBacking != address(0)) {
+            IOverlayerWrapBacking(overlayerWrapBacking).compound();
         }
 
         shares = previewWithdraw(assets);
@@ -138,10 +138,10 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
         uint256 shares
     ) external ensureCooldownOn returns (uint256 assets) {
         if (shares > maxRedeem(msg.sender))
-            revert IStakedUSDOCooldownExcessiveRedeemAmount();
+            revert IStakedOverlayerWrapCooldownExcessiveRedeemAmount();
 
-        if (usdoBacking != address(0)) {
-            IUSDOBacking(usdoBacking).compound();
+        if (overlayerWrapBacking != address(0)) {
+            IOverlayerWrapBacking(overlayerWrapBacking).compound();
         }
 
         assets = previewRedeem(shares);
@@ -154,7 +154,7 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
         _withdraw(msg.sender, address(SILO), msg.sender, assets, shares);
     }
 
-    /// @notice Set cooldown duration. If cooldown duration is set to zero, the StakedUSDOFront behavior changes to follow ERC4626 standard and disables
+    /// @notice Set cooldown duration. If cooldown duration is set to zero, the StakedOverlayerWrapFront behavior changes to follow ERC4626 standard and disables
     /// cooldownShares and cooldownAssets methods. If cooldown duration is greater than zero, the ERC4626 withdrawal and redeem functions are disabled,
     /// breaking the ERC4626 standard, and enabling the cooldownShares and the cooldownAssets functions.
     /// @param duration Duration of the cooldown
@@ -162,12 +162,12 @@ contract StakedUSDOFront is IStakedUSDOCooldown, StakedUSDO {
         uint24 duration
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (duration > MAX_COOLDOWN_DURATION) {
-            revert IStakedUSDOCooldownInvalidCooldown();
+            revert IStakedOverlayerWrapCooldownInvalidCooldown();
         }
 
         uint24 previousDuration = cooldownDuration;
         cooldownDuration = duration;
-        emit IStakedUSDOCooldownDurationUpdated(
+        emit IStakedOverlayerWrapCooldownDurationUpdated(
             previousDuration,
             cooldownDuration
         );

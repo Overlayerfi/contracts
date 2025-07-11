@@ -8,18 +8,18 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "../shared/SingleAdminAccessControl.sol";
-import "./interfaces/IStakedUSDO.sol";
+import "./interfaces/IStakedOverlayerWrap.sol";
 
 /**
- * @title StakedUSDO
+ * @title StakedOverlayerWrap
  * @dev This contract is intended to be inherited in order to define custom vesting (cooldowns) policies
  */
-abstract contract StakedUSDO is
+abstract contract StakedOverlayerWrap is
     SingleAdminAccessControl,
     ReentrancyGuard,
     ERC20Permit,
     ERC4626,
-    IStakedUSDO
+    IStakedOverlayerWrap
 {
     using SafeERC20 for IERC20;
 
@@ -54,20 +54,20 @@ abstract contract StakedUSDO is
     /// @notice The timestamp of the last blacklist activation request
     uint256 public blacklistActivationTime;
 
-    /// @notice USDO backing contract
-    address public usdoBacking;
+    /// @notice OverlayerWrap backing contract
+    address public overlayerWrapBacking;
 
     /* ------------- MODIFIERS ------------- */
 
     /// @notice Ensure input amount nonzero
     modifier notZero(uint256 amount) {
-        if (amount == 0) revert StakedUSDOInvalidAmount();
+        if (amount == 0) revert StakedOverlayerWrapInvalidAmount();
         _;
     }
 
     /// @notice Ensures blacklist target is not owner
     modifier notOwner(address target) {
-        if (target == owner()) revert StakedUSDOCantBlacklistOwner();
+        if (target == owner()) revert StakedOverlayerWrapCantBlacklistOwner();
         _;
     }
 
@@ -78,7 +78,7 @@ abstract contract StakedUSDO is
             blacklistActivationTime + BLACKLIST_ACTIVATION_TIME >
             block.timestamp
         ) {
-            revert StakedUSDOCannotBlacklist();
+            revert StakedOverlayerWrapCannotBlacklist();
         }
         _;
     }
@@ -86,8 +86,8 @@ abstract contract StakedUSDO is
     /* ------------- CONSTRUCTOR ------------- */
 
     /**
-     * @notice Constructor for StakedUSDO contract.
-     * @param asset The address of the USDO token.
+     * @notice Constructor for StakedOverlayerWrap contract.
+     * @param asset The address of the OverlayerWrap token.
      * @param initialRewarder The address of the initial rewarder.
      * @param admin The address of the admin role.
      * @param vestingPeriod The rewards vesting period
@@ -97,13 +97,13 @@ abstract contract StakedUSDO is
         address initialRewarder,
         address admin,
         uint256 vestingPeriod
-    ) ERC20("Staked USDO", "sUSDO") ERC4626(asset) ERC20Permit("sUSDO") {
+    ) ERC20("Staked OverlayerWrap", "sOverlayerWrap") ERC4626(asset) ERC20Permit("sOverlayerWrap") {
         if (
             admin == address(0) ||
             initialRewarder == address(0) ||
             address(asset) == address(0)
         ) {
-            revert StakedUSDOInvalidZeroAddress();
+            revert StakedOverlayerWrapInvalidZeroAddress();
         }
 
         _grantRole(REWARDER_ROLE, initialRewarder);
@@ -172,27 +172,27 @@ abstract contract StakedUSDO is
         uint256 time
     ) external onlyRole(BLACKLIST_MANAGER_ROLE) {
         if (time > 0 && time < block.timestamp) {
-            revert StakedUSDOInvalidTime();
+            revert StakedOverlayerWrapInvalidTime();
         }
         blacklistActivationTime = time;
     }
 
     /**
-     * @notice Sets the usdo backing contract
+     * @notice Sets the overlayerWrap backing contract
      * @dev Zero address not disable
-     * @param backing The usdo backing contract
+     * @param backing The overlayerWrap backing contract
      */
-    function setUsdoBacking(
+    function setOverlayerWrapBacking(
         address backing
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        usdoBacking = backing;
-        emit UsdoBackingSet(backing);
+        overlayerWrapBacking = backing;
+        emit OverlayerWrapBackingSet(backing);
     }
 
     /**
      * @notice Allows the owner to rescue tokens accidentally sent to the contract.
-     * Note that the owner cannot rescue USDO tokens because they functionally sit here
-     * and belong to stakers but can rescue staked USDO as they should never actually
+     * Note that the owner cannot rescue OverlayerWrap tokens because they functionally sit here
+     * and belong to stakers but can rescue staked OverlayerWrap as they should never actually
      * sit in this contract and a staker may well transfer them here by accident.
      * @param token The token to be rescued.
      * @param amount The amount of tokens to be rescued.
@@ -203,7 +203,7 @@ abstract contract StakedUSDO is
         uint256 amount,
         address to
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (address(token) == asset()) revert StakedUSDOInvalidToken();
+        if (address(token) == asset()) revert StakedOverlayerWrapInvalidToken();
         IERC20(token).safeTransfer(to, amount);
     }
 
@@ -216,7 +216,7 @@ abstract contract StakedUSDO is
         address from,
         address to
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (to == address(0)) revert StakedUSDOInvalidZeroAddress();
+        if (to == address(0)) revert StakedOverlayerWrapInvalidZeroAddress();
         if (
             hasRole(WHOLE_RESTRICTED_ROLE, from) &&
             (!hasRole(WHOLE_RESTRICTED_ROLE, to) &&
@@ -229,21 +229,21 @@ abstract contract StakedUSDO is
 
             emit LockedAmountRedistributed(from, to, amountToDistribute);
         } else {
-            revert StakedUSDOOperationNotAllowed();
+            revert StakedOverlayerWrapOperationNotAllowed();
         }
     }
 
     /* ------------- PUBLIC ------------- */
 
     /**
-     * @notice Returns the amount of USDO tokens that are vested in the contract.
+     * @notice Returns the amount of OverlayerWrap tokens that are vested in the contract.
      */
     function totalAssets() public view override returns (uint256) {
         return IERC20(asset()).balanceOf(address(this)) - getUnvestedAmount();
     }
 
     /**
-     * @notice Returns the amount of USDO tokens that are unvested in the contract.
+     * @notice Returns the amount of OverlayerWrap tokens that are unvested in the contract.
      */
     function getUnvestedAmount() public view returns (uint256) {
         uint256 timeSinceLastDistribution = block.timestamp -
@@ -269,7 +269,7 @@ abstract contract StakedUSDO is
      * @dev Remove renounce role access from AccessControl, to prevent users to resign roles.
      */
     function renounceRole(bytes32, address) public virtual override {
-        revert StakedUSDOOperationNotAllowed();
+        revert StakedOverlayerWrapOperationNotAllowed();
     }
 
     /* ------------- INTERNAL ------------- */
@@ -278,7 +278,7 @@ abstract contract StakedUSDO is
     function _checkMinShares() internal view {
         uint256 _totalSupply = totalSupply();
         if (_totalSupply > 0 && _totalSupply < MIN_SHARES)
-            revert StakedUSDOMinSharesViolation();
+            revert StakedOverlayerWrapMinSharesViolation();
     }
 
     /**
@@ -298,13 +298,13 @@ abstract contract StakedUSDO is
             hasRole(STAKE_RESTRICTED_ROLE, caller) ||
             hasRole(STAKE_RESTRICTED_ROLE, receiver)
         ) {
-            revert StakedUSDOOperationNotAllowed();
+            revert StakedOverlayerWrapOperationNotAllowed();
         }
         if (
             hasRole(WHOLE_RESTRICTED_ROLE, caller) ||
             hasRole(WHOLE_RESTRICTED_ROLE, receiver)
         ) {
-            revert StakedUSDOOperationNotAllowed();
+            revert StakedOverlayerWrapOperationNotAllowed();
         }
         super._deposit(caller, receiver, assets, shares);
         _checkMinShares();
@@ -330,7 +330,7 @@ abstract contract StakedUSDO is
             hasRole(WHOLE_RESTRICTED_ROLE, receiver) ||
             hasRole(WHOLE_RESTRICTED_ROLE, sharesOwner)
         ) {
-            revert StakedUSDOOperationNotAllowed();
+            revert StakedOverlayerWrapOperationNotAllowed();
         }
 
         super._withdraw(caller, receiver, sharesOwner, assets, shares);
@@ -340,7 +340,7 @@ abstract contract StakedUSDO is
     /// @notice Updata the vesting amount
     /// @param newVestingAmount The new vesting amount
     function _updateVestingAmount(uint256 newVestingAmount) internal {
-        if (getUnvestedAmount() > 0) revert StakedUSDOStillVesting();
+        if (getUnvestedAmount() > 0) revert StakedOverlayerWrapStillVesting();
 
         vestingAmount = newVestingAmount;
         lastDistributionTimestamp = block.timestamp;
@@ -355,10 +355,10 @@ abstract contract StakedUSDO is
         uint256 value
     ) internal virtual override {
         if (hasRole(WHOLE_RESTRICTED_ROLE, from) && to != address(0)) {
-            revert StakedUSDOOperationNotAllowed();
+            revert StakedOverlayerWrapOperationNotAllowed();
         }
         if (hasRole(WHOLE_RESTRICTED_ROLE, to)) {
-            revert StakedUSDOOperationNotAllowed();
+            revert StakedOverlayerWrapOperationNotAllowed();
         }
         super._update(from, to, value);
     }
