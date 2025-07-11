@@ -90,9 +90,12 @@ abstract contract AaveHandler is
         if (admin == address(0)) revert AaveHandlerZeroAddressException();
         if (rewardsDispatcher == address(0))
             revert AaveHandlerZeroAddressException();
-        if (overlayerWrap == address(0)) revert AaveHandlerZeroAddressException();
-        if (soverlayerWrap == address(0)) revert AaveHandlerZeroAddressException();
-        if (overlayerWrap == soverlayerWrap) revert AaveHandlerSameAddressException();
+        if (overlayerWrap == address(0))
+            revert AaveHandlerZeroAddressException();
+        if (soverlayerWrap == address(0))
+            revert AaveHandlerZeroAddressException();
+        if (overlayerWrap == soverlayerWrap)
+            revert AaveHandlerSameAddressException();
         OVA_REWARDS_DISPATCHER = rewardsDispatcher;
         OverlayerWrap = overlayerWrap;
         sOverlayerWrap = soverlayerWrap;
@@ -124,9 +127,7 @@ abstract contract AaveHandler is
             usdtReceived = IERC20(AUSDT).balanceOf(address(this));
         }
 
-        if (
-            usdtReceived < totalSuppliedUSDT
-        ) {
+        if (usdtReceived < totalSuppliedUSDT) {
             revert AaveHandlerAaveWithrawFailed();
         }
 
@@ -165,10 +166,7 @@ abstract contract AaveHandler is
         }
 
         if (!isEmergencyMode) {
-            _withdrawInternalAave(
-                diff,
-                address(this)
-            );
+            _withdrawInternalAave(diff, address(this));
         }
         // Otherwise we use aTokens directly
 
@@ -197,9 +195,7 @@ abstract contract AaveHandler is
 
     ///@notice Supply funds to AAVE protocol
     ///@param amountUsdt The amount to supply intended as USDT or their aToken version
-    function supply(
-        uint256 amountUsdt
-    ) external onlyProtocol nonReentrant {
+    function supply(uint256 amountUsdt) external onlyProtocol nonReentrant {
         bool isEmergencyMode = IOverlayerWrap(OverlayerWrap).emergencyMode();
         if (amountUsdt > 0) {
             if (isEmergencyMode) {
@@ -311,22 +307,24 @@ abstract contract AaveHandler is
 
     ///@notice Approve Staked OverlayerWrap spending
     ///@param amount The amount to allow sOverlayerWrap as spender
-    function approveStakingOverlayerWrap(uint256 amount) public onlyOwner nonReentrant {
+    function approveStakingOverlayerWrap(
+        uint256 amount
+    ) public onlyOwner nonReentrant {
         IERC20(OverlayerWrap).forceApprove(sOverlayerWrap, amount);
     }
 
     ///@notice Approve OverlayerWrap spending
     ///@param amount The amount to allow OverlayerWrap as spender
-    function approveOverlayerWrap(uint256 amount) public onlyOwner nonReentrant {
+    function approveOverlayerWrap(
+        uint256 amount
+    ) public onlyOwner nonReentrant {
         IERC20(USDT).forceApprove(OverlayerWrap, amount);
         IERC20(AUSDT).forceApprove(OverlayerWrap, amount);
     }
 
     ///@notice Withraw funds from aave protocol
     ///@param amountUsdt The amount to withdraw intended as USDT or their aToken version
-    function withdraw(
-        uint256 amountUsdt
-    ) public onlyProtocol nonReentrant {
+    function withdraw(uint256 amountUsdt) public onlyProtocol nonReentrant {
         bool isEmergencyMode = IOverlayerWrap(OverlayerWrap).emergencyMode();
         if (!isEmergencyMode) {
             _withdrawInternal(amountUsdt, msg.sender);
@@ -345,9 +343,7 @@ abstract contract AaveHandler is
 
     /// @notice Update the supplied usdc and usdt counter
     /// @param usdtTaken The amount of usdt removed from the backing supply
-    function updateSuppliedAmounts(
-        uint256 usdtTaken
-    ) internal {
+    function updateSuppliedAmounts(uint256 usdtTaken) internal {
         if (usdtTaken > totalSuppliedUSDT) {
             totalSuppliedUSDT = 0;
         } else {
@@ -376,14 +372,8 @@ abstract contract AaveHandler is
     ///@notice Withraw funds from aave and update supply counters
     ///@param amountUsdt The amount to withdraw intended as USDT
     ///@param recipient The collateral recipient
-    function _withdrawInternal(
-        uint256 amountUsdt,
-        address recipient
-    ) internal {
-        (uint256 usdtReceived) = _withdrawInternalAave(
-            amountUsdt,
-            recipient
-        );
+    function _withdrawInternal(uint256 amountUsdt, address recipient) internal {
+        uint256 usdtReceived = _withdrawInternalAave(amountUsdt, recipient);
 
         updateSuppliedAmounts(usdtReceived);
     }

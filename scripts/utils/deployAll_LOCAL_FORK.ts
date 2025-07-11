@@ -66,7 +66,10 @@ async function main() {
     const overlayerWrapAddr = await deploy_OverlayerWrap(true, 2);
 
     // 2. Deploy sOverlayerWrap
-    const soverlayerWrapAddr = await deploy_StakedOverlayerWrap(overlayerWrapAddr, 2);
+    const soverlayerWrapAddr = await deploy_StakedOverlayerWrap(
+      overlayerWrapAddr,
+      2
+    );
 
     // 3. Deploy airdrop points (also referral contract)
     const ovaReferralAddress = await deploy_AirdropReward(
@@ -263,7 +266,10 @@ async function main() {
       from: admin.address,
       nonce: OverlayerWrapBackingNonce
     });
-    await OverlayerWrap_proposeNewCollateralSpender(overlayerWrapAddr, futureAddress);
+    await OverlayerWrap_proposeNewCollateralSpender(
+      overlayerWrapAddr,
+      futureAddress
+    );
     const overlayerWrapbackingAddr = await deploy_OverlayerWrapBacking(
       admin.address,
       treasuryAddr,
@@ -272,11 +278,18 @@ async function main() {
     );
 
     if (futureAddress !== overlayerWrapbackingAddr) {
-      throw new Error("The predicted OverlayerWrapBacking address is not valid");
+      throw new Error(
+        "The predicted OverlayerWrapBacking address is not valid"
+      );
     }
 
     // 12. Grant to the backing contract the rewarder role
-    await grantRole(soverlayerWrapAddr, SOverlayerWrap_ABI.abi, "REWARDER_ROLE", overlayerWrapbackingAddr);
+    await grantRole(
+      soverlayerWrapAddr,
+      SOverlayerWrap_ABI.abi,
+      "REWARDER_ROLE",
+      overlayerWrapbackingAddr
+    );
 
     // 13. Mint and stake initial OverlayerWrap
     const order = {
@@ -289,7 +302,11 @@ async function main() {
       overlayerWrap_amount: ethers.parseEther("1")
     };
     await OverlayerWrap_mint(overlayerWrapAddr, order);
-    const overlayerWrapContract = new ethers.Contract(overlayerWrapAddr, OverlayerWrap_ABI.abi, admin);
+    const overlayerWrapContract = new ethers.Contract(
+      overlayerWrapAddr,
+      OverlayerWrap_ABI.abi,
+      admin
+    );
     await (overlayerWrapContract.connect(admin) as Contract).approve(
       soverlayerWrapAddr,
       ethers.MaxUint256
