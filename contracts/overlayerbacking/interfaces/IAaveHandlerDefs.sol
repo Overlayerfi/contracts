@@ -16,6 +16,8 @@ interface IAaveHandlerDefs {
 
     error AaveHandlerAaveWithrawFailed();
 
+    error AaveHandlerInvalidCollateral();
+
     error AaveHandlerInsufficientBalance();
 
     error AaveHandlerInsufficientABalance();

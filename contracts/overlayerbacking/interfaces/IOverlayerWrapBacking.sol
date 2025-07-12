@@ -2,5 +2,5 @@
 pragma solidity 0.8.20;
 
 interface IOverlayerWrapBacking {
-    function compound() external;
+    function compound(bool withdrawAave) external;
 }
