@@ -2,6 +2,6 @@
 pragma solidity 0.8.20;
 
 interface IOverlayerWrapBacking {
-    function supply(uint256 amount) external;
-    function withdraw(uint256 amount) external;
+    function supply(uint256 amount, address collateral) external;
+    function withdraw(uint256 amount, address collateral) external;
 }

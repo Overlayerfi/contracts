@@ -33,6 +33,8 @@ contract StakedOverlayerWrapFront is
 
     uint24 public cooldownDuration;
 
+    bool public withdrawAaveDuringCompound;
+
     /// @notice Ensure cooldownDuration is zero
     modifier ensureCooldownOff() {
         if (cooldownDuration != 0)
@@ -50,16 +52,17 @@ contract StakedOverlayerWrapFront is
     /// @notice Constructor for StakedOverlayerWrapFront contract.
     /// @param _asset The address of the OverlayerWrap token.
     /// @param initialRewarder The address of the initial rewarder.
-    /// @param _owner The address of the admin role.
+    /// @param admin The address of the admin role.
     /// @param vestingPeriod The rewards vesting period
     constructor(
         IERC20 _asset,
         address initialRewarder,
-        address _owner,
+        address admin,
         uint256 vestingPeriod
-    ) StakedOverlayerWrap(_asset, initialRewarder, _owner, vestingPeriod) {
+    ) StakedOverlayerWrap(_asset, initialRewarder, admin, vestingPeriod) {
         SILO = new OverlayerWrapSilo(address(this), address(_asset));
         cooldownDuration = MAX_COOLDOWN_DURATION;
+        withdrawAaveDuringCompound = true;
     }
 
     /* ------------- EXTERNAL ------------- */
@@ -73,7 +76,9 @@ contract StakedOverlayerWrapFront is
         address _owner
     ) public virtual override ensureCooldownOff returns (uint256) {
         if (overlayerWrapBacking != address(0)) {
-            IOverlayerWrapBacking(overlayerWrapBacking).compound();
+            IOverlayerWrapBacking(overlayerWrapBacking).compound(
+                withdrawAaveDuringCompound
+            );
         }
         return super.withdraw(assets, receiver, _owner);
     }
@@ -87,7 +92,9 @@ contract StakedOverlayerWrapFront is
         address _owner
     ) public virtual override ensureCooldownOff returns (uint256) {
         if (overlayerWrapBacking != address(0)) {
-            IOverlayerWrapBacking(overlayerWrapBacking).compound();
+            IOverlayerWrapBacking(overlayerWrapBacking).compound(
+                withdrawAaveDuringCompound
+            );
         }
         return super.redeem(shares, receiver, _owner);
     }
@@ -100,7 +107,9 @@ contract StakedOverlayerWrapFront is
         uint256 assets = userCooldown.underlyingAmount;
 
         if (overlayerWrapBacking != address(0)) {
-            IOverlayerWrapBacking(overlayerWrapBacking).compound();
+            IOverlayerWrapBacking(overlayerWrapBacking).compound(
+                withdrawAaveDuringCompound
+            );
         }
 
         if (
@@ -124,7 +133,9 @@ contract StakedOverlayerWrapFront is
             revert IStakedOverlayerWrapCooldownExcessiveWithdrawAmount();
 
         if (overlayerWrapBacking != address(0)) {
-            IOverlayerWrapBacking(overlayerWrapBacking).compound();
+            IOverlayerWrapBacking(overlayerWrapBacking).compound(
+                withdrawAaveDuringCompound
+            );
         }
 
         shares = previewWithdraw(assets);
@@ -146,7 +157,9 @@ contract StakedOverlayerWrapFront is
             revert IStakedOverlayerWrapCooldownExcessiveRedeemAmount();
 
         if (overlayerWrapBacking != address(0)) {
-            IOverlayerWrapBacking(overlayerWrapBacking).compound();
+            IOverlayerWrapBacking(overlayerWrapBacking).compound(
+                withdrawAaveDuringCompound
+            );
         }
 
         assets = previewRedeem(shares);
@@ -176,5 +189,11 @@ contract StakedOverlayerWrapFront is
             previousDuration,
             cooldownDuration
         );
+    }
+
+    function setWithdrawAaveDuringCompound(
+        bool doWithdraw
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        withdrawAaveDuringCompound = doWithdraw;
     }
 }

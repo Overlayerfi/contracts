@@ -429,13 +429,6 @@ describe("OverlayerWrap", function () {
         ethers.parseEther("0")
       );
     });
-
-    it("Should set emergency mode", async function () {
-      const { overlayerWrap, admin } = await loadFixture(deployFixture);
-      expect(
-        await overlayerWrap.connect(admin).setEmergencyStatus(true)
-      ).to.emit(overlayerWrap, "MintRedeemManagerEmergencyStatus");
-    });
   });
 
   describe("Mint", function () {
@@ -463,7 +456,7 @@ describe("OverlayerWrap", function () {
       );
     });
 
-    it("Should mint in emergency mode", async function () {
+    it("Should mint with aToken", async function () {
       const { collateral, acollateral, overlayerWrap, admin, alice } =
         await loadFixture(deployFixture);
 
@@ -473,7 +466,6 @@ describe("OverlayerWrap", function () {
       const beforeBal = await collateral.balanceOf(contractAddr);
 
       const amount = "10";
-      await overlayerWrap.connect(admin).setEmergencyStatus(true);
       let order = {
         benefactor: alice.address,
         beneficiary: alice.address,
@@ -654,7 +646,7 @@ describe("OverlayerWrap", function () {
       );
     });
 
-    it("Should redeem in emergency mode", async function () {
+    it("Should redeem aToken", async function () {
       const { collateral, acollateral, overlayerWrap, admin, alice } =
         await loadFixture(deployFixture);
 
@@ -664,7 +656,6 @@ describe("OverlayerWrap", function () {
       const beforeBal = await collateral.balanceOf(contractAddr);
 
       const amount = "10";
-      await overlayerWrap.connect(admin).setEmergencyStatus(true);
 
       const order = {
         benefactor: alice.address,
