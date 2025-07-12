@@ -26,15 +26,15 @@ contract OverlayerWrapBacking is AaveHandler, IOverlayerWrapBackingDefs {
     ///@dev It accepts to be the OverlayerWrap collateral spender
     ///@param admin The contract admin
     ///@param dispatcher The protocol reward dispatcher contract
-    ///@param overlayerWrap The OverlayerWrap contract
-    ///@param soverlayerWrap The sOverlayerWrap contract
+    ///@param overlayerWrap_ The OverlayerWrap contract
+    ///@param sOverlayerWrap_ The sOverlayerWrap contract
     constructor(
         address admin,
         address dispatcher,
-        address overlayerWrap,
-        address soverlayerWrap
-    ) AaveHandler(admin, dispatcher, overlayerWrap, soverlayerWrap) {
-        IOverlayerWrap(overlayerWrap).acceptProposedCollateralSpender();
+        address overlayerWrap_,
+        address sOverlayerWrap_
+    ) AaveHandler(admin, dispatcher, overlayerWrap_, sOverlayerWrap_) {
+        IOverlayerWrap(overlayerWrap_).acceptProposedCollateralSpender();
         emit OverlayerWrapSpenderAccepted();
     }
 
