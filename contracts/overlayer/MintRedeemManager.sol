@@ -44,9 +44,6 @@ abstract contract MintRedeemManager is
     /// @notice Max redeemed OverlayerWrap allowed per block
     uint256 public maxRedeemPerBlock;
 
-    /// @notice If protocol is in emergency mode
-    bool public emergencyMode;
-
     /* --------------- MODIFIERS --------------- */
 
     /// @notice Ensure that the already minted OverlayerWrap in the actual block plus the amount to be minted is below the maxMintPerBlock
@@ -126,17 +123,6 @@ abstract contract MintRedeemManager is
         _revokeRole(COLLATERAL_MANAGER_ROLE, collateralManager);
     }
 
-    /// @notice Change the protocol emergency mode
-    /// @dev Only default admin can call this function
-    /// @dev If any additional stable coin is found (USDC or USDT) is present here, consider calling `supplyToBacking` first as that call may fail if called from here under some unusual circumstances
-    /// @param emergencyMode_ The mode to be set
-    function setEmergencyStatus(
-        bool emergencyMode_
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        emergencyMode = emergencyMode_;
-        emit MintRedeemManagerEmergencyStatus(emergencyMode);
-    }
-
     /// @notice Pause the contract
     /// @dev This call is used only to lock the supplyToBacking public call
     function pause() external nonReentrant onlyRole(GATEKEEPER_ROLE) {
@@ -151,21 +137,42 @@ abstract contract MintRedeemManager is
 
     /// @notice Supply funds to the active backing contract (aka approvedCollateralSpender)
     /// @dev The approveCollateralSpender will colect the funds, as the only entity allowed to do so
-    /// @param amount The amount to supply
+    /// @param amountCollateral The amount to supply of collateral
+    /// @param amountACollateral The amount to supply of aCollateral
     function supplyToBacking(
-        uint256 amount
+        uint256 amountCollateral,
+        uint256 amountACollateral
     ) external nonReentrant whenNotPaused {
         if (approvedCollateralSpender != address(0)) {
-            uint256 collateralBal = IERC20(
-                emergencyMode ? aCollateral.addr : collateral.addr
-            ).balanceOf(address(this));
-            uint256 amountToSupply = amount == 0 ? collateralBal : amount;
-            if (amountToSupply > collateralBal)
+            uint256 collateralBal = IERC20(collateral.addr).balanceOf(
+                address(this)
+            );
+            uint256 aCollateralBal = IERC20(aCollateral.addr).balanceOf(
+                address(this)
+            );
+            uint256 amountToSupplyCollateral = amountCollateral == 0
+                ? collateralBal
+                : amountCollateral;
+            uint256 amountToSupplyACollateral = amountACollateral == 0
+                ? aCollateralBal
+                : amountACollateral;
+            if (amountToSupplyCollateral > collateralBal)
+                revert MintRedeemManagerInsufficientFunds();
+            if (amountToSupplyACollateral > aCollateralBal)
                 revert MintRedeemManagerInsufficientFunds();
             IOverlayerWrapBacking(approvedCollateralSpender).supply(
-                amountToSupply
+                amountToSupplyCollateral,
+                collateral.addr
             );
-            emit SuppliedToBacking(msg.sender, amountToSupply);
+            IOverlayerWrapBacking(approvedCollateralSpender).supply(
+                amountToSupplyACollateral,
+                aCollateral.addr
+            );
+            emit SuppliedToBacking(
+                msg.sender,
+                amountToSupplyCollateral,
+                amountToSupplyACollateral
+            );
         }
     }
 
@@ -182,23 +189,18 @@ abstract contract MintRedeemManager is
         // Set the max mint/redeem limits per block
         _setMaxMintPerBlock(maxMintPerBlock_);
         _setMaxRedeemPerBlock(maxRedeemPerBlock_);
-
-        emergencyMode = false;
     }
 
-    /// @notice Check order parameters based on protocol emergency status
+    /// @notice Check order parameters
     /// @param order A struct containing the order
     function _validateInputTokens(
         MintRedeemManagerTypes.Order calldata order
     ) internal view {
-        if (emergencyMode) {
-            if (!(order.collateral == aCollateral.addr)) {
-                revert MintRedeemManagerCollateralNotValid();
-            }
-        } else {
-            if (!(order.collateral == collateral.addr)) {
-                revert MintRedeemManagerCollateralNotValid();
-            }
+        if (
+            !(order.collateral == aCollateral.addr ||
+                order.collateral == collateral.addr)
+        ) {
+            revert MintRedeemManagerCollateralNotValid();
         }
     }
 
@@ -237,7 +239,7 @@ abstract contract MintRedeemManager is
         (
             uint256 checkedBurnAmount,
             uint256 checkedBack
-        ) = _withdrawFromProtocol(order.overlayerWrapAmount);
+        ) = _withdrawFromProtocol(order.overlayerWrapAmount, order.collateral);
 
         _transferToBeneficiary(
             order.beneficiary,
@@ -257,10 +259,12 @@ abstract contract MintRedeemManager is
     /// locked in this contract until they are eventually transferable under unusual circumstances.
     /// We are aware of this issue, and the necessary funds will be manually provided to the `approvedCollateralSpender` to facilitate withdrawals.
     /// @param amount The amount of OverlayerWrap to burn
+    /// @param wantCollateral The wanted collateral to withdraw
     /// @return checkedBurnAmount The checked amount to burn
     /// @return back The amount of the underlying or their aToken version returned to user
     function _withdrawFromProtocol(
-        uint256 amount
+        uint256 amount,
+        address wantCollateral
     ) internal returns (uint256 checkedBurnAmount, uint256 back) {
         if (amount == 0) {
             return (0, 0);
@@ -268,10 +272,16 @@ abstract contract MintRedeemManager is
         //Here does hold the inveriant that _decimals >= token.decimals
         unchecked {
             uint256 diffDecimals = _decimals -
-                (emergencyMode ? aCollateral.decimals : collateral.decimals);
+                (
+                    wantCollateral == aCollateral.addr
+                        ? aCollateral.decimals
+                        : collateral.decimals
+                );
             uint256 needAmount = amount / (10 ** diffDecimals);
             uint256 collateralBal = IERC20(
-                emergencyMode ? aCollateral.addr : collateral.addr
+                wantCollateral == aCollateral.addr
+                    ? aCollateral.addr
+                    : collateral.addr
             ).balanceOf(address(this));
 
             // Compute the needed amount from backing contract
@@ -282,7 +292,8 @@ abstract contract MintRedeemManager is
             // Retrive funds from backing only if needed
             if (amountFromBacking > 0) {
                 IOverlayerWrapBacking(approvedCollateralSpender).withdraw(
-                    amountFromBacking
+                    amountFromBacking,
+                    wantCollateral
                 );
             }
 
