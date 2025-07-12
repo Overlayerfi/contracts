@@ -87,25 +87,25 @@ abstract contract StakedOverlayerWrap is
 
     /**
      * @notice Constructor for StakedOverlayerWrap contract.
-     * @param asset The address of the OverlayerWrap token.
+     * @param asset_ The address of the OverlayerWrap token.
      * @param initialRewarder The address of the initial rewarder.
      * @param admin The address of the admin role.
      * @param vestingPeriod The rewards vesting period
      */
     constructor(
-        IERC20 asset,
+        IERC20 asset_,
         address initialRewarder,
         address admin,
         uint256 vestingPeriod
     )
         ERC20("Staked OverlayerWrap", "sOverlayerWrap")
-        ERC4626(asset)
+        ERC4626(asset_)
         ERC20Permit("sOverlayerWrap")
     {
         if (
             admin == address(0) ||
             initialRewarder == address(0) ||
-            address(asset) == address(0)
+            address(asset_) == address(0)
         ) {
             revert StakedOverlayerWrapInvalidZeroAddress();
         }
@@ -280,8 +280,8 @@ abstract contract StakedOverlayerWrap is
 
     /// @notice Ensures a small non-zero amount of shares does not remain, exposing to donation attack
     function _checkMinShares() internal view {
-        uint256 _totalSupply = totalSupply();
-        if (_totalSupply > 0 && _totalSupply < MIN_SHARES)
+        uint256 totalSupply = totalSupply();
+        if (totalSupply > 0 && totalSupply < MIN_SHARES)
             revert StakedOverlayerWrapMinSharesViolation();
     }
 

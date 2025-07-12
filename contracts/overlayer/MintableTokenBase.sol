@@ -24,13 +24,13 @@ contract MintableTokenBase is Ownable2Step, ERC20Burnable, ERC20Permit {
 
     ///@notice The constructor
     ///@param admin The contract admin
-    ///@param name The token name
-    ///@param symbol The token symbol
+    ///@param name_ The token name
+    ///@param symbol_ The token symbol
     constructor(
         address admin,
-        string memory name,
-        string memory symbol
-    ) Ownable(admin) ERC20(name, symbol) ERC20Permit(name) {
+        string memory name_,
+        string memory symbol_
+    ) Ownable(admin) ERC20(name_, symbol_) ERC20Permit(name_) {
         if (admin == address(0)) revert ZeroAddressException();
     }
 

@@ -50,17 +50,17 @@ contract StakedOverlayerWrapFront is
     }
 
     /// @notice Constructor for StakedOverlayerWrapFront contract.
-    /// @param _asset The address of the OverlayerWrap token.
+    /// @param asset_ The address of the OverlayerWrap token.
     /// @param initialRewarder The address of the initial rewarder.
     /// @param admin The address of the admin role.
     /// @param vestingPeriod The rewards vesting period
     constructor(
-        IERC20 _asset,
+        IERC20 asset_,
         address initialRewarder,
         address admin,
         uint256 vestingPeriod
-    ) StakedOverlayerWrap(_asset, initialRewarder, admin, vestingPeriod) {
-        SILO = new OverlayerWrapSilo(address(this), address(_asset));
+    ) StakedOverlayerWrap(asset_, initialRewarder, admin, vestingPeriod) {
+        SILO = new OverlayerWrapSilo(address(this), address(asset_));
         cooldownDuration = MAX_COOLDOWN_DURATION;
         withdrawAaveDuringCompound = true;
     }
@@ -102,7 +102,7 @@ contract StakedOverlayerWrapFront is
     /// @notice Claim the staking amount after the cooldown has finished. The address can only retire the full amount of assets.
     /// @dev Unstake can be called after cooldown have been set to 0, to let accounts to be able to claim remaining assets locked at Silo
     /// @param receiver Address to send the assets by the staker
-    function unstake(address receiver) external {
+    function unstake(address receiver) external nonReentrant {
         UserCooldown storage userCooldown = cooldowns[msg.sender];
         uint256 assets = userCooldown.underlyingAmount;
 
