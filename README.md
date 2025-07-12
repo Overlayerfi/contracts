@@ -2,11 +2,11 @@
 
 [![Actions Status](https://github.com/Ovafi/contracts/workflows/CI/badge.svg)](https://github.com/Ovafi/contracts/actions)
 
-Yield generating USDC/T backed stable coin.
+The stable coins Overlayer.
 
-## Overview
-![Protocol enter](./ova-contract-flow/Slide1.JPG)
-![Protocol exit](./ova-contract-flow/Slide2.JPG)
+<!-- ## Overview -->
+<!-- ![Protocol enter](./ova-contract-flow/Slide1.JPG)
+![Protocol exit](./ova-contract-flow/Slide2.JPG) -->
 
 ## Node version required
 ```
@@ -28,7 +28,6 @@ npm run compile
 npm run unit
 ```
 Unit tests must be run on a forked version of Ethereum mainnet (see next point).
-Sometimes the private rpc (which the next point is based on) will have issue with `maxFeePerGas` limits. For now running the suite another time should solve the issue.
 
 ## Run test node
 ```
