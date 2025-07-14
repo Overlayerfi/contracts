@@ -1,9 +1,9 @@
 import { ethers } from "hardhat";
 import POOL_DEPLOYER_ABI from "../../artifacts/contracts/curve/CurvePoolDeployer.sol/CurvePoolDeployer.json";
 
-const poolDeployer = "0x8B1fF5da862cDc0e32C6E2c65327b668a4760254";
-const tokenA = "0xF8FF4fD5f485CE0FDAA0043f1Db283d9CB691A9F";
-const tokenB = "0xC040135dFad78636013ADb0d437DaA123B6A8f74";
+const poolDeployer = "0xf55BA196EE7a845A75B83A0718C43eB587297435";
+const tokenA = "0x5350D7220ab169F7972c7C840AE5D11960827287";
+const tokenB = "0xeB5b07B100eFFEe9a94C6738DB9e9b2C28eF5251";
 const _name = "AB";
 const _symbol = "ABs";
 const _coins = [tokenA, tokenB];
