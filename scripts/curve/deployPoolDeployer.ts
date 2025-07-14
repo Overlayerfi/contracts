@@ -1,4 +1,7 @@
-import { CURVE_STABLE_SWAP_FACTORY, CURVE_STABLE_SWAP_FACTORY_SEPOLIA } from '../addresses';
+import {
+  CURVE_STABLE_SWAP_FACTORY,
+  CURVE_STABLE_SWAP_FACTORY_SEPOLIA
+} from "../addresses";
 import { ethers } from "hardhat";
 
 async function main(sepolia: boolean) {
@@ -11,7 +14,7 @@ async function main(sepolia: boolean) {
 
   const Contract = await ethers.getContractFactory("CurvePoolDeployer");
   const contract = await Contract.deploy(
-    sepolia ? CURVE_STABLE_SWAP_FACTORY_SEPOLIA :CURVE_STABLE_SWAP_FACTORY,
+    sepolia ? CURVE_STABLE_SWAP_FACTORY_SEPOLIA : CURVE_STABLE_SWAP_FACTORY,
     defaultTransactionOptions
   );
   await contract.waitForDeployment();
