@@ -1,17 +1,17 @@
-import { CURVE_STABLE_SWAP_FACTORY } from "../addresses";
+import { CURVE_STABLE_SWAP_FACTORY, CURVE_STABLE_SWAP_FACTORY_SEPOLIA } from '../addresses';
 import { ethers } from "hardhat";
 
-async function main() {
+async function main(sepolia: boolean) {
   const [admin] = await ethers.getSigners();
   const block = await admin.provider.getBlock("latest");
   const baseFee = block.baseFeePerGas;
   const defaultTransactionOptions = {
-    maxFeePerGas: baseFee * BigInt(10)
+    maxFeePerGas: baseFee * BigInt(2)
   };
 
   const Contract = await ethers.getContractFactory("CurvePoolDeployer");
   const contract = await Contract.deploy(
-    CURVE_STABLE_SWAP_FACTORY,
+    sepolia ? CURVE_STABLE_SWAP_FACTORY_SEPOLIA :CURVE_STABLE_SWAP_FACTORY,
     defaultTransactionOptions
   );
   await contract.waitForDeployment();
@@ -19,4 +19,4 @@ async function main() {
   console.log(`Contract deployed at: ${await contract.getAddress()}`);
 }
 
-main().catch((e) => console.log(e));
+main(false).catch((e) => console.log(e));
