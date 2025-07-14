@@ -10,7 +10,7 @@ import {
   USDT_ADDRESS
 } from "../scripts/addresses";
 import { swap } from "../scripts/uniswap_swapper/proxy";
-import { addLiquidityTriStable } from "../scripts/curve/main";
+import { addLiquidityTriStable } from "../scripts/curve/addLiqTriStable";
 import { DAI_ABI } from "../scripts/abi/DAI_abi";
 import { USDC_ABI } from "../scripts/abi/USDC_abi";
 import { USDT_ABI } from "../scripts/abi/USDT_abi";

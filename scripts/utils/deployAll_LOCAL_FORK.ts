@@ -44,7 +44,7 @@ import {
 import { DAI_ABI } from "../abi/DAI_abi";
 import { USDC_ABI } from "../abi/USDC_abi";
 import { USDT_ABI } from "../abi/USDT_abi";
-import { addLiquidityTriStable } from "../curve/main";
+import { addLiquidityTriStable } from "../curve/addLiqTriStable";
 
 const AIRDROP_POOLS_REWARD_TOKEN_ADMIN =
   "0x10fc45741bfE5D527c1b83Fe0BD70fC96D7ec30F";
