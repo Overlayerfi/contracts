@@ -58,6 +58,9 @@ contract OvaSepoliaFaucet is Ownable {
         tokenUSDT.safeTransfer(recipient, SIX_DECIMAL_AMOUNT);
 
         // Transfer 10 OverlayerWrap LP tokens (18 decimals)
-        tokenOverlayerWrapUsdtLp.safeTransfer(recipient, EIGHTEEN_DECIMAL_AMOUNT);
+        tokenOverlayerWrapUsdtLp.safeTransfer(
+            recipient,
+            EIGHTEEN_DECIMAL_AMOUNT
+        );
     }
 }
