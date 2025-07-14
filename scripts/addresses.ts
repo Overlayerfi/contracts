@@ -20,3 +20,6 @@ export const CURVE_DAI_USDC_USDT_POOL =
   "0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7";
 export const CURVE_DAI_USDC_USDT_LP =
   "0x6c3f90f043a72fa612cbac8115ee7e52bde6e490";
+
+export const CURVE_STABLE_SWAP_FACTORY =
+  "0x6A8cbed756804B16E05E741eDaBd5cB544AE21bf";
