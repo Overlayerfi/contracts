@@ -2,11 +2,7 @@
 
 [![Actions Status](https://github.com/Ovafi/contracts/workflows/CI/badge.svg)](https://github.com/Ovafi/contracts/actions)
 
-The stable coins Overlayer.
-
-<!-- ## Overview -->
-<!-- ![Protocol enter](./ova-contract-flow/Slide1.JPG)
-![Protocol exit](./ova-contract-flow/Slide2.JPG) -->
+The stable coin Overlayer.
 
 ## Node version required
 ```
