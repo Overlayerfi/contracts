@@ -4,7 +4,17 @@ pragma solidity 0.8.20;
 import "./IOverlayerWrapEvents.sol";
 import "../types/MintRedeemManagerTypes.sol";
 
+/// @title Interface for Overlayer Wrap Definitions
+/// @notice Defines the core structures and events for the Overlayer Wrap system
 interface IOverlayerWrapDefs is IOverlayerWrapEvents {
+    /// @notice Parameters required for constructing the Overlayer Wrap contract
+    /// @param admin Address of the contract administrator
+    /// @param name Token name
+    /// @param symbol Token symbol
+    /// @param collateral Stablecoin used as collateral
+    /// @param aCollateral Associated collateral token
+    /// @param maxMintPerBlock Maximum amount that can be minted per block
+    /// @param maxRedeemPerBlock Maximum amount that can be redeemed per block
     struct ConstructorParams {
         address admin;
         string name;
