@@ -10,7 +10,7 @@ import "./types/MintRedeemManagerTypes.sol";
 
 /**
  * @title OverlayerWrap
- * @notice The Dual Layer stable coin
+ * @notice The stable coin Overlayer
  */
 contract OverlayerWrap is
     ERC20Burnable,
@@ -51,12 +51,20 @@ contract OverlayerWrap is
         _;
     }
 
-    /// @notice Constructor
+    /// @notice Constructor initializes the OverlayerWrap token
+    /// @param params A struct containing:
+    ///        - admin: Address of the contract administrator
+    ///        - name: Token name
+    ///        - symbol: Token symbol
+    ///        - collateral: Configuration for the main collateral token
+    ///        - aCollateral: Configuration for the associated collateral token
+    ///        - maxMintPerBlock: Maximum amount that can be minted per block
+    ///        - maxRedeemPerBlock: Maximum amount that can be redeemed per block
     constructor(
         ConstructorParams memory params
     )
-        ERC20(params.symbol, params.symbol)
-        ERC20Permit(params.symbol)
+        ERC20(params.name, params.symbol)
+        ERC20Permit(params.name)
         MintRedeemManager(decimals())
     {
         MintRedeemManager._initialize(

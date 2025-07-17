@@ -10,14 +10,10 @@ import "../overlayerbacking/interfaces/IOverlayerWrapBacking.sol";
 
 /**
  * @title StakedOverlayerWrapFront
- * @notice The StakedOverlayerWrapFront contract allows users to
- * stake OverlayerWrap tokens and earn a portion of protocol yield. This is the public entrypoint
- * @dev If cooldown duration is set to
- * zero, the StakedOverlayerWrapFront behavior changes to follow ERC4626 standard and
- * disables cooldownShares and cooldownAssets methods. If cooldown duration is
- * greater than zero, the ERC4626 withdrawal and redeem functions are disabled,
- * breaking the ERC4626 standard, and enabling the cooldownShares and the
- * cooldownAssets functions.
+ * @notice Public interface for staking OverlayerWrap tokens with cooldown functionality
+ * @dev Supports two modes of operation:
+ *      1. Standard ERC4626 mode when cooldown is disabled (duration = 0)
+ *      2. Cooldown mode with custom unstaking process when duration > 0
  */
 contract StakedOverlayerWrapFront is
     IStakedOverlayerWrapCooldown,
@@ -27,12 +23,16 @@ contract StakedOverlayerWrapFront is
 
     mapping(address => UserCooldown) public cooldowns;
 
+    /// @notice Silo contract for holding tokens during cooldown
     OverlayerWrapSilo public immutable SILO;
 
+    /// @notice Maximum allowed cooldown duration (90 days)
     uint24 public constant MAX_COOLDOWN_DURATION = 90 days;
 
+    /// @notice Current cooldown duration for unstaking
     uint24 public cooldownDuration;
 
+    /// @notice Flag to control Aave withdrawal during compound operations
     bool public withdrawAaveDuringCompound;
 
     /// @notice Ensure cooldownDuration is zero
@@ -49,11 +49,12 @@ contract StakedOverlayerWrapFront is
         _;
     }
 
-    /// @notice Constructor for StakedOverlayerWrapFront contract.
-    /// @param asset_ The address of the OverlayerWrap token.
-    /// @param initialRewarder The address of the initial rewarder.
-    /// @param admin The address of the admin role.
-    /// @param vestingPeriod The rewards vesting period
+    /// @notice Constructor for StakedOverlayerWrapFront
+    /// @param asset_ The OverlayerWrap token contract address
+    /// @param initialRewarder Address authorized to distribute rewards
+    /// @param admin Contract administrator address
+    /// @param vestingPeriod Duration over which rewards are vested
+    /// @dev Initializes with maximum cooldown duration and Aave withdrawals enabled
     constructor(
         IERC20 asset_,
         address initialRewarder,
@@ -191,6 +192,9 @@ contract StakedOverlayerWrapFront is
         );
     }
 
+    /// @notice Controls whether Aave tokens should be withdrawn during compound operations
+    /// @param doWithdraw True to enable Aave withdrawals, false to disable
+    /// @dev Can only be called by contract admin
     function setWithdrawAaveDuringCompound(
         bool doWithdraw
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {

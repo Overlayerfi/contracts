@@ -3,6 +3,8 @@ pragma solidity 0.8.20;
 
 /**
  * @title Constants
+ * @notice Defines protocol-wide constant addresses for mainnet token contracts
+ * @dev Contains immutable addresses for USDT and aUSDT on Ethereum mainnet
  */
 abstract contract Constants {
     //########################################## CONSTANT ##########################################
