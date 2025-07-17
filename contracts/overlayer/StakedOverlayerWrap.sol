@@ -356,7 +356,7 @@ abstract contract StakedOverlayerWrap is
      * @notice Override of ERC20 transfer logic to handle restricted accounts
      * @dev Prevents transfers involving accounts with WHOLE_RESTRICTED_ROLE
      * @param from Source address
-     * @param to Destination address 
+     * @param to Destination address
      * @param value Amount to transfer
      */
     function _update(
