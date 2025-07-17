@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity 0.8.20;
 
+/// @title Interface for Staked Overlayer Wrap
+/// @notice Defines core staking functionality and rewards management
 interface IStakedOverlayerWrap {
     /// @notice Event emitted when the rewards are received
     event RewardsReceived(uint256 amount);
@@ -34,9 +35,17 @@ interface IStakedOverlayerWrap {
     /// @notice Error emitted when blakclist time is not valid
     error StakedOverlayerWrapInvalidTime();
 
+    /// @notice Transfers rewards to the staking contract
+    /// @param amount Amount of rewards to transfer
     function transferInRewards(uint256 amount) external;
 
+    /// @notice Allows rescue of tokens accidentally sent to the contract
+    /// @param token Address of the token to rescue
+    /// @param amount Amount of tokens to rescue
+    /// @param to Address to receive the rescued tokens
     function rescueTokens(address token, uint256 amount, address to) external;
 
+    /// @notice Returns the current unvested amount
+    /// @return Amount of tokens that are still unvested
     function getUnvestedAmount() external view returns (uint256);
 }
