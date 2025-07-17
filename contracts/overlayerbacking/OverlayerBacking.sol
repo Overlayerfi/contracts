@@ -16,18 +16,20 @@ contract OverlayerWrapBacking is AaveHandler, IOverlayerWrapBackingDefs {
 
     //########################################## MODIFIERS ##########################################
 
+    /// @notice Ensures the asset is not a protocol-managed token (USDT/aUSDT)
+    /// @param asset Address of the token to check
     modifier notProtocolAssets(address asset) {
         if (asset == USDT || asset == AUSDT)
             revert OverlayerWrapBackingOperationNotAllowed();
         _;
     }
 
-    ///@notice The constructor
-    ///@dev It accepts to be the OverlayerWrap collateral spender
-    ///@param admin The contract admin
-    ///@param dispatcher The protocol reward dispatcher contract
-    ///@param overlayerWrap_ The OverlayerWrap contract
-    ///@param sOverlayerWrap_ The sOverlayerWrap contract
+    /// @notice Constructor for OverlayerWrapBacking
+    /// @param admin Address of the contract administrator
+    /// @param dispatcher Address of the rewards dispatcher contract
+    /// @param overlayerWrap_ Address of the OverlayerWrap token contract
+    /// @param sOverlayerWrap_ Address of the Staked OverlayerWrap contract
+    /// @dev Automatically accepts role as collateral spender for OverlayerWrap
     constructor(
         address admin,
         address dispatcher,

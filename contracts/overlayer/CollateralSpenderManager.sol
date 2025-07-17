@@ -15,10 +15,13 @@ abstract contract CollateralSpenderManager is
 {
     using SafeERC20 for IERC20;
 
+    /// @notice Error thrown when spender address is invalid (zero address)
     error CollateralSpenderManagerInvalidSpenderAddress();
 
+    /// @notice Error thrown when proposal time interval is not respected
     error CollateralSpenderManagerIntervalNotRespected();
 
+    /// @notice Error thrown when operation is not allowed for the caller
     error CollateralSpenderManagerOperatioNotAllowed();
 
     /// @notice role enabling to transfer collateral to custody wallets
@@ -39,6 +42,10 @@ abstract contract CollateralSpenderManager is
 
     constructor() OverlayerWrapCollateral() {}
 
+    /// @notice Initializes the contract with admin and collateral configurations
+    /// @param admin Address of the contract administrator
+    /// @param collateral_ Configuration for the main collateral token
+    /// @param aCollateral_ Configuration for the associated collateral token
     function _initalize(
         address admin,
         MintRedeemManagerTypes.StableCoin memory collateral_,
