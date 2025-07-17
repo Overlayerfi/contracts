@@ -78,7 +78,7 @@ abstract contract MintRedeemManager is
         emit Received(msg.sender, msg.value);
     }
 
-    /// @notice Approve an external spender for USDC and USDT
+    /// @notice Approve an external spender.
     /// @dev The spender is handled by the CollateralSpenderManager contract
     /// @dev Normally this function is not used as the approval is managed by the acceptance flow
     function approveCollateral() external onlyRole(COLLATERAL_MANAGER_ROLE) {
@@ -259,11 +259,6 @@ abstract contract MintRedeemManager is
 
     /// @notice Redeem collateral from the protocol
     /// @dev It will trigger the backing contract (aka approvedCollateralSpender) withdraw method if the collateral is not sufficient
-    /// @dev When calling `IOverlayerWrapBacking(approvedCollateralSpender).withdraw(...)`,
-    /// it is possible that some standard collateral has not yet been converted into aTokens during emergency mode.
-    /// Additionally, if a large amount was minted before entering emergency mode, USDC and USDT collateral might become
-    /// locked in this contract until they are eventually transferable under unusual circumstances.
-    /// We are aware of this issue, and the necessary funds will be manually provided to the `approvedCollateralSpender` to facilitate withdrawals.
     /// @param amount The amount of OverlayerWrap to burn
     /// @param wantCollateral The wanted collateral to withdraw
     /// @return checkedBurnAmount The checked amount to burn
