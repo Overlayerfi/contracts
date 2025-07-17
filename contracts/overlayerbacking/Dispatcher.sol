@@ -9,24 +9,39 @@ import {IDispatcher} from "./interfaces/IDispatcher.sol";
 
 /**
  * @title OvaDispatcher
- * @notice This contract represent the Ova rewards dispatcher
+ * @notice Contract for distributing rewards among safety module, team, and buyback addresses
  */
 contract OvaDispatcher is Ownable, IDispatcher {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
+    /// @notice Error thrown when allocation percentages don't sum to 100%
     error InvalidAmounts();
+    /// @notice Error thrown when zero address is provided for any critical parameter
     error ZeroAddress();
 
+    /// @notice Address of the safety module receiving rewards
     address public safetyModule;
+    /// @notice Address receiving team allocation
     address public team;
+    /// @notice Address for buyback operations
     address public buyBack;
+    /// @notice Address of the OverlayerWrap token contract
     address public immutable overlayerWrap;
 
+    /// @notice Percentage of rewards allocated to team (default 10%)
     uint8 public teamAllocation = 10;
-    uint8 public safetyModuleAllocation = 90;
+    /// @notice Percentage of rewards allocated to safety module (default 90%)
+    uint8 public reserveFundModuleAllocation = 90;
+    /// @notice Percentage of rewards allocated to buyback (default 0%)
     uint8 public buyBackAllocation = 0;
 
+    /// @notice Initializes the dispatcher with required addresses
+    /// @param admin Address of contract administrator
+    /// @param team_ Address receiving team allocation
+    /// @param safetyModule_ Address of safety module
+    /// @param buyBack_ Address for buyback operations
+    /// @param overlayerWrap_ Address of OverlayerWrap token
     constructor(
         address admin,
         address team_,
@@ -47,19 +62,26 @@ contract OvaDispatcher is Ownable, IDispatcher {
         overlayerWrap = overlayerWrap_;
     }
 
+    /// @notice Updates reward allocation percentages
+    /// @param teamAlloc_ New team allocation percentage
+    /// @param reserveFundModuleAllocation_ New safety module allocation percentage
+    /// @param buyBackAlloc_ New buyback allocation percentage
+    /// @dev Sum of all allocations must equal 100
     function setAllocations(
         uint8 teamAlloc_,
-        uint8 safetyModuleAlloc_,
+        uint8 reserveFundModuleAllocation_,
         uint8 buyBackAlloc_
     ) external onlyOwner {
-        if (teamAlloc_ + safetyModuleAlloc_ + buyBackAlloc_ != 100) {
+        if (teamAlloc_ + reserveFundModuleAllocation_ + buyBackAlloc_ != 100) {
             revert InvalidAmounts();
         }
         teamAllocation = teamAlloc_;
-        safetyModuleAllocation = safetyModuleAlloc_;
+        reserveFundModuleAllocation = reserveFundModuleAllocation_;
         buyBackAllocation = buyBackAlloc_;
     }
 
+    /// @notice Updates team address
+    /// @param team_ New team address
     function setTeam(address team_) external onlyOwner {
         if (team_ == address(0)) {
             revert ZeroAddress();
@@ -67,6 +89,8 @@ contract OvaDispatcher is Ownable, IDispatcher {
         team = team_;
     }
 
+    /// @notice Updates buyback address
+    /// @param buyBack_ New buyback address
     function setBuyBack(address buyBack_) external onlyOwner {
         if (buyBack_ == address(0)) {
             revert ZeroAddress();
@@ -74,6 +98,8 @@ contract OvaDispatcher is Ownable, IDispatcher {
         buyBack = buyBack_;
     }
 
+    /// @notice Updates safety module address
+    /// @param safetyModule_ New safety module address
     function setSafetyModule(address safetyModule_) external onlyOwner {
         if (safetyModule_ == address(0)) {
             revert ZeroAddress();
@@ -81,11 +107,14 @@ contract OvaDispatcher is Ownable, IDispatcher {
         safetyModule = safetyModule_;
     }
 
+    /// @notice Collects all tokens of a specific type to the safety module
+    /// @param token The address of the token contract
     function collect(address token) external onlyOwner {
         uint256 bal = IERC20(token).balanceOf(address(this));
         IERC20(token).safeTransfer(safetyModule, bal);
     }
 
+    /// @notice Dispatches rewards to team, buyback, and safety module addresses
     function dispatch() external {
         uint256 bal = IERC20(overlayerWrap).balanceOf(address(this));
         uint256 teamAmount = bal.mulDiv(teamAllocation, 100);

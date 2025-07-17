@@ -14,25 +14,35 @@ import "./interfaces/IOverlayerWrapSiloDefinitions.sol";
 contract OverlayerWrapSilo is IOverlayerWrapSiloDefinitions {
     using SafeERC20 for IERC20;
 
+    /// @notice Error thrown when zero address is provided for staking vault or OverlayerWrap
     error OverlayerWrapSiloZeroAddressException();
 
+    /// @notice The address of the staking vault contract
     address private immutable _STAKING_VAULT;
-    IERC20 private immutable _OverlayerWrap;
+    /// @notice The OverlayerWrap token contract
+    IERC20 private immutable _OVERLAYER_WRAP;
 
+    /// @notice Constructor initializes the silo with staking vault and token addresses
+    /// @param stakingVault Address of the staking vault contract
+    /// @param OverlayerWrap Address of the OverlayerWrap token contract
     constructor(address stakingVault, address OverlayerWrap) {
         if (stakingVault == address(0) || OverlayerWrap == address(0)) {
             revert OverlayerWrapSiloZeroAddressException();
         }
         _STAKING_VAULT = stakingVault;
-        _OverlayerWrap = IERC20(OverlayerWrap);
+        _OVERLAYER_WRAP = IERC20(OverlayerWrap);
     }
 
+    /// @notice Ensures the caller is the staking vault
     modifier onlyStakingVault() {
         if (msg.sender != _STAKING_VAULT) revert OnlyStakingVault();
         _;
     }
 
+    /// @notice Withdraws tokens from the silo to a specified address
+    /// @param to Address to receive the tokens
+    /// @param amount Amount of tokens to withdraw
     function withdraw(address to, uint256 amount) external onlyStakingVault {
-        _OverlayerWrap.safeTransfer(to, amount);
+        _OVERLAYER_WRAP.safeTransfer(to, amount);
     }
 }

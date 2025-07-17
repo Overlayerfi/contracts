@@ -45,19 +45,19 @@ abstract contract AaveHandler is
 
     //########################################## PUBLIC STORAGE ##########################################
 
-    ///@notice aave protocol Pool.sol contract address
+    /// @notice Aave Pool contract for lending operations
     address public aave = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
-    ///@notice Protocol rewardsDispatcher
+    /// @notice Address of the protocol's reward distribution contract
     address public ovaRewardsDispatcher;
-    ///@notice Amount of total supplied USDT
+    /// @notice Total amount of USDT supplied to Aave protocol
     uint256 public totalSuppliedUSDT;
-    /// @notice the proposed new spender
+    /// @notice Proposed new Aave pool contract address
     address public proposedAave;
-    /// @notice the last aave proposal time
+    /// @notice Timestamp of last Aave contract proposal
     uint256 public aaveProposalTime;
-    /// @notice the last team allocation proposal time
+    /// @notice Timestamp of last rewards allocation proposal
     uint256 public ovaDispatcherAllocationProposalTime;
-    /// @notice the proposed team allocation percentage
+    /// @notice Proposed percentage for dispatcher allocation
     uint8 public proposedOvaDispatcherAllocation;
 
     //########################################## PRIVATE STORAGE ##########################################
@@ -69,6 +69,8 @@ abstract contract AaveHandler is
 
     //########################################## MODIFIERS ##########################################
 
+    /// @notice Ensures caller is the OverlayerWrap contract
+    /// @dev Used to restrict critical functions to protocol control
     modifier onlyProtocol() {
         if (msg.sender != overlayerWrap) {
             revert AaveHandlerCallerIsNotOverlayerWrap();
@@ -166,9 +168,10 @@ abstract contract AaveHandler is
         IDispatcher(ovaRewardsDispatcher).dispatch();
     }
 
-    ///@notice Supply funds to aave protocol
-    ///@param amountUsdt The amount to supply intended as USDT or their aToken version
-    /// @param collateral The collateral to supply
+    ///@notice Supply assets to Aave protocol
+    ///@param amountUsdt Amount of USDT or aUSDT to supply
+    /// @param collateral Address of the collateral token (USDT or aUSDT)
+    /// @dev Only callable by OverlayerWrap contract
     function supply(
         uint256 amountUsdt,
         address collateral

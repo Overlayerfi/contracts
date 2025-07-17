@@ -12,6 +12,7 @@ import "./interfaces/IStakedOverlayerWrap.sol";
 
 /**
  * @title StakedOverlayerWrap
+ * @notice Base contract for staking OverlayerWrap tokens with vesting and blacklisting functionality
  * @dev This contract is intended to be inherited in order to define custom vesting (cooldowns) policies
  */
 abstract contract StakedOverlayerWrap is
@@ -341,8 +342,9 @@ abstract contract StakedOverlayerWrap is
         _checkMinShares();
     }
 
-    /// @notice Updata the vesting amount
-    /// @param newVestingAmount The new vesting amount
+    /// @notice Update vesting amount and timestamp for new rewards distribution
+    /// @param newVestingAmount Amount of tokens to vest over time
+    /// @dev Reverts if there are still unvested tokens from previous distribution
     function _updateVestingAmount(uint256 newVestingAmount) internal {
         if (getUnvestedAmount() > 0) revert StakedOverlayerWrapStillVesting();
 
@@ -351,7 +353,11 @@ abstract contract StakedOverlayerWrap is
     }
 
     /**
-     * @dev See {IERC20-_update}.
+     * @notice Override of ERC20 transfer logic to handle restricted accounts
+     * @dev Prevents transfers involving accounts with WHOLE_RESTRICTED_ROLE
+     * @param from Source address
+     * @param to Destination address 
+     * @param value Amount to transfer
      */
     function _update(
         address from,

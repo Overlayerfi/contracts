@@ -178,6 +178,12 @@ abstract contract MintRedeemManager is
 
     /* --------------- INTERNAL --------------- */
 
+    /// @notice Initialize the contract with base parameters
+    /// @param collateral_ Configuration for the main collateral token
+    /// @param aCollateral_ Configuration for the associated collateral token
+    /// @param admin Address of the contract administrator
+    /// @param maxMintPerBlock_ Maximum amount that can be minted per block
+    /// @param maxRedeemPerBlock_ Maximum amount that can be redeemed per block
     function _initialize(
         MintRedeemManagerTypes.StableCoin memory collateral_,
         MintRedeemManagerTypes.StableCoin memory aCollateral_,
@@ -191,8 +197,9 @@ abstract contract MintRedeemManager is
         _setMaxRedeemPerBlock(maxRedeemPerBlock_);
     }
 
-    /// @notice Check order parameters
-    /// @param order A struct containing the order
+    /// @notice Validate the collateral tokens in an order
+    /// @param order Order parameters to validate
+    /// @dev Reverts if the collateral token is not valid
     function _validateInputTokens(
         MintRedeemManagerTypes.Order calldata order
     ) internal view {
@@ -204,10 +211,9 @@ abstract contract MintRedeemManager is
         }
     }
 
-    /// @notice Mint stablecoins from assets
-    /// @dev Order benefactor is not used as we constraint it to be the msg.sender at higher level
-    /// @dev The received funds are supplied to the backing contract
-    /// @param order Struct containing order details
+    /// @notice Internal function to handle minting operations
+    /// @param order Order details containing mint parameters
+    /// @dev Updates minted amount per block and transfers collateral
     function _managerMint(
         MintRedeemManagerTypes.Order calldata order
     ) internal belowMaxMintPerBlock(order.overlayerWrapAmount) {

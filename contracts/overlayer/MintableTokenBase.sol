@@ -11,12 +11,18 @@ import "@openzeppelin/contracts/access/Ownable2Step.sol";
  * @notice This token represent a mintable token by an allowed minter.
  */
 contract MintableTokenBase is Ownable2Step, ERC20Burnable, ERC20Permit {
+    /// @notice Error thrown when a zero address is provided
     error ZeroAddressException();
 
+    /// @notice Error thrown when caller is not an authorized minter
     error OnlyMinter();
 
+    /// @notice Error thrown when attempting to renounce ownership
     error CantRenounceOwnership();
 
+    /// @notice Event emitted when a minter's status changes
+    /// @param minter_ Address of the minter
+    /// @param _event New status of the minter (true=added, false=removed)
     event MinterStateChanged(address indexed minter_, bool _event);
 
     /// @notice The allowed minter
