@@ -325,7 +325,7 @@ abstract contract AaveHandler is
 
     //########################################## INTERNAL FUNCTIONS ##########################################
 
-    /// @notice Update the supplied usdc and usdt counter
+    /// @notice Update the supplied usdt counter
     /// @param usdtTaken The amount of usdt removed from the backing supply
     function updateSuppliedAmounts(uint256 usdtTaken) internal {
         if (usdtTaken > totalSuppliedUSDT) {
