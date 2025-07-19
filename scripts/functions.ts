@@ -19,7 +19,41 @@ import { ILiquidity } from "./types";
 import { USDC_ABI } from "./abi/USDC_abi";
 import { USDT_ABI } from "./abi/USDT_abi";
 
+export async function deploy_ERC20(
+  name: string,
+  initialSupply: string,
+  baseGasFeeMult?: number
+): Promise<string> {
+  const [deployer] = await ethers.getSigners();
+
+  console.log(`Deploying ${name} contract with signer: ${deployer.address}`);
+
+  const block = await deployer.provider.getBlock("latest");
+  const baseFee = block.baseFeePerGas;
+  const maxFee =
+    baseFee * BigInt(baseGasFeeMult !== undefined ? baseGasFeeMult : 1);
+  const defaultTransactionOptions = {
+    maxFeePerGas: maxFee,
+    gasLimit: 2000000
+  };
+
+  const ContractSource = await ethers.getContractFactory("TestToken");
+  const deployedContract = await ContractSource.deploy(
+    ethers.parseUnits(initialSupply, 1),
+    name,
+    name,
+    defaultTransactionOptions
+  );
+  await deployedContract.waitForDeployment();
+
+  console.log("Contract deployed at:", await deployedContract.getAddress());
+
+  return await deployedContract.getAddress();
+}
+
 export async function deploy_OverlayerWrap(
+  usdtAddr: string,
+  aUsdtAddr: string,
   approveDeployerCollateral?: boolean,
   baseGasFeeMult?: number
 ): Promise<string> {
@@ -38,47 +72,40 @@ export async function deploy_OverlayerWrap(
     maxFeePerGas: maxFee
   };
 
-  const ContractSource = await ethers.getContractFactory("OverlayerWrap");
-  const deployedContract = await ContractSource.deploy(
-    deployer.address,
-    {
-      addr: USDC_ADDRESS,
-      decimals: 6
-    },
-    {
-      addr: USDT_ADDRESS,
-      decimals: 6
-    },
-    {
-      addr: AUSDC_ADDRESS,
-      decimals: 6
-    },
-    {
-      addr: AUSDT_ADDRESS,
-      decimals: 6
-    },
-    ethers.parseEther("100000000"),
-    ethers.parseEther("100000000"),
+  const Factory = await ethers.getContractFactory("OverlayerWrapFactory");
+  const factory = await Factory.deploy(
+    await deployer.getAddress(),
+    await deployer.getAddress(),
     defaultTransactionOptions
   );
-  await deployedContract.waitForDeployment();
+  await factory.waitForDeployment();
 
-  console.log("Contract deployed at:", await deployedContract.getAddress());
+  const overlayerWrapAddressTx = await factory.deployInitialOverlayerWrap(
+    {
+      addr: usdtAddr,
+      decimals: 6
+    },
+    {
+      addr: aUsdtAddr,
+      decimals: 6
+    },
+    ethers.parseEther("100000000"),
+    ethers.parseEther("100000000")
+  );
+  await overlayerWrapAddressTx.wait();
+  const overlayerWrapAddress = await factory.symbolToToken("USDT+");
+
+  console.log("Contract deployed at:", overlayerWrapAddress);
 
   if (approveDeployerCollateral) {
-    const usdc = new ethers.Contract(USDC_ADDRESS, USDC_ABI, deployer);
     const usdt = new ethers.Contract(USDT_ADDRESS, USDT_ABI, deployer);
-    await (usdc.connect(deployer) as Contract).approve(
-      await deployedContract.getAddress(),
-      ethers.MaxUint256
-    );
     await (usdt.connect(deployer) as Contract).approve(
-      await deployedContract.getAddress(),
+      overlayerWrapAddress,
       ethers.MaxUint256
     );
   }
 
-  return await deployedContract.getAddress();
+  return await overlayerWrapAddress;
 }
 
 export async function deploy_StakedOverlayerWrap(
@@ -136,7 +163,10 @@ export async function deploy_AirdropOVAReceipt(
   console.log("Contract deployed at:", await deployedContract.getAddress());
 }
 
-export async function deploy_AirdropReward(admin: string): Promise<string> {
+export async function deploy_AirdropReward(
+  admin: string,
+  baseGasFeeMult?: number
+): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
   if (!ethers.isAddress(admin)) {
@@ -149,7 +179,9 @@ export async function deploy_AirdropReward(admin: string): Promise<string> {
   );
 
   const ContractSource = await ethers.getContractFactory("OvaReferral");
-  const deployedContract = await ContractSource.deploy(admin);
+  const deployedContract = await ContractSource.deploy(admin, {
+    gasLimit: 10000000
+  });
   await deployedContract.waitForDeployment();
 
   console.log("Contract deployed at:", await deployedContract.getAddress());
@@ -170,7 +202,9 @@ export async function AirdropReward_setStakingPools(
   console.log("Pools:", pools);
 
   const contract = new ethers.Contract(addr, OVAREFERRAL_ABI.abi, deployer);
-  await (contract.connect(deployer) as Contract).setStakingPools(pools);
+  await (contract.connect(deployer) as Contract).setStakingPools(pools, {
+    gasLimit: 2000000
+  });
 
   console.log("Operation passed");
 }
@@ -187,7 +221,9 @@ export async function AirdropReward_addTrackers(
 
   const contract = new ethers.Contract(addr, OVAREFERRAL_ABI.abi, deployer);
   for (const t of trackers) {
-    await (contract.connect(deployer) as Contract).addPointsTracker(t);
+    await (contract.connect(deployer) as Contract).addPointsTracker(t, {
+      gasLimit: 2000000
+    });
   }
   console.log("Operation passed");
 }
@@ -225,7 +261,9 @@ export async function StakedOverlayerWrap_setCooldownStaking(
   console.log("Setting cooldown to staking with account:", deployer.address);
 
   const contract = new ethers.Contract(addr, STAKED_USDX_ABI.abi, deployer);
-  await (contract.connect(deployer) as Contract).setCooldownDuration(seconds);
+  await (contract.connect(deployer) as Contract).setCooldownDuration(seconds, {
+    gasLimit: 2000000
+  });
 
   console.log("Operation passed");
 }
@@ -254,7 +292,8 @@ export async function deploy_AirdropPoolCurveStableStake(
 }
 
 export async function deploy_AirdropSingleStableStake(
-  admin: string
+  admin: string,
+  baseGasFeeMult?: number
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
@@ -268,7 +307,9 @@ export async function deploy_AirdropSingleStableStake(
   );
 
   const ContractSource = await ethers.getContractFactory("SingleStableStake");
-  const deployedContract = await ContractSource.deploy(admin);
+  const deployedContract = await ContractSource.deploy(admin, {
+    gasLimit: 10000000
+  });
 
   await deployedContract.waitForDeployment();
 
@@ -306,7 +347,9 @@ export async function Liquidity_updateReferral(
   );
 
   const contract = new ethers.Contract(addr, LIQUIDITY_ABI.abi, deployer);
-  await (contract.connect(deployer) as Contract).updateReferral(ref);
+  await (contract.connect(deployer) as Contract).updateReferral(ref, {
+    gasLimit: 2000000
+  });
 
   console.log("Operation passed");
 }
@@ -354,7 +397,8 @@ export async function SingleStableStake_setRewardForStakedAssets(
   signer: any, // hardhat ether signer
   rewardAddr: string,
   rateNum: number,
-  rateDen: number
+  rateDen: number,
+  baseGasFeeMult?: number
 ): Promise<void> {
   console.log(
     "Airdrop::SingleStableStake adding reward",
@@ -363,10 +407,14 @@ export async function SingleStableStake_setRewardForStakedAssets(
     rateNum / rateDen,
     "for dollar liquidity (year)"
   );
-  await contract
+
+  const tx = await contract
     .connect(signer)
-    .setRewardForStakedAssets(rewardAddr, rateNum, rateDen);
-  console.log("Airdrop::SingleStableStake reward added");
+    .setRewardForStakedAssets(rewardAddr, rateNum, rateDen, {
+      gasLimit: 2000000
+    });
+  const receipt = await tx.hash;
+  console.log("Airdrop::SingleStableStake reward added hash =", tx.hash);
 }
 
 export async function CurveStableStake_addWithNumCoinsAndPool(
@@ -402,6 +450,37 @@ export async function CurveStableStake_addWithNumCoinsAndPool(
   console.log("Airdrop::CurveStableStake pool added");
 }
 
+export async function deploy_Dispatcher(
+  admin: string,
+  team: string,
+  safetyModule: string,
+  buyBack: string,
+  usdo: string,
+  baseGasFeeMult?: number
+): Promise<string> {
+  const [deployer] = await ethers.getSigners();
+
+  console.log(
+    "Deploying Ova dispatcher contract with signer:",
+    deployer.address
+  );
+
+  const ContractSource = await ethers.getContractFactory("OvaDispatcher");
+  const deployedContract = await ContractSource.deploy(
+    admin,
+    team,
+    safetyModule,
+    buyBack,
+    usdo,
+    { gasLimit: 4000000 }
+  );
+  await deployedContract.waitForDeployment();
+
+  console.log("Contract deployed at:", await deployedContract.getAddress());
+
+  return await deployedContract.getAddress();
+}
+
 export async function SingleStableStake_addPool(
   contract: any, // ether contract
   signer: any, // hardhat ether signer
@@ -410,7 +489,8 @@ export async function SingleStableStake_addPool(
   allocPoints: number,
   endTime: number,
   vested: boolean,
-  update: boolean
+  update: boolean,
+  baseGasFeeMult?: number
 ): Promise<void> {
   console.log(
     "Airdrop::SingleStableStake adding pool. In",
@@ -418,10 +498,14 @@ export async function SingleStableStake_addPool(
     "Out",
     rewardAddr
   );
-  await contract
+
+  const tx = await contract
     .connect(signer)
-    .add(stakedAddr, rewardAddr, allocPoints, endTime, vested, update);
-  console.log("Airdrop::SingleStableStake pool added");
+    .add(stakedAddr, rewardAddr, allocPoints, endTime, vested, update, {
+      gasLimit: 2000000
+    });
+  const receipt = await tx.wait();
+  console.log("Airdrop::SingleStableStake pool added hash =", tx.hash);
 }
 
 export async function Liquidity_addReward(
@@ -501,17 +585,24 @@ export async function grantRole(
   addr: string,
   abi: any,
   role: string,
-  to: string
+  to: string,
+  baseGasFeeMult?: number
 ) {
   const [admin] = await ethers.getSigners();
+
+  const defaultTransactionOptions = {
+    gasLimit: 2000000
+  };
   const contract = new ethers.Contract(addr, abi, admin);
   console.log("Granting role:", role, "with address:", admin.address);
-  await (contract.connect(admin) as Contract).grantRole(
+  const tx = await (contract.connect(admin) as Contract).grantRole(
     ethers.keccak256(ethers.toUtf8Bytes(role)),
-    to
+    to,
+    defaultTransactionOptions
   );
+  const receipt = await tx.wait();
 
-  console.log("Role granted");
+  console.log("Role granted hash =", tx.hash);
 }
 
 export async function OverlayerWrap_proposeNewCollateralSpender(
@@ -531,7 +622,9 @@ export async function OverlayerWrap_mint(addr: string, order: any) {
   const [admin] = await ethers.getSigners();
   const contract = new ethers.Contract(addr, OverlayerWrap_ABI.abi, admin);
   console.log("Minting OverlayerWrap with account:", admin.address);
-  await (contract.connect(admin) as Contract).mint(order);
+  await (contract.connect(admin) as Contract).mint(order, {
+    gasLimit: 2000000
+  });
   console.log("OverlayerWrap minted");
 }
 
@@ -548,7 +641,10 @@ export async function StakedOverlayerWrap_deposit(
   );
   await (contract.connect(admin) as Contract).deposit(
     ethers.parseEther(amount),
-    recipient
+    recipient,
+    {
+      gasLimit: 2000000
+    }
   );
   console.log(
     "OverlayerWrap staked, sOverlayerWrap balance:",
@@ -576,7 +672,10 @@ export async function deploy_OverlayerWrapBacking(
     admin,
     treasury,
     overlayerWrap,
-    soverlayerWrap
+    soverlayerWrap,
+    {
+      gasLimit: 10000000
+    }
   );
   await overlayerWrapbacking.waitForDeployment();
 

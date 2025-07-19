@@ -26,12 +26,12 @@ import {
   AirdropReward_addTrackers,
   Liquidity_updateReferral
 } from "../functions";
-import OVA_ABI from "../../artifacts/contracts/token/OVA.sol/OVA.json";
-import OverlayerWrap_ABI from "../../artifacts/contracts/token/OverlayerWrap.sol/OverlayerWrap.json";
-import SOverlayerWrap_ABI from "../../artifacts/contracts/token/StakedOverlayerWrapFront.sol/StakedOverlayerWrapFront.json";
+import OVA_ABI from "../../artifacts/contracts/overlayer/OVA.sol/OVA.json";
+import OverlayerWrap_ABI from "../../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
+import SOverlayerWrap_ABI from "../../artifacts/contracts/overlayer/StakedOverlayerWrapFront.sol/StakedOverlayerWrapFront.json";
 import CURVE_STABLE_STAKE_ABI from "../../artifacts/contracts/liquidity/CurveStableStake.sol/CurveStableStake.json";
 import SINGLE_STABLE_STAKE_ABI from "../../artifacts/contracts/liquidity/SingleStableStake.sol/SingleStableStake.json";
-import OVA_REFERRAL_ABI from "../../artifacts/contracts/token/OvaReferral.sol/OvaReferral.json";
+import OVA_REFERRAL_ABI from "../../artifacts/contracts/overlayer/OvaReferral.sol/OvaReferral.json";
 import { swap } from "../uniswap_swapper/proxy";
 import { getContractAddress } from "@ethersproject/address";
 import {
@@ -45,6 +45,7 @@ import { DAI_ABI } from "../abi/DAI_abi";
 import { USDC_ABI } from "../abi/USDC_abi";
 import { USDT_ABI } from "../abi/USDT_abi";
 import { addLiquidityTriStable } from "../curve/addLiqTriStable";
+import { AUSDT_ADDRESS } from "../addresses";
 
 const AIRDROP_POOLS_REWARD_TOKEN_ADMIN =
   "0x10fc45741bfE5D527c1b83Fe0BD70fC96D7ec30F";
@@ -63,7 +64,12 @@ async function main() {
     console.log("Latest time", latestTime);
 
     // 1. Deploy OverlayerWrap
-    const overlayerWrapAddr = await deploy_OverlayerWrap(true, 2);
+    const overlayerWrapAddr = await deploy_OverlayerWrap(
+      USDT_ADDRESS,
+      AUSDT_ADDRESS,
+      true,
+      2
+    );
 
     // 2. Deploy sOverlayerWrap
     const soverlayerWrapAddr = await deploy_StakedOverlayerWrap(
@@ -147,7 +153,7 @@ async function main() {
       1
     );
     // Fake USDT-OverlayerWrap pool with tri pool DAI-USDC-USDT LP
-    const endTimeStamp = latestTime + 60 * 60 * 24 * 30 * 6;
+    const endTimeStamp = latestTime + 60 * 60 * 24 * 30 * 12;
     console.log(endTimeStamp);
     await CurveStableStake_addWithNumCoinsAndPool(
       curveStableStakeContract,
@@ -183,7 +189,7 @@ async function main() {
     );
 
     // 8. Remove cool down from sOverlayerWrap
-    await StakedOverlayerWrap_setCooldownStaking(soverlayerWrapAddr, 0); // 1 minute
+    await StakedOverlayerWrap_setCooldownStaking(soverlayerWrapAddr, 0);
 
     // 9. Get some stable coins
     await swap("200", "50");
@@ -295,11 +301,9 @@ async function main() {
     const order = {
       benefactor: admin.address,
       beneficiary: admin.address,
-      collateral_usdt: USDT_ADDRESS,
-      collateral_usdc: USDC_ADDRESS,
-      collateral_usdt_amount: ethers.parseUnits("0.5", 6),
-      collateral_usdc_amount: ethers.parseUnits("0.5", 6),
-      overlayerWrap_amount: ethers.parseEther("1")
+      collateral: USDT_ADDRESS,
+      collateralAmount: ethers.parseUnits("1", 6),
+      overlayerWrapAmount: ethers.parseEther("1")
     };
     await OverlayerWrap_mint(overlayerWrapAddr, order);
     const overlayerWrapContract = new ethers.Contract(
