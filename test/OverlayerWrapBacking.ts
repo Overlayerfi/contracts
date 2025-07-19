@@ -511,6 +511,87 @@ describe("OverlayerWrapBacking", function () {
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(0);
     });
 
+    it("Should redeem USDT when collateral is aUSDT", async function () {
+      const {
+        usdt,
+        aaveV3,
+        ausdt,
+        overlayerWrap,
+        admin,
+        overlayerWrapBacking,
+        alice,
+        initialCollateralAmount
+      } = await loadFixture(deployFixture);
+
+      const amount = "10";
+      // Get some aUsdt
+      await usdt
+        .connect(admin)
+        .approve(AAVE_POOL_V3_ADDRESS, ethers.MaxUint256);
+      await aaveV3
+        .connect(admin)
+        .supply(
+          await usdt.getAddress(),
+          ethers.parseUnits((+amount * 3).toFixed(6), await ausdt.decimals()),
+          await admin.getAddress(),
+          0
+        );
+      await (ausdt.connect(admin) as Contract).transfer(
+        alice.address,
+        ethers.parseUnits((+amount * 3).toFixed(6), await usdt.decimals())
+      );
+      await ausdt
+        .connect(alice)
+        .approve(await overlayerWrap.getAddress(), ethers.MaxUint256);
+
+      const orderAUsdt = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await ausdt.getAddress(),
+        collateralAmount: ethers.parseUnits(amount, await ausdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount)
+      };
+      const orderUsdt = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await usdt.getAddress(),
+        collateralAmount: ethers.parseUnits(amount, await ausdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount)
+      };
+      await overlayerWrap.connect(alice).mint(orderAUsdt);
+      expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(
+        ethers.parseEther(amount)
+      );
+
+      await overlayerWrap.connect(alice).supplyToBacking(0, 0);
+      await time.increase(60 * 60 * 24 * 30);
+
+      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+        ethers.parseUnits(
+          (+amount + +initialCollateralAmount).toFixed(6),
+          await ausdt.decimals()
+        )
+      );
+
+      await time.increase(60 * 60 * 24 * 30);
+
+      const usdtBalBefore = ethers.formatUnits(
+        await usdt.balanceOf(await alice.getAddress()),
+        await usdt.decimals()
+      );
+      await overlayerWrap.connect(alice).redeem(orderUsdt);
+      expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(0);
+      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+        ethers.parseUnits(initialCollateralAmount, await usdt.decimals())
+      );
+      expect(
+        ethers.formatUnits(
+          await usdt.balanceOf(await alice.getAddress()),
+          await usdt.decimals()
+        )
+      ).to.be.equal((+usdtBalBefore + +amount).toFixed(1));
+    });
+
     it("Should redeem aToken in emergency", async function () {
       const {
         ausdt,
@@ -576,6 +657,36 @@ describe("OverlayerWrapBacking", function () {
       // Given back all
       expect(await overlayerWrapBacking.totalSuppliedUSDT()).be.equal(
         ethers.parseUnits(initialCollateralAmount, await ausdt.decimals())
+      );
+    });
+
+    it("Donation larger than total supply should not influence", async function () {
+      const {
+        admin,
+        usdt,
+        overlayerWrap,
+        ausdt,
+        overlayerWrapBacking,
+        alice,
+        bob,
+        initialCollateralAmount
+      } = await loadFixture(deployFixture);
+
+      await usdt
+        .connect(admin)
+        .transfer(bob.address, ethers.parseUnits("100", 6));
+
+      const donationAmount = "100";
+      await usdt
+        .connect(bob)
+        .transfer(
+          await overlayerWrap.getAddress(),
+          ethers.parseUnits(donationAmount, 6)
+        );
+      // The donation above should only forward assets to the backing contract without modifing the supplied stable coins trakcer
+      await overlayerWrap.connect(bob).supplyToBacking(0, 0);
+      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+        ethers.parseUnits(initialCollateralAmount, await usdt.decimals())
       );
     });
 
