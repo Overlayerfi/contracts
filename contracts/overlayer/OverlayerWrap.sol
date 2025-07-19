@@ -86,7 +86,7 @@ contract OverlayerWrap is
     /// @param order A struct containing the mint order
     function mint(
         MintRedeemManagerTypes.Order calldata order
-    ) external nonReentrant {
+    ) external notDisabled(order.beneficiary) nonReentrant {
         if (order.benefactor != msg.sender)
             revert MintRedeemManagerInvalidBenefactor();
         _managerMint(order);
@@ -116,7 +116,7 @@ contract OverlayerWrap is
     /// @param order A struct containing the mint order
     function redeem(
         MintRedeemManagerTypes.Order calldata order
-    ) external nonReentrant {
+    ) external notDisabled(order.benefactor) nonReentrant {
         (uint256 toBurn, uint256 back) = _managerRedeem(order);
         if (msg.sender == order.benefactor) {
             _burn(msg.sender, toBurn);
