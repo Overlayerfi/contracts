@@ -126,8 +126,7 @@ abstract contract AaveHandler is
             IERC20(AUSDT).safeTransfer(ovaRewardsDispatcher, surplusAUsdt);
         }
 
-        // Reset state
-        totalSuppliedUSDT = 0;
+        updateSuppliedAmounts(totalSuppliedUSDT);
     }
 
     /// @notice Compound funds from-to aave protocol
