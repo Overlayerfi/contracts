@@ -1,7 +1,7 @@
 {
   "name": "contract",
   "version": "1.0.0",
-  "description": "smart contracts",
+  "description": "Overlayer smart contracts",
   "scripts": {
     "unit": "npx hardhat test",
     "configure": "git submodule update --init --recursive && npm ci",
