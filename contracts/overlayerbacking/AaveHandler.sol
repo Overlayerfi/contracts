@@ -12,7 +12,7 @@ import {IsOverlayerWrap} from "./interfaces/IsOverlayerWrap.sol";
 import {IOverlayerWrap} from "./interfaces/IOverlayerWrap.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Constants} from "./Constants.sol";
-import "../overlayer/types/MintRedeemManagerTypes.sol";
+import "../overlayer/types/OverlayerWrapCoreTypes.sol";
 
 /**
  * @title AaveHandler
@@ -144,7 +144,7 @@ abstract contract AaveHandler is
         }
         // Otherwise we use aTokens directly
 
-        MintRedeemManagerTypes.Order memory order = MintRedeemManagerTypes
+        OverlayerWrapCoreTypes.Order memory order = OverlayerWrapCoreTypes
             .Order({
                 benefactor: address(this),
                 beneficiary: address(this),
