@@ -1,7 +1,10 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { AUSDT_ADDRESS, LZ_ENDPOINT_ETH_MAINNET_V2 } from "../scripts/addresses";
+import {
+  AUSDT_ADDRESS,
+  LZ_ENDPOINT_ETH_MAINNET_V2
+} from "../scripts/addresses";
 import OVERLAYER_WRAP_ABI from "../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
 
 describe("StakedOverlayerWrapFront", function () {
