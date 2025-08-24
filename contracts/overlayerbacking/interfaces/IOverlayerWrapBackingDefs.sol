@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 /// @title Interface for OverlayerWrap Backing Definitions
 /// @notice Defines core errors and events for the backing system

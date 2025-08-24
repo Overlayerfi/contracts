@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import "./IOverlayerWrapEvents.sol";
 import "../types/MintRedeemManagerTypes.sol";
@@ -17,6 +17,7 @@ interface IOverlayerWrapDefs is IOverlayerWrapEvents {
     /// @param maxRedeemPerBlock Maximum amount that can be redeemed per block
     struct ConstructorParams {
         address admin;
+        address lzEndpoint;
         string name;
         string symbol;
         MintRedeemManagerTypes.StableCoin collateral;
