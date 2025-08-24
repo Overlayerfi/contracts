@@ -14,16 +14,16 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IOverlayerWrapDefs.sol";
 import "../shared/SingleAdminAccessControl.sol";
 import "./CollateralSpenderManager.sol";
-import "./interfaces/IMintRedeemManagerDefs.sol";
+import "./interfaces/IOverlayerWrapCoreDefs.sol";
 import "./interfaces/IOverlayerWrapBacking.sol";
-import "./types/MintRedeemManagerTypes.sol";
+import "./types/OverlayerWrapCoreTypes.sol";
 
 /**
- * @title MintRedeemManager
+ * @title OverlayerWrapCore
  * @notice This contract mints and redeems the OverlayerWrap contract that inherits this contract
  */
-abstract contract MintRedeemManager is
-    IMintRedeemManagerDefs,
+abstract contract OverlayerWrapCore is
+    IOverlayerWrapCoreDefs,
     OFT,
     ERC20Burnable,
     ERC20Permit,
@@ -55,7 +55,7 @@ abstract contract MintRedeemManager is
     /// @param mintAmount The OverlayerWrap amount to be minted
     modifier belowMaxMintPerBlock(uint256 mintAmount) {
         if (mintedPerBlock[block.number] + mintAmount > maxMintPerBlock)
-            revert MintRedeemManagerMaxMintPerBlockExceeded();
+            revert OverlayerWrapCoreMaxMintPerBlockExceeded();
         _;
     }
 
@@ -63,13 +63,13 @@ abstract contract MintRedeemManager is
     /// @param redeemAmount The OverlayerWrap amount to be redeemed
     modifier belowMaxRedeemPerBlock(uint256 redeemAmount) {
         if (redeemedPerBlock[block.number] + redeemAmount > maxRedeemPerBlock)
-            revert MintRedeemManagerMaxRedeemPerBlockExceeded();
+            revert OverlayerWrapCoreMaxRedeemPerBlockExceeded();
         _;
     }
 
     /* --------------- CONSTRUCTOR --------------- */
 
-    /// @notice Initializes the MintRedeemManager contract with the provided parameters
+    /// @notice Initializes the OverlayerWrapCore contract with the provided parameters
     /// @dev Sets up the OFT, ERC20Permit, and Ownable functionality
     /// @param params A struct containing initialization parameters.
     constructor(
@@ -108,7 +108,7 @@ abstract contract MintRedeemManager is
     /// @dev Normally this function is not used as the approval is managed by the acceptance flow
     function approveCollateral() external onlyRole(COLLATERAL_MANAGER_ROLE) {
         if (approvedCollateralSpender == address(0))
-            revert MintRedeemManagerInvalidZeroAddress();
+            revert OverlayerWrapCoreInvalidZeroAddress();
         IERC20(collateral.addr).forceApprove(
             approvedCollateralSpender,
             type(uint256).max
@@ -182,9 +182,9 @@ abstract contract MintRedeemManager is
                 ? aCollateralBal
                 : amountACollateral;
             if (amountToSupplyCollateral > collateralBal)
-                revert MintRedeemManagerInsufficientFunds();
+                revert OverlayerWrapCoreInsufficientFunds();
             if (amountToSupplyACollateral > aCollateralBal)
-                revert MintRedeemManagerInsufficientFunds();
+                revert OverlayerWrapCoreInsufficientFunds();
             IOverlayerWrapBacking(approvedCollateralSpender).supply(
                 amountToSupplyCollateral,
                 collateral.addr
@@ -210,8 +210,8 @@ abstract contract MintRedeemManager is
     /// @param maxMintPerBlock_ Maximum amount that can be minted per block
     /// @param maxRedeemPerBlock_ Maximum amount that can be redeemed per block
     function _initialize(
-        MintRedeemManagerTypes.StableCoin memory collateral_,
-        MintRedeemManagerTypes.StableCoin memory aCollateral_,
+        OverlayerWrapCoreTypes.StableCoin memory collateral_,
+        OverlayerWrapCoreTypes.StableCoin memory aCollateral_,
         address admin,
         uint256 maxMintPerBlock_,
         uint256 maxRedeemPerBlock_
@@ -226,13 +226,13 @@ abstract contract MintRedeemManager is
     /// @param order Order parameters to validate
     /// @dev Reverts if the collateral token is not valid
     function _validateInputTokens(
-        MintRedeemManagerTypes.Order calldata order
+        OverlayerWrapCoreTypes.Order calldata order
     ) internal view {
         if (
             !(order.collateral == aCollateral.addr ||
                 order.collateral == collateral.addr)
         ) {
-            revert MintRedeemManagerCollateralNotValid();
+            revert OverlayerWrapCoreCollateralNotValid();
         }
     }
 
@@ -240,7 +240,7 @@ abstract contract MintRedeemManager is
     /// @param order Order details containing mint parameters
     /// @dev Updates minted amount per block and transfers collateral
     function _managerMint(
-        MintRedeemManagerTypes.Order calldata order
+        OverlayerWrapCoreTypes.Order calldata order
     ) internal belowMaxMintPerBlock(order.overlayerWrapAmount) {
         // Check for wanted source tokens
         _validateInputTokens(order);
@@ -256,7 +256,7 @@ abstract contract MintRedeemManager is
     /// @notice Redeem stablecoins for assets
     /// @param order Struct containing order details
     function _managerRedeem(
-        MintRedeemManagerTypes.Order calldata order
+        OverlayerWrapCoreTypes.Order calldata order
     )
         internal
         belowMaxRedeemPerBlock(order.overlayerWrapAmount)
@@ -369,7 +369,7 @@ abstract contract MintRedeemManager is
     /// @param maxRedeemPerBlock_ The new max value
     function _setMaxRedeemPerBlock(uint256 maxRedeemPerBlock_) internal {
         if (maxRedeemPerBlock_ == 0) {
-            revert MintRedeemManagerInvalidMaxRedeemAmount();
+            revert OverlayerWrapCoreInvalidMaxRedeemAmount();
         }
         uint256 oldMaxRedeemPerBlock = maxRedeemPerBlock;
         maxRedeemPerBlock = maxRedeemPerBlock_;

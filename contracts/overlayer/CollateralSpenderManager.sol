@@ -48,8 +48,8 @@ abstract contract CollateralSpenderManager is
     /// @param aCollateral_ Configuration for the associated collateral token
     function _initalize(
         address admin,
-        MintRedeemManagerTypes.StableCoin memory collateral_,
-        MintRedeemManagerTypes.StableCoin memory aCollateral_
+        OverlayerWrapCoreTypes.StableCoin memory collateral_,
+        OverlayerWrapCoreTypes.StableCoin memory aCollateral_
     ) internal {
         OverlayerWrapCollateral._initialize(admin, collateral_, aCollateral_);
     }

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "./IOverlayerWrapEvents.sol";
-import "../types/MintRedeemManagerTypes.sol";
+import "../types/OverlayerWrapCoreTypes.sol";
 
 /// @title Interface for Overlayer Wrap Definitions
 /// @notice Defines the core structures and events for the Overlayer Wrap system
@@ -20,8 +20,8 @@ interface IOverlayerWrapDefs is IOverlayerWrapEvents {
         address lzEndpoint;
         string name;
         string symbol;
-        MintRedeemManagerTypes.StableCoin collateral;
-        MintRedeemManagerTypes.StableCoin aCollateral;
+        OverlayerWrapCoreTypes.StableCoin collateral;
+        OverlayerWrapCoreTypes.StableCoin aCollateral;
         uint256 maxMintPerBlock;
         uint256 maxRedeemPerBlock;
     }

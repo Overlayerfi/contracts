@@ -3,9 +3,9 @@ pragma solidity ^0.8.20;
 
 /* solhint-disable var-name-mixedcase  */
 
-/// @title MintRedeemManager Types Library
+/// @title OverlayerWrapCore Types Library
 /// @notice Contains type definitions for minting and redeeming operations
-library MintRedeemManagerTypes {
+library OverlayerWrapCoreTypes {
     /// @notice Structure representing a mint/redeem order
     /// @param benefactor Address providing the collateral
     /// @param beneficiary Address receiving the minted tokens

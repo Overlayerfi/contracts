@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "../shared/SingleAdminAccessControl.sol";
-import "./types/MintRedeemManagerTypes.sol";
+import "./types/OverlayerWrapCoreTypes.sol";
 
 /**
  * @title OverlayerWrapCollateral
@@ -16,13 +16,13 @@ abstract contract OverlayerWrapCollateral is SingleAdminAccessControl {
     /* --------------- STATE VARIABLES --------------- */
 
     /// @notice Supported assets
-    MintRedeemManagerTypes.StableCoin public collateral;
-    MintRedeemManagerTypes.StableCoin public aCollateral;
+    OverlayerWrapCoreTypes.StableCoin public collateral;
+    OverlayerWrapCoreTypes.StableCoin public aCollateral;
 
     function _initialize(
         address admin,
-        MintRedeemManagerTypes.StableCoin memory collateral_,
-        MintRedeemManagerTypes.StableCoin memory aCollateral_
+        OverlayerWrapCoreTypes.StableCoin memory collateral_,
+        OverlayerWrapCoreTypes.StableCoin memory aCollateral_
     ) internal {
         if (admin == address(0)) revert CollateralInvalidZeroAddress();
         if (collateral_.addr == address(0))
