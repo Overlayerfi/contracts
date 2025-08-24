@@ -3,44 +3,44 @@ pragma solidity ^0.8.20;
 
 /* solhint-disable var-name-mixedcase  */
 
-import "./IMintRedeemManagerEvents.sol";
+import "./IOverlayerWrapCoreEvents.sol";
 
-/// @title IMintRedeemManagerDefs Interface
+/// @title IOverlayerWrapCoreDefs Interface
 /// @notice Defines the error cases for the mint and redeem operations
-interface IMintRedeemManagerDefs is IMintRedeemManagerEvents {
+interface IOverlayerWrapCoreDefs is IOverlayerWrapCoreEvents {
     /// @notice Thrown when an address parameter that must be non-zero is zero
-    error MintRedeemManagerInvalidZeroAddress();
+    error OverlayerWrapCoreInvalidZeroAddress();
 
     /// @notice Thrown when token decimals are invalid (e.g., zero)
-    error MintRedeemManagerInvalidDecimals();
+    error OverlayerWrapCoreInvalidDecimals();
 
     /// @notice Thrown when the provided asset amounts do not match the required parameters
-    error MintRedeemManagerInvalidAssetAmounts();
+    error OverlayerWrapCoreInvalidAssetAmounts();
 
     /// @notice Thrown when the normalized amounts of different assets are not equal
-    error MintRedeemManagerDifferentAssetsAmounts();
+    error OverlayerWrapCoreDifferentAssetsAmounts();
 
     /// @notice Thrown when trying to use an unsupported collateral asset
-    error MintRedeemManagerUnsupportedAsset();
+    error OverlayerWrapCoreUnsupportedAsset();
 
     /// @notice Thrown when trying to mint more tokens than allowed in a single block
-    error MintRedeemManagerMaxMintPerBlockExceeded();
+    error OverlayerWrapCoreMaxMintPerBlockExceeded();
 
     /// @notice Thrown when trying to redeem more tokens than allowed in a single block
-    error MintRedeemManagerMaxRedeemPerBlockExceeded();
+    error OverlayerWrapCoreMaxRedeemPerBlockExceeded();
 
     /// @notice Thrown when the required supply amount is not reached during an operation
-    error MintRedeemManagerSupplyAmountNotReached();
+    error OverlayerWrapCoreSupplyAmountNotReached();
 
     /// @notice Thrown when trying to set an invalid maximum redeem amount (e.g., zero)
-    error MintRedeemManagerInvalidMaxRedeemAmount();
+    error OverlayerWrapCoreInvalidMaxRedeemAmount();
 
     /// @notice Thrown when the benefactor of an operation is not the message sender
-    error MintRedeemManagerInvalidBenefactor();
+    error OverlayerWrapCoreInvalidBenefactor();
 
     /// @notice Thrown when attempting to use an invalid collateral type or in wrong mode (emergency/normal)
-    error MintRedeemManagerCollateralNotValid();
+    error OverlayerWrapCoreCollateralNotValid();
 
     /// @notice Thrown when there are insufficient funds for an operation
-    error MintRedeemManagerInsufficientFunds();
+    error OverlayerWrapCoreInsufficientFunds();
 }

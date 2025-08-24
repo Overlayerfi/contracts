@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 /* solhint-disable var-name-mixedcase  */
 /* solhint-disable func-param-name-mixedcase  */
 
-interface IMintRedeemManagerEvents {
+interface IOverlayerWrapCoreEvents {
     /// @notice Event emitted when contract receives ETH
     /// @param sender The address that sent ETH
     /// @param amount The amount of ETH received
@@ -12,7 +12,7 @@ interface IMintRedeemManagerEvents {
 
     /// @notice Event for signaling emergency mode status
     /// @param status True if emergency mode is active, false otherwise
-    event MintRedeemManagerEmergencyStatus(bool status);
+    event OverlayerWrapCoreEmergencyStatus(bool status);
 
     /// @notice Event emitted when OverlayerWrap is minted
     /// @param minter The address initiating the mint

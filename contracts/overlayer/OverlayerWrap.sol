@@ -2,15 +2,15 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "./MintRedeemManager.sol";
+import "./OverlayerWrapCore.sol";
 import "./interfaces/IOverlayerWrapDefs.sol";
-import "./types/MintRedeemManagerTypes.sol";
+import "./types/OverlayerWrapCoreTypes.sol";
 
 /**
  * @title OverlayerWrap
  * @notice The stable coin Overlayer
  */
-contract OverlayerWrap is IOverlayerWrapDefs, MintRedeemManager {
+contract OverlayerWrap is IOverlayerWrapDefs, OverlayerWrapCore {
     /// @notice The timestamp of the last blacklist activation request
     uint256 public blacklistActivationTime;
 
@@ -53,8 +53,8 @@ contract OverlayerWrap is IOverlayerWrapDefs, MintRedeemManager {
     ///        - aCollateral: Configuration for the associated collateral token
     ///        - maxMintPerBlock: Maximum amount that can be minted per block
     ///        - maxRedeemPerBlock: Maximum amount that can be redeemed per block
-    constructor(ConstructorParams memory params) MintRedeemManager(params) {
-        MintRedeemManager._initialize(
+    constructor(ConstructorParams memory params) OverlayerWrapCore(params) {
+        OverlayerWrapCore._initialize(
             params.collateral,
             params.aCollateral,
             params.admin,
@@ -72,10 +72,10 @@ contract OverlayerWrap is IOverlayerWrapDefs, MintRedeemManager {
     /// @dev Can be paused by the admin
     /// @param order A struct containing the mint order
     function mint(
-        MintRedeemManagerTypes.Order calldata order
+        OverlayerWrapCoreTypes.Order calldata order
     ) external notDisabled(order.beneficiary) nonReentrant {
         if (order.benefactor != msg.sender)
-            revert MintRedeemManagerInvalidBenefactor();
+            revert OverlayerWrapCoreInvalidBenefactor();
         _managerMint(order);
         _mint(order.beneficiary, order.overlayerWrapAmount);
         emit Mint(
@@ -102,7 +102,7 @@ contract OverlayerWrap is IOverlayerWrapDefs, MintRedeemManager {
     /// @dev Can not be paused
     /// @param order A struct containing the mint order
     function redeem(
-        MintRedeemManagerTypes.Order calldata order
+        OverlayerWrapCoreTypes.Order calldata order
     ) external notDisabled(order.benefactor) nonReentrant {
         (uint256 toBurn, uint256 back) = _managerRedeem(order);
         if (msg.sender == order.benefactor) {

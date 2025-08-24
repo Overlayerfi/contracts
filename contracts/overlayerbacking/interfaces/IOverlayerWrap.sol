@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.20;
 
-import "../../overlayer/types/MintRedeemManagerTypes.sol";
+import "../../overlayer/types/OverlayerWrapCoreTypes.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Interface for OverlayerWrap Token
@@ -11,5 +11,5 @@ interface IOverlayerWrap is IERC20 {
     function acceptProposedCollateralSpender() external;
     /// @notice Mint new tokens according to the provided order
     /// @param order Struct containing minting parameters
-    function mint(MintRedeemManagerTypes.Order calldata order) external;
+    function mint(OverlayerWrapCoreTypes.Order calldata order) external;
 }
