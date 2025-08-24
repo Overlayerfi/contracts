@@ -6,7 +6,12 @@ pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
+import { OFT } from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
+import "./interfaces/IOverlayerWrapDefs.sol";
 import "../shared/SingleAdminAccessControl.sol";
 import "./CollateralSpenderManager.sol";
 import "./interfaces/IMintRedeemManagerDefs.sol";
@@ -19,6 +24,9 @@ import "./types/MintRedeemManagerTypes.sol";
  */
 abstract contract MintRedeemManager is
     IMintRedeemManagerDefs,
+    OFT,
+    ERC20Burnable,
+    ERC20Permit,
     CollateralSpenderManager,
     Pausable
 {
@@ -30,9 +38,6 @@ abstract contract MintRedeemManager is
     bytes32 private constant GATEKEEPER_ROLE = keccak256("GATEKEEPER_ROLE");
 
     /* --------------- STATE VARIABLES --------------- */
-
-    /// @notice Parent token decimals
-    uint256 internal immutable _decimals;
 
     /// @notice OverlayerWrap minted per block
     mapping(uint256 => uint256) public mintedPerBlock;
@@ -64,9 +69,20 @@ abstract contract MintRedeemManager is
 
     /* --------------- CONSTRUCTOR --------------- */
 
-    constructor(uint256 decimals) CollateralSpenderManager() {
-        if (decimals == 0) revert MintRedeemManagerInvalidDecimals();
-        _decimals = decimals;
+    constructor(IOverlayerWrapDefs.ConstructorParams memory params) 
+      OFT(params.name, params.symbol, params.admin, params.admin)
+      ERC20Permit(params.name)
+      Ownable(msg.sender)
+    {
+    }
+
+    /* --------------- PUBLIC --------------- */
+
+    /// @inheritdoc Ownable
+    /// @dev We resolve the multiple inheritance of {Ownable} and {SingleAdminAccessControl}
+    /// by returning the owner defined in {SingleAdminAccessControl}.
+    function owner() public view override(Ownable,SingleAdminAccessControl) returns(address) {
+        return SingleAdminAccessControl.owner();
     }
 
     /* --------------- EXTERNAL --------------- */

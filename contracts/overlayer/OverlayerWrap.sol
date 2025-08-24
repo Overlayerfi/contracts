@@ -2,8 +2,6 @@
 pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "./MintRedeemManager.sol";
 import "./interfaces/IOverlayerWrapDefs.sol";
 import "./types/MintRedeemManagerTypes.sol";
@@ -13,8 +11,6 @@ import "./types/MintRedeemManagerTypes.sol";
  * @notice The stable coin Overlayer
  */
 contract OverlayerWrap is
-    ERC20Burnable,
-    ERC20Permit,
     IOverlayerWrapDefs,
     MintRedeemManager
 {
@@ -63,9 +59,7 @@ contract OverlayerWrap is
     constructor(
         ConstructorParams memory params
     )
-        ERC20(params.name, params.symbol)
-        ERC20Permit(params.name)
-        MintRedeemManager(decimals())
+        MintRedeemManager(params)
     {
         MintRedeemManager._initialize(
             params.collateral,
