@@ -3,6 +3,7 @@ import { ethers } from "hardhat";
 import { expect } from "chai";
 
 import OVERLAYER_WRAP_ABI from "../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
+import { LZ_ENDPOINT_ETH_MAINNET_V2 } from "../scripts/addresses";
 
 describe("OverlayerWrap", function () {
   async function deployFixture() {
@@ -29,33 +30,27 @@ describe("OverlayerWrap", function () {
       defaultTransactionOptions
     );
 
-    const Factory = await ethers.getContractFactory("OverlayerWrapFactory");
-    const factory = await Factory.deploy(
-      await admin.getAddress(),
-      await admin.getAddress(),
+    const OverlayerWrap = await ethers.getContractFactory("OverlayerWrap");
+    const overlayerWrap = await OverlayerWrap.deploy(
+      {
+        admin: await admin.getAddress(),
+        lzEndpoint: LZ_ENDPOINT_ETH_MAINNET_V2,
+        name: "O",
+        symbol: "O+",
+        collateral: {
+          addr: await collateral.getAddress(),
+          decimals: await collateral.decimals()
+        },
+        aCollateral: {
+          addr: await acollateral.getAddress(),
+          decimals: await acollateral.decimals()
+        },
+        maxMintPerBlock: ethers.MaxUint256,
+        maxRedeemPerBlock: ethers.MaxUint256
+      },
       defaultTransactionOptions
     );
-    await factory.waitForDeployment();
-
-    const overlayerWrapAddressTx = await factory.deployInitialOverlayerWrap(
-      {
-        addr: await collateral.getAddress(),
-        decimals: await collateral.decimals()
-      },
-      {
-        addr: await acollateral.getAddress(),
-        decimals: await acollateral.decimals()
-      },
-      ethers.parseEther("100000000"),
-      ethers.parseEther("100000000")
-    );
-    await overlayerWrapAddressTx.wait();
-    const overlayerWrapAddress = await factory.symbolToToken("USDT+");
-    const overlayerWrap = new ethers.Contract(
-      overlayerWrapAddress,
-      OVERLAYER_WRAP_ABI.abi,
-      admin
-    );
+    await overlayerWrap.waitForDeployment();
 
     const userAmount = "50";
 
@@ -374,11 +369,9 @@ describe("OverlayerWrap", function () {
   describe("Mint Redeem Per Block", function () {
     it("Should set initial values", async function () {
       const { overlayerWrap } = await loadFixture(deployFixture);
-      expect(await overlayerWrap.maxMintPerBlock()).to.equal(
-        ethers.parseEther("100000000")
-      );
+      expect(await overlayerWrap.maxMintPerBlock()).to.equal(ethers.MaxUint256);
       expect(await overlayerWrap.maxRedeemPerBlock()).to.equal(
-        ethers.parseEther("100000000")
+        ethers.MaxUint256
       );
     });
 

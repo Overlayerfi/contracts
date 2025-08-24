@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 /// @title IOvaReferral Interface
 /// @notice Interface for the OVA referral system that tracks referrals and rewards

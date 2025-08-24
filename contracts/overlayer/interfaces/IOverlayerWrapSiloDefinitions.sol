@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 /// @title Interface for Overlayer Wrap Silo Definitions
 /// @notice Defines access control for staking vault operations

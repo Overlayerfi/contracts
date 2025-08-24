@@ -6,7 +6,8 @@ import {
   AUSDT_ADDRESS,
   USDT_ADDRESS,
   AWETH_ADDRESS,
-  AAVE_POOL_V3_ADDRESS
+  AAVE_POOL_V3_ADDRESS,
+  LZ_ENDPOINT_ETH_MAINNET_V2
 } from "../scripts/addresses";
 import ERC20_ABI from "./ERC20_ABI.json";
 import { swap } from "../scripts/uniswap_swapper/proxy";
@@ -56,33 +57,27 @@ describe("OverlayerWrapBacking", function () {
       admin.provider
     );
 
-    const Factory = await ethers.getContractFactory("OverlayerWrapFactory");
-    const factory = await Factory.deploy(
-      await admin.getAddress(),
-      await admin.getAddress(),
+    const OverlayerWrap = await ethers.getContractFactory("OverlayerWrap");
+    const overlayerWrap = await OverlayerWrap.deploy(
+      {
+        admin: await admin.getAddress(),
+        lzEndpoint: LZ_ENDPOINT_ETH_MAINNET_V2,
+        name: "O",
+        symbol: "O+",
+        collateral: {
+          addr: await usdt.getAddress(),
+          decimals: await usdt.decimals()
+        },
+        aCollateral: {
+          addr: await ausdt.getAddress(),
+          decimals: await ausdt.decimals()
+        },
+        maxMintPerBlock: ethers.MaxUint256,
+        maxRedeemPerBlock: ethers.MaxUint256
+      },
       defaultTransactionOptions
     );
-    await factory.waitForDeployment();
-
-    const overlayerWrapAddressTx = await factory.deployInitialOverlayerWrap(
-      {
-        addr: await usdt.getAddress(),
-        decimals: await usdt.decimals()
-      },
-      {
-        addr: await ausdt.getAddress(),
-        decimals: await ausdt.decimals()
-      },
-      ethers.parseEther("100000000"),
-      ethers.parseEther("100000000")
-    );
-    await overlayerWrapAddressTx.wait();
-    const overlayerWrapAddress = await factory.symbolToToken("USDT+");
-    const overlayerWrap = new ethers.Contract(
-      overlayerWrapAddress,
-      OVERLAYER_WRAP_ABI.abi,
-      admin
-    );
+    await overlayerWrap.waitForDeployment();
 
     const Dispatcher = await ethers.getContractFactory("OvaDispatcher");
     const dispatcher = await Dispatcher.deploy(

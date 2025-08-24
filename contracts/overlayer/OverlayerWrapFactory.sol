@@ -4,15 +4,19 @@ pragma solidity ^0.8.20;
 import "./OverlayerWrap.sol";
 import "./interfaces/IOverlayerWrapDefs.sol";
 import "../shared/SingleAdminAccessControl.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract OverlayerWrapFactory is SingleAdminAccessControl {
-    bytes32 public constant GOVERNOR_ROLE = keccak256("GOVERNOR_ROLE");
+contract OverlayerWrapFactory is Ownable {
+    address public governor;
 
     // Prevent duplicate symbols and allow lookup
     mapping(string => address) public symbolToToken;
 
     error ZeroAddressNotAllowed();
+
+    error OnlyGovernor();
+
+    error SymbolAlreadyExists(string symbol);
 
     event OverlayerWrapDeployed(
         address indexed token,
@@ -20,20 +24,20 @@ contract OverlayerWrapFactory is SingleAdminAccessControl {
         string symbol
     );
 
-    constructor(address admin, address governor) {
-        if (admin == address(0) || governor == address(0)) {
+    constructor(address admin_, address governor_) Ownable(admin_) {
+        if (admin_ == address(0) || governor_ == address(0)) {
             revert ZeroAddressNotAllowed();
         }
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(GOVERNOR_ROLE, governor);
+        governor = governor_;
     }
 
     function deployInitialOverlayerWrap(
         MintRedeemManagerTypes.StableCoin memory collateral_,
         MintRedeemManagerTypes.StableCoin memory aCollateral_,
+        address lzEndpoint_,
         uint256 maxMintPerBlock_,
         uint256 maxRedeemPerBlock_
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) returns (address) {
+    ) external onlyOwner returns (address) {
         // Reject if symbol already exists
         string memory overlayerZeroSymbol = "USDT+";
         string memory overlayerZeroName = "Tether USD+";
@@ -43,6 +47,7 @@ contract OverlayerWrapFactory is SingleAdminAccessControl {
         IOverlayerWrapDefs.ConstructorParams memory params = IOverlayerWrapDefs
             .ConstructorParams(
                 owner(),
+                lzEndpoint_,
                 overlayerZeroName,
                 overlayerZeroSymbol,
                 collateral_,
@@ -67,9 +72,13 @@ contract OverlayerWrapFactory is SingleAdminAccessControl {
         string memory symbol,
         MintRedeemManagerTypes.StableCoin memory collateral_,
         MintRedeemManagerTypes.StableCoin memory aCollateral_,
+        address lzEndpoint_,
         uint256 maxMintPerBlock_,
         uint256 maxRedeemPerBlock_
-    ) external onlyRole(GOVERNOR_ROLE) returns (address) {
+    ) external returns (address) {
+        if (msg.sender != governor) {
+            revert OnlyGovernor();
+        }
         // Reject if symbol already exists
         if (symbolToToken[symbol] != address(0)) {
             revert SymbolAlreadyExists(symbol);
@@ -77,6 +86,7 @@ contract OverlayerWrapFactory is SingleAdminAccessControl {
         IOverlayerWrapDefs.ConstructorParams memory params = IOverlayerWrapDefs
             .ConstructorParams(
                 owner(),
+                lzEndpoint_,
                 name,
                 symbol,
                 collateral_,
@@ -91,6 +101,4 @@ contract OverlayerWrapFactory is SingleAdminAccessControl {
         emit OverlayerWrapDeployed(address(token), name, symbol);
         return address(token);
     }
-
-    error SymbolAlreadyExists(string symbol);
 }

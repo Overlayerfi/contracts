@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./MintRedeemManager.sol";
@@ -10,10 +10,7 @@ import "./types/MintRedeemManagerTypes.sol";
  * @title OverlayerWrap
  * @notice The stable coin Overlayer
  */
-contract OverlayerWrap is
-    IOverlayerWrapDefs,
-    MintRedeemManager
-{
+contract OverlayerWrap is IOverlayerWrapDefs, MintRedeemManager {
     /// @notice The timestamp of the last blacklist activation request
     uint256 public blacklistActivationTime;
 
@@ -56,11 +53,7 @@ contract OverlayerWrap is
     ///        - aCollateral: Configuration for the associated collateral token
     ///        - maxMintPerBlock: Maximum amount that can be minted per block
     ///        - maxRedeemPerBlock: Maximum amount that can be redeemed per block
-    constructor(
-        ConstructorParams memory params
-    )
-        MintRedeemManager(params)
-    {
+    constructor(ConstructorParams memory params) MintRedeemManager(params) {
         MintRedeemManager._initialize(
             params.collateral,
             params.aCollateral,

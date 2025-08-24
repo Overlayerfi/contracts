@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 /* solhint-disable private-vars-leading-underscore */
 /* solhint-disable var-name-mixedcase */
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
-import { OFT } from "@layerzerolabs/oft-evm/contracts/OFT.sol";
+import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -69,19 +69,28 @@ abstract contract MintRedeemManager is
 
     /* --------------- CONSTRUCTOR --------------- */
 
-    constructor(IOverlayerWrapDefs.ConstructorParams memory params) 
-      OFT(params.name, params.symbol, params.admin, params.admin)
-      ERC20Permit(params.name)
-      Ownable(msg.sender)
-    {
-    }
+    /// @notice Initializes the MintRedeemManager contract with the provided parameters
+    /// @dev Sets up the OFT, ERC20Permit, and Ownable functionality
+    /// @param params A struct containing initialization parameters.
+    constructor(
+        IOverlayerWrapDefs.ConstructorParams memory params
+    )
+        OFT(params.name, params.symbol, params.lzEndpoint, params.admin)
+        ERC20Permit(params.name)
+        Ownable(msg.sender)
+    {}
 
     /* --------------- PUBLIC --------------- */
 
     /// @inheritdoc Ownable
     /// @dev We resolve the multiple inheritance of {Ownable} and {SingleAdminAccessControl}
     /// by returning the owner defined in {SingleAdminAccessControl}.
-    function owner() public view override(Ownable,SingleAdminAccessControl) returns(address) {
+    function owner()
+        public
+        view
+        override(Ownable, SingleAdminAccessControl)
+        returns (address)
+    {
         return SingleAdminAccessControl.owner();
     }
 
