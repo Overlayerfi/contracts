@@ -4,7 +4,7 @@
   "description": "Overlayer smart contracts",
   "scripts": {
     "unit": "npx hardhat test",
-    "configure": "git submodule update --init --recursive && npm ci",
+    "configure": "git submodule update --init --recursive && npm install --force",
     "compile": "npx hardhat compile",
     "node": "npx hardhat node",
     "exec-ova": "npx hardhat --network ova run",
