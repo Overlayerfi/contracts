@@ -286,9 +286,9 @@ abstract contract MintRedeemManager is
         if (amount == 0) {
             return (0, 0);
         }
-        //Here does hold the inveriant that _decimals >= token.decimals
+        //Here does hold the inveriant that decimals() >= token.decimals
         unchecked {
-            uint256 diffDecimals = _decimals -
+            uint256 diffDecimals = decimals() -
                 (
                     wantCollateral == aCollateral.addr
                         ? aCollateral.decimals
