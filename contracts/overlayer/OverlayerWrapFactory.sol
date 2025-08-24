@@ -32,8 +32,8 @@ contract OverlayerWrapFactory is Ownable {
     }
 
     function deployInitialOverlayerWrap(
-        MintRedeemManagerTypes.StableCoin memory collateral_,
-        MintRedeemManagerTypes.StableCoin memory aCollateral_,
+        OverlayerWrapCoreTypes.StableCoin memory collateral_,
+        OverlayerWrapCoreTypes.StableCoin memory aCollateral_,
         address lzEndpoint_,
         uint256 maxMintPerBlock_,
         uint256 maxRedeemPerBlock_
@@ -70,8 +70,8 @@ contract OverlayerWrapFactory is Ownable {
     function deployOverlayerWrap(
         string memory name,
         string memory symbol,
-        MintRedeemManagerTypes.StableCoin memory collateral_,
-        MintRedeemManagerTypes.StableCoin memory aCollateral_,
+        OverlayerWrapCoreTypes.StableCoin memory collateral_,
+        OverlayerWrapCoreTypes.StableCoin memory aCollateral_,
         address lzEndpoint_,
         uint256 maxMintPerBlock_,
         uint256 maxRedeemPerBlock_
