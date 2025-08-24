@@ -1,7 +1,7 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { AUSDT_ADDRESS } from "../scripts/addresses";
+import { AUSDT_ADDRESS, LZ_ENDPOINT_ETH_MAINNET_V2 } from "../scripts/addresses";
 import OVERLAYER_WRAP_ABI from "../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
 
 describe("StakedOverlayerWrapFront", function () {
@@ -21,36 +21,37 @@ describe("StakedOverlayerWrapFront", function () {
       "USDT",
       defaultTransactionOptions
     );
-
-    const Factory = await ethers.getContractFactory("OverlayerWrapFactory");
-    const factory = await Factory.deploy(
-      await admin.getAddress(),
-      await admin.getAddress(),
+    const AUsdt = await ethers.getContractFactory("FixedSupplyERC20");
+    const ausdt = await AUsdt.deploy(
+      1000,
+      "aUSDT",
+      "aUSDT",
       defaultTransactionOptions
     );
-    await factory.waitForDeployment();
 
-    const overlayerWrapAddressTx = await factory.deployInitialOverlayerWrap(
+    const OverlayerWrap = await ethers.getContractFactory("OverlayerWrap");
+    const overlayerWrap = await OverlayerWrap.deploy(
       {
-        addr: await usdt.getAddress(),
-        decimals: await usdt.decimals()
+        admin: await admin.getAddress(),
+        lzEndpoint: LZ_ENDPOINT_ETH_MAINNET_V2,
+        name: "O",
+        symbol: "O+",
+        collateral: {
+          addr: await usdt.getAddress(),
+          decimals: await usdt.decimals()
+        },
+        aCollateral: {
+          addr: await ausdt.getAddress(),
+          decimals: await ausdt.decimals()
+        },
+        maxMintPerBlock: ethers.MaxUint256,
+        maxRedeemPerBlock: ethers.MaxUint256
       },
-      {
-        addr: AUSDT_ADDRESS,
-        decimals: 6
-      },
-      ethers.parseEther("100000000"),
-      ethers.parseEther("100000000")
+      defaultTransactionOptions
     );
-    await overlayerWrapAddressTx.wait();
-    const overlayerWrapAddress = await factory.symbolToToken("USDT+");
-    const overlayerWrap = new ethers.Contract(
-      overlayerWrapAddress,
-      OVERLAYER_WRAP_ABI.abi,
-      admin
-    );
+    await overlayerWrap.waitForDeployment();
 
-    //send some usdc and usdt to users
+    //send some usdt to users
     await usdt
       .connect(admin)
       .transfer(alice.address, ethers.parseUnits("50", await usdt.decimals()));
