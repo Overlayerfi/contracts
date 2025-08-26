@@ -91,14 +91,6 @@ const config: HardhatUserConfig = {
       gasPrice: "auto",
       allowUnlimitedContractSize: true,
     },
-    goerli: {
-      url: GOERLI_RPC,
-      chainId: 0x5,
-      accounts: [process.env.ADMIN_WALLET_KEY!, process.env.TEAM_WALLET_KEY!],
-      gas: "auto",
-      gasPrice: "auto",
-      allowUnlimitedContractSize: true,
-    }
   },
 };
 
