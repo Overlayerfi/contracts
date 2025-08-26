@@ -4,8 +4,9 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { ETH_RPC, GOERLI_RPC, OVA_BETA_RPC, PRIVATE_ETH_RPC_PREFIX, PRIVATE_ETH_SEPOLIA_RPC_PREFIX } from './rpc';
+import { ETH_RPC, GOERLI_RPC, OVA_BETA_RPC, PRIVATE_ARB_SEPOLIA_RPC_PREFIX, PRIVATE_ETH_RPC_PREFIX, PRIVATE_ETH_SEPOLIA_RPC_PREFIX } from './rpc';
 import 'solidity-docgen';
+import { EndpointId } from '@layerzerolabs/lz-definitions'
 
 dotenv.config({ path: process.cwd() + "/process.env"});
 
@@ -117,17 +118,19 @@ const config: HardhatUserConfig = {
       gasPrice: "auto",
       allowUnlimitedContractSize: true,
     },
-    goerli: {
-      url: GOERLI_RPC,
-      chainId: 0x5,
-      accounts: [process.env.ADMIN_WALLET_KEY!, process.env.TEAM_WALLET_KEY!],
-      gas: "auto",
-      gasPrice: "auto",
-      allowUnlimitedContractSize: true,
-    },
-    sepolia: {
+    eth_sepolia: {
+      eid: EndpointId.SEPOLIA_V2_TESTNET,
       url: PRIVATE_ETH_SEPOLIA_RPC_PREFIX + process.env.ALCHEMY_KEY!,
       chainId: 0xAA36A7,
+      accounts: [process.env.OVA_SEPOLIA_DEPLOYER_KEY!, process.env.OVA_SEPOLIA_TREASURY_KEY!],
+      gasPrice: "auto",
+      gas: "auto",
+      allowUnlimitedContractSize: true,
+    },
+    arbitrum_sepolia: {
+      eid: EndpointId.ARBITRUM_V2_TESTNET,
+      url: PRIVATE_ARB_SEPOLIA_RPC_PREFIX + process.env.ALCHEMY_KEY!,
+      chainId: 0x66eee,
       accounts: [process.env.OVA_SEPOLIA_DEPLOYER_KEY!, process.env.OVA_SEPOLIA_TREASURY_KEY!],
       gasPrice: "auto",
       gas: "auto",
