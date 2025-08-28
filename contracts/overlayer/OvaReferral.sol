@@ -57,10 +57,10 @@ contract OvaReferral is MintableTokenBase, ReentrancyGuard, IOvaReferral {
     }
 
     ///@notice The constructor
-    ///@param admin The contract admin
+    ///@param admin_ The contract admin
     constructor(
-        address admin
-    ) MintableTokenBase(admin, "Airdrop OVA", "AOVA") {}
+        address admin_
+    ) MintableTokenBase(admin_, "Airdrop OVA", "AOVA") {}
 
     function getStakingPools() external view returns (address[] memory) {
         return stakingPools;
@@ -74,22 +74,22 @@ contract OvaReferral is MintableTokenBase, ReentrancyGuard, IOvaReferral {
     /// @notice Consume a referral code. This action will harvest all the user positions in the staking pools
     /// @dev Code holders can not use any code
     /// @dev Staking pools must be set
-    /// @param code The referral code
+    /// @param code_ The referral code
     function consumeReferral(
-        string memory code
+        string memory code_
     ) external override nonReentrant {
         address consumer = msg.sender;
         if (referredFrom[consumer] != address(0)) {
             revert OvaReferralAlreadyReferred();
         }
-        if (referralCodes[code] == address(0)) {
+        if (referralCodes[code_] == address(0)) {
             revert OvaReferralCodeNotValid();
         }
         // Code providers can not use any referral
         if (bytes(referralCodesRev[consumer]).length > 0) {
             revert OvaReferralNotAllowed();
         }
-        address source = referralCodes[code];
+        address source = referralCodes[code_];
         // Can not refer self
         if (source == consumer) {
             revert OvaReferralNotAllowed();
@@ -125,48 +125,48 @@ contract OvaReferral is MintableTokenBase, ReentrancyGuard, IOvaReferral {
     }
 
     /// @notice Track a new points update
-    /// @param source The user address to track
-    /// @param amount The amount of points to be tracked
+    /// @param source_ The user address to track
+    /// @param amount_ The amount of points to be tracked
     function track(
-        address source,
-        uint256 amount
+        address source_,
+        uint256 amount_
     ) external override onlyTracker {
-        generatedPoints[source] += amount;
+        generatedPoints[source_] += amount_;
     }
 
     /// @notice Add a new points tracker
-    /// @param tracker The tracker address
-    function addPointsTracker(address tracker) external onlyOwner {
-        allowedPointsTrackers[tracker] = true;
-        emit AddTracker(tracker);
+    /// @param tracker_ The tracker address
+    function addPointsTracker(address tracker_) external onlyOwner {
+        allowedPointsTrackers[tracker_] = true;
+        emit AddTracker(tracker_);
     }
 
     /// @notice Add a new referral code
-    /// @param code The tracker address
-    /// @param holder The code owner
-    function addCode(string memory code, address holder) external onlyOwner {
-        if (holder == address(0)) {
+    /// @param code_ The tracker address
+    /// @param holder_ The code owner
+    function addCode(string memory code_, address holder_) external onlyOwner {
+        if (holder_ == address(0)) {
             revert OvaReferralZeroAddress();
         }
         // Code users can not create codes
-        if (referredFrom[holder] != address(0)) {
+        if (referredFrom[holder_] != address(0)) {
             revert OvaReferralAlreadyReferred();
         }
-        if (referralCodes[code] != address(0)) {
+        if (referralCodes[code_] != address(0)) {
             revert OvaReferralCodeAlreadyUsed();
         }
-        if (bytes(referralCodesRev[holder]).length > 0) {
+        if (bytes(referralCodesRev[holder_]).length > 0) {
             revert OvaReferralAlreadyCreatedACode();
         }
-        referralCodes[code] = holder;
-        referralCodesRev[holder] = code;
-        codes.push(code);
-        emit NewCode(code, holder);
+        referralCodes[code_] = holder_;
+        referralCodesRev[holder_] = code_;
+        codes.push(code_);
+        emit NewCode(code_, holder_);
     }
 
     /// @notice Add a new referral code for the caller
-    /// @param code The tracker address
-    function addCodeSelf(string memory code) external {
+    /// @param code_ The tracker address
+    function addCodeSelf(string memory code_) external {
         address holder = msg.sender;
         if (holder == address(0)) {
             revert OvaReferralZeroAddress();
@@ -175,51 +175,51 @@ contract OvaReferral is MintableTokenBase, ReentrancyGuard, IOvaReferral {
         if (referredFrom[holder] != address(0)) {
             revert OvaReferralAlreadyReferred();
         }
-        if (referralCodes[code] != address(0)) {
+        if (referralCodes[code_] != address(0)) {
             revert OvaReferralCodeAlreadyUsed();
         }
         if (bytes(referralCodesRev[holder]).length > 0) {
             revert OvaReferralAlreadyCreatedACode();
         }
-        referralCodes[code] = holder;
-        referralCodesRev[holder] = code;
-        codes.push(code);
-        emit NewCode(code, holder);
+        referralCodes[code_] = holder;
+        referralCodesRev[holder] = code_;
+        codes.push(code_);
+        emit NewCode(code_, holder);
     }
 
     /// @notice Remove a points tracker
-    /// @param tracker The tracker address
-    function removePointsTracker(address tracker) external onlyOwner {
-        allowedPointsTrackers[tracker] = false;
-        emit RemoveTracker(tracker);
+    /// @param tracker_ The tracker address
+    function removePointsTracker(address tracker_) external onlyOwner {
+        allowedPointsTrackers[tracker_] = false;
+        emit RemoveTracker(tracker_);
     }
 
     /// @notice Retrieve all the referred user for a given address
-    /// @param source The query key
+    /// @param source_ The query key
     /// @return All the referred user addresses
     function seeReferred(
-        address source
+        address source_
     ) external view override returns (address[] memory) {
-        return referredUsers[source];
+        return referredUsers[source_];
     }
 
     /// @notice Retrieve all the referred user for a given address
-    /// @param code The query key
+    /// @param code_ The query key
     /// @return All the referred user addresses
     function seeReferredByCode(
-        string memory code
+        string memory code_
     ) external view returns (address[] memory) {
-        address source = referralCodes[code];
+        address source = referralCodes[code_];
         return referredUsers[source];
     }
 
     /// @notice Retrieve all points earned by a given code
-    /// @param code The referral code
+    /// @param code_ The referral code
     /// @return The total points
     function codeTotalPoints(
-        string memory code
+        string memory code_
     ) external view returns (uint256) {
-        address source = referralCodes[code];
+        address source = referralCodes[code_];
         return generatedPoints[source];
     }
 

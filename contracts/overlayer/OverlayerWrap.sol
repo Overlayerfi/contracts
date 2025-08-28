@@ -25,8 +25,8 @@ contract OverlayerWrap is IOverlayerWrapDefs, OverlayerWrapCore {
     bytes32 private constant BLACKLISTED_ROLE = keccak256("BLACKLISTED_ROLE");
 
     /// @notice Ensure account is not blacklisted
-    modifier notDisabled(address account) {
-        if (hasRole(BLACKLISTED_ROLE, account)) {
+    modifier notDisabled(address account_) {
+        if (hasRole(BLACKLISTED_ROLE, account_)) {
             revert OverlayerWrapAccountDisabled();
         }
         _;
@@ -45,7 +45,7 @@ contract OverlayerWrap is IOverlayerWrapDefs, OverlayerWrapCore {
     }
 
     /// @notice Constructor initializes the OverlayerWrap token
-    /// @param params A struct containing:
+    /// @param params_ A struct containing:
     ///        - admin: Address of the contract administrator
     ///        - name: Token name
     ///        - symbol: Token symbol
@@ -53,89 +53,91 @@ contract OverlayerWrap is IOverlayerWrapDefs, OverlayerWrapCore {
     ///        - aCollateral: Configuration for the associated collateral token
     ///        - maxMintPerBlock: Maximum amount that can be minted per block
     ///        - maxRedeemPerBlock: Maximum amount that can be redeemed per block
-    constructor(ConstructorParams memory params) OverlayerWrapCore(params) {
+    constructor(ConstructorParams memory params_) OverlayerWrapCore(params_) {
         OverlayerWrapCore._initialize(
-            params.collateral,
-            params.aCollateral,
-            params.admin,
-            params.maxMintPerBlock,
-            params.maxRedeemPerBlock
+            params_.collateral,
+            params_.aCollateral,
+            params_.admin,
+            params_.maxMintPerBlock,
+            params_.maxRedeemPerBlock
         );
-        if (params.admin == address(0))
+        if (params_.admin == address(0))
             revert OverlayerWrapZeroAddressException();
-        if (decimals() < params.collateral.decimals) {
+        if (decimals() < params_.collateral.decimals) {
             revert OverlayerWrapInvalidDecimals();
         }
     }
 
     /// @notice Mint tokens
     /// @dev Can be paused by the admin
-    /// @param order A struct containing the mint order
+    /// @param order_ A struct containing the mint order
     function mint(
-        OverlayerWrapCoreTypes.Order calldata order
-    ) external notDisabled(order.beneficiary) nonReentrant {
-        if (order.benefactor != msg.sender)
+        OverlayerWrapCoreTypes.Order calldata order_
+    ) external notDisabled(order_.beneficiary) nonReentrant {
+        if (order_.benefactor != msg.sender)
             revert OverlayerWrapCoreInvalidBenefactor();
-        _managerMint(order);
-        _mint(order.beneficiary, order.overlayerWrapAmount);
+        _managerMint(order_);
+        _mint(order_.beneficiary, order_.overlayerWrapAmount);
         emit Mint(
             msg.sender,
-            order.benefactor,
-            order.beneficiary,
-            order.collateral,
-            order.collateralAmount,
-            order.overlayerWrapAmount
+            order_.benefactor,
+            order_.beneficiary,
+            order_.collateral,
+            order_.collateralAmount,
+            order_.overlayerWrapAmount
         );
     }
 
     /// @notice Sets the blacklist time.
     /// @dev Disables blakclist if time is zero.
-    /// @param time The timestamp.
-    function setBlackListTime(uint256 time) external onlyRole(CONTROLLER_ROLE) {
-        if (time > 0 && time < block.timestamp) {
+    /// @param time_ The timestamp.
+    function setBlackListTime(
+        uint256 time_
+    ) external onlyRole(CONTROLLER_ROLE) {
+        if (time_ > 0 && time_ < block.timestamp) {
             revert OverlayerWrapBlacklistTimeNotValid();
         }
-        blacklistActivationTime = time;
+        blacklistActivationTime = time_;
     }
 
     /// @notice Redeem collateral
     /// @dev Can not be paused
-    /// @param order A struct containing the mint order
+    /// @param order_ A struct containing the mint order
     function redeem(
-        OverlayerWrapCoreTypes.Order calldata order
-    ) external notDisabled(order.benefactor) nonReentrant {
-        (uint256 toBurn, uint256 back) = _managerRedeem(order);
-        if (msg.sender == order.benefactor) {
+        OverlayerWrapCoreTypes.Order calldata order_
+    ) external notDisabled(order_.benefactor) nonReentrant {
+        (uint256 toBurn, uint256 back) = _managerRedeem(order_);
+        if (msg.sender == order_.benefactor) {
             _burn(msg.sender, toBurn);
         } else {
-            burnFrom(order.benefactor, toBurn);
+            burnFrom(order_.benefactor, toBurn);
         }
         emit Redeem(
             msg.sender,
-            order.benefactor,
-            order.beneficiary,
-            order.collateral,
+            order_.benefactor,
+            order_.beneficiary,
+            order_.collateral,
             back,
             toBurn
         );
     }
 
     /// @notice Disable an account from performing transactions
-    /// @param account The account to be disabled
+    /// @param account_ The account to be disabled
     function disableAccount(
-        address account
+        address account_
     ) external blacklistAllowed onlyRole(CONTROLLER_ROLE) {
-        _grantRole(BLACKLISTED_ROLE, account);
-        emit DisableAccount(account);
+        _grantRole(BLACKLISTED_ROLE, account_);
+        emit DisableAccount(account_);
     }
 
     /// @notice Enable an account from performing transactions
-    /// @param account The account to be enabled
+    /// @param account_ The account to be enabled
     function enableAccount(
-        address account
+        address account_
     ) external blacklistAllowed onlyRole(CONTROLLER_ROLE) {
-        _revokeRole(BLACKLISTED_ROLE, account);
-        emit EnableAccount(account);
+        _revokeRole(BLACKLISTED_ROLE, account_);
+        emit EnableAccount(account_);
     }
 
     /**
@@ -146,10 +148,10 @@ contract OverlayerWrap is IOverlayerWrapDefs, OverlayerWrapCore {
      * Emits a {Transfer} event.
      */
     function _update(
-        address from,
-        address to,
-        uint256 value
-    ) internal override notDisabled(from) notDisabled(to) {
-        super._update(from, to, value);
+        address from_,
+        address to_,
+        uint256 value_
+    ) internal override notDisabled(from_) notDisabled(to_) {
+        super._update(from_, to_, value_);
     }
 }
