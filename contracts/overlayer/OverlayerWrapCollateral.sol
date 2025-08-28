@@ -20,11 +20,11 @@ abstract contract OverlayerWrapCollateral is SingleAdminAccessControl {
     OverlayerWrapCoreTypes.StableCoin public aCollateral;
 
     function _initialize(
-        address admin,
+        address admin_,
         OverlayerWrapCoreTypes.StableCoin memory collateral_,
         OverlayerWrapCoreTypes.StableCoin memory aCollateral_
     ) internal {
-        if (admin == address(0)) revert CollateralInvalidZeroAddress();
+        if (admin_ == address(0)) revert CollateralInvalidZeroAddress();
         if (collateral_.addr == address(0))
             revert CollateralInvalidZeroAddress();
         if (collateral_.decimals == 0) revert CollateralInvalidDecimals();
@@ -34,8 +34,8 @@ abstract contract OverlayerWrapCollateral is SingleAdminAccessControl {
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
-        if (msg.sender != admin) {
-            _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        if (msg.sender != admin_) {
+            _grantRole(DEFAULT_ADMIN_ROLE, admin_);
         }
 
         collateral = collateral_;

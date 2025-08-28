@@ -16,20 +16,20 @@ abstract contract SingleAdminAccessControl is
     address private _currentDefaultAdmin;
     address private _pendingDefaultAdmin;
 
-    modifier notAdmin(bytes32 role) {
-        if (role == DEFAULT_ADMIN_ROLE) revert InvalidAdminChange();
+    modifier notAdmin(bytes32 role_) {
+        if (role_ == DEFAULT_ADMIN_ROLE) revert InvalidAdminChange();
         _;
     }
 
     /// @notice Transfer the admin role to a new address
     /// @notice This can ONLY be executed by the current admin
-    /// @param newAdmin address
+    /// @param newAdmin_ address
     function transferAdmin(
-        address newAdmin
+        address newAdmin_
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newAdmin == msg.sender) revert InvalidAdminChange();
-        _pendingDefaultAdmin = newAdmin;
-        emit AdminTransferRequested(_currentDefaultAdmin, newAdmin);
+        if (newAdmin_ == msg.sender) revert InvalidAdminChange();
+        _pendingDefaultAdmin = newAdmin_;
+        emit AdminTransferRequested(_currentDefaultAdmin, newAdmin_);
     }
 
     /// @notice New admin role acceptance
@@ -41,36 +41,36 @@ abstract contract SingleAdminAccessControl is
     /// @notice Grant a role
     /// @notice Can only be executed by the current single admin
     /// @notice Admin role cannot be granted externally
-    /// @param role bytes32
-    /// @param account address
+    /// @param role_ bytes32
+    /// @param account_ address
     function grantRole(
-        bytes32 role,
-        address account
-    ) public override onlyRole(DEFAULT_ADMIN_ROLE) notAdmin(role) {
-        _grantRole(role, account);
+        bytes32 role_,
+        address account_
+    ) public override onlyRole(DEFAULT_ADMIN_ROLE) notAdmin(role_) {
+        _grantRole(role_, account_);
     }
 
     /// @notice Revoke a role
     /// @notice Can only be executed by the current admin
     /// @notice Admin role cannot be revoked
-    /// @param role bytes32
-    /// @param account address
+    /// @param role_ bytes32
+    /// @param account_ address
     function revokeRole(
-        bytes32 role,
-        address account
-    ) public override onlyRole(DEFAULT_ADMIN_ROLE) notAdmin(role) {
-        _revokeRole(role, account);
+        bytes32 role_,
+        address account_
+    ) public override onlyRole(DEFAULT_ADMIN_ROLE) notAdmin(role_) {
+        _revokeRole(role_, account_);
     }
 
     /// @notice renounce the role of msg.sender
     /// @notice admin role cannot be renounced
-    /// @param role bytes32
-    /// @param account address
+    /// @param role_ bytes32
+    /// @param account_ address
     function renounceRole(
-        bytes32 role,
-        address account
-    ) public virtual override notAdmin(role) {
-        super.renounceRole(role, account);
+        bytes32 role_,
+        address account_
+    ) public virtual override notAdmin(role_) {
+        super.renounceRole(role_, account_);
     }
 
     ///@dev See {IERC5313-owner}.
@@ -79,18 +79,18 @@ abstract contract SingleAdminAccessControl is
     }
 
     ///@notice No way to change admin without removing old admin first
-    ///@param role The role
-    ///@param account The account address
+    ///@param role_ The role
+    ///@param account_ The account address
     function _grantRole(
-        bytes32 role,
-        address account
+        bytes32 role_,
+        address account_
     ) internal override returns (bool) {
-        if (role == DEFAULT_ADMIN_ROLE) {
-            emit AdminTransferred(_currentDefaultAdmin, account);
+        if (role_ == DEFAULT_ADMIN_ROLE) {
+            emit AdminTransferred(_currentDefaultAdmin, account_);
             _revokeRole(DEFAULT_ADMIN_ROLE, _currentDefaultAdmin);
-            _currentDefaultAdmin = account;
+            _currentDefaultAdmin = account_;
             delete _pendingDefaultAdmin;
         }
-        return super._grantRole(role, account);
+        return super._grantRole(role_, account_);
     }
 }
