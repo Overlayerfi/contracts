@@ -364,7 +364,7 @@ abstract contract AaveHandler is
         updateSuppliedAmounts(usdtReceived);
     }
 
-    ///@notice Withraw funds to aave
+    ///@notice Withraw funds from aave
     ///@param amountUsdt_ The amount to withdraw intended as USDT
     ///@param recipient_ The collateral recipient
     ///@return Amount of usdt received
