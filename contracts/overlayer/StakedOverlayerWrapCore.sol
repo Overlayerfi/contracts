@@ -208,7 +208,8 @@ abstract contract StakedOverlayerWrapCore is
         uint256 amount_,
         address to_
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (address(token_) == asset()) revert StakedOverlayerWrapInvalidToken();
+        if (address(token_) == asset())
+            revert StakedOverlayerWrapInvalidToken();
         IERC20(token_).safeTransfer(to_, amount_);
     }
 
