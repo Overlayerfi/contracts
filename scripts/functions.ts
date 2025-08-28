@@ -128,9 +128,7 @@ export async function deploy_StakedOverlayerWrap(
     deployer.address
   );
 
-  const ContractSource = await ethers.getContractFactory(
-    "StakedOverlayerWrap"
-  );
+  const ContractSource = await ethers.getContractFactory("StakedOverlayerWrap");
   const deployedContract = await ContractSource.deploy(
     overlayerWrap,
     deployer.address,
