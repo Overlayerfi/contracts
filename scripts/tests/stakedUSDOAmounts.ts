@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import abi from "../../artifacts/contracts/token/StakedOverlayerWrapFront.sol/StakedOverlayerWrapFront.json";
+import abi from "../../artifacts/contracts/token/StakedOverlayerWrap.sol/StakedOverlayerWrap.json";
 
 const addr = "0x4d019A38828ef3C355F72cf78D8Ea243f5757826";
 
