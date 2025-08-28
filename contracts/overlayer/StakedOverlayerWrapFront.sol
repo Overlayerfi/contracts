@@ -51,16 +51,16 @@ contract StakedOverlayerWrapFront is
 
     /// @notice Constructor for StakedOverlayerWrapFront
     /// @param asset_ The OverlayerWrap token contract address
-    /// @param initialRewarder Address authorized to distribute rewards
-    /// @param admin Contract administrator address
-    /// @param vestingPeriod Duration over which rewards are vested
+    /// @param initialRewarder_ Address authorized to distribute rewards
+    /// @param admin_ Contract administrator address
+    /// @param vestingPeriod_ Duration over which rewards are vested
     /// @dev Initializes with maximum cooldown duration and Aave withdrawals enabled
     constructor(
         IERC20 asset_,
-        address initialRewarder,
-        address admin,
-        uint256 vestingPeriod
-    ) StakedOverlayerWrap(asset_, initialRewarder, admin, vestingPeriod) {
+        address initialRewarder_,
+        address admin_,
+        uint256 vestingPeriod_
+    ) StakedOverlayerWrap(asset_, initialRewarder_, admin_, vestingPeriod_) {
         SILO = new OverlayerWrapSilo(address(this), address(asset_));
         cooldownDuration = MAX_COOLDOWN_DURATION;
         withdrawAaveDuringCompound = true;
@@ -72,38 +72,38 @@ contract StakedOverlayerWrapFront is
      * @dev See {IERC4626-withdraw}.
      */
     function withdraw(
-        uint256 assets,
-        address receiver,
-        address _owner
+        uint256 assets_,
+        address receiver_,
+        address owner_
     ) public virtual override ensureCooldownOff returns (uint256) {
         if (overlayerWrapBacking != address(0)) {
             IOverlayerWrapBacking(overlayerWrapBacking).compound(
                 withdrawAaveDuringCompound
             );
         }
-        return super.withdraw(assets, receiver, _owner);
+        return super.withdraw(assets_, receiver_, owner_);
     }
 
     /**
      * @dev See {IERC4626-redeem}.
      */
     function redeem(
-        uint256 shares,
-        address receiver,
-        address _owner
+        uint256 shares_,
+        address receiver_,
+        address owner_
     ) public virtual override ensureCooldownOff returns (uint256) {
         if (overlayerWrapBacking != address(0)) {
             IOverlayerWrapBacking(overlayerWrapBacking).compound(
                 withdrawAaveDuringCompound
             );
         }
-        return super.redeem(shares, receiver, _owner);
+        return super.redeem(shares_, receiver_, owner_);
     }
 
     /// @notice Claim the staking amount after the cooldown has finished. The address can only retire the full amount of assets.
     /// @dev Unstake can be called after cooldown have been set to 0, to let accounts to be able to claim remaining assets locked at Silo
-    /// @param receiver Address to send the assets by the staker
-    function unstake(address receiver) external nonReentrant {
+    /// @param receiver_ Address to send the assets by the staker
+    function unstake(address receiver_) external nonReentrant {
         UserCooldown storage userCooldown = cooldowns[msg.sender];
         uint256 assets = userCooldown.underlyingAmount;
 
@@ -119,18 +119,18 @@ contract StakedOverlayerWrapFront is
             userCooldown.cooldownEnd = 0;
             userCooldown.underlyingAmount = 0;
 
-            SILO.withdraw(receiver, assets);
+            SILO.withdraw(receiver_, assets);
         } else {
             revert IStakedOverlayerWrapCooldownInvalidCooldown();
         }
     }
 
     /// @notice Redeem assets and starts a cooldown to claim the converted underlying asset
-    /// @param assets Assets to redeem
+    /// @param assets_ Assets to redeem
     function cooldownAssets(
-        uint256 assets
+        uint256 assets_
     ) external ensureCooldownOn returns (uint256 shares) {
-        if (assets > maxWithdraw(msg.sender))
+        if (assets_ > maxWithdraw(msg.sender))
             revert IStakedOverlayerWrapCooldownExcessiveWithdrawAmount();
 
         if (overlayerWrapBacking != address(0)) {
@@ -139,22 +139,22 @@ contract StakedOverlayerWrapFront is
             );
         }
 
-        shares = previewWithdraw(assets);
+        shares = previewWithdraw(assets_);
 
         cooldowns[msg.sender].cooldownEnd =
             uint104(block.timestamp) +
             cooldownDuration;
-        cooldowns[msg.sender].underlyingAmount += uint152(assets);
+        cooldowns[msg.sender].underlyingAmount += uint152(assets_);
 
-        _withdraw(msg.sender, address(SILO), msg.sender, assets, shares);
+        _withdraw(msg.sender, address(SILO), msg.sender, assets_, shares);
     }
 
     /// @notice Redeem shares into assets and starts a cooldown to claim the converted underlying asset
-    /// @param shares Shares to redeem
+    /// @param shares_ Shares to redeem
     function cooldownShares(
-        uint256 shares
+        uint256 shares_
     ) external ensureCooldownOn returns (uint256 assets) {
-        if (shares > maxRedeem(msg.sender))
+        if (shares_ > maxRedeem(msg.sender))
             revert IStakedOverlayerWrapCooldownExcessiveRedeemAmount();
 
         if (overlayerWrapBacking != address(0)) {
@@ -163,29 +163,29 @@ contract StakedOverlayerWrapFront is
             );
         }
 
-        assets = previewRedeem(shares);
+        assets = previewRedeem(shares_);
 
         cooldowns[msg.sender].cooldownEnd =
             uint104(block.timestamp) +
             cooldownDuration;
         cooldowns[msg.sender].underlyingAmount += uint152(assets);
 
-        _withdraw(msg.sender, address(SILO), msg.sender, assets, shares);
+        _withdraw(msg.sender, address(SILO), msg.sender, assets, shares_);
     }
 
     /// @notice Set cooldown duration. If cooldown duration is set to zero, the StakedOverlayerWrapFront behavior changes to follow ERC4626 standard and disables
     /// cooldownShares and cooldownAssets methods. If cooldown duration is greater than zero, the ERC4626 withdrawal and redeem functions are disabled,
     /// breaking the ERC4626 standard, and enabling the cooldownShares and the cooldownAssets functions.
-    /// @param duration Duration of the cooldown
+    /// @param duration_ Duration of the cooldown
     function setCooldownDuration(
-        uint24 duration
+        uint24 duration_
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (duration > MAX_COOLDOWN_DURATION) {
+        if (duration_ > MAX_COOLDOWN_DURATION) {
             revert IStakedOverlayerWrapCooldownInvalidCooldown();
         }
 
         uint24 previousDuration = cooldownDuration;
-        cooldownDuration = duration;
+        cooldownDuration = duration_;
         emit IStakedOverlayerWrapCooldownDurationUpdated(
             previousDuration,
             cooldownDuration
@@ -193,11 +193,11 @@ contract StakedOverlayerWrapFront is
     }
 
     /// @notice Controls whether Aave tokens should be withdrawn during compound operations
-    /// @param doWithdraw True to enable Aave withdrawals, false to disable
+    /// @param doWithdraw_ True to enable Aave withdrawals, false to disable
     /// @dev Can only be called by contract admin
     function setWithdrawAaveDuringCompound(
-        bool doWithdraw
+        bool doWithdraw_
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        withdrawAaveDuringCompound = doWithdraw;
+        withdrawAaveDuringCompound = doWithdraw_;
     }
 }
