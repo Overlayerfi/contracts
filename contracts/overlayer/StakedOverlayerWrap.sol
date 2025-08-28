@@ -60,7 +60,14 @@ contract StakedOverlayerWrap is
         address initialRewarder_,
         address admin_,
         uint256 vestingPeriod_
-    ) StakedOverlayerWrapCore(asset_, initialRewarder_, admin_, vestingPeriod_) {
+    )
+        StakedOverlayerWrapCore(
+            asset_,
+            initialRewarder_,
+            admin_,
+            vestingPeriod_
+        )
+    {
         SILO = new OverlayerWrapSilo(address(this), address(asset_));
         cooldownDuration = MAX_COOLDOWN_DURATION;
         withdrawAaveDuringCompound = true;
