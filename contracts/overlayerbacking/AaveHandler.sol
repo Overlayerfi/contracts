@@ -310,7 +310,7 @@ abstract contract AaveHandler is
         if (collateral_ == USDT) {
             _withdrawInternal(amountUsdt_, msg.sender);
         } else if (collateral_ == AUSDT) {
-            _withdrawInternalEmergency(amountUsdt_, msg.sender);
+            _withdrawInternalBypassAave(amountUsdt_, msg.sender);
         } else {
             revert AaveHandlerInvalidCollateral();
         }
@@ -339,7 +339,7 @@ abstract contract AaveHandler is
     ///@notice Withraw funds taking aTokens directly
     ///@param amountUsdt_ The amount to withdraw intended as aUSDT
     ///@param recipient_ The collateral recipient
-    function _withdrawInternalEmergency(
+    function _withdrawInternalBypassAave(
         uint256 amountUsdt_,
         address recipient_
     ) internal {
