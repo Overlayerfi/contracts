@@ -109,7 +109,7 @@ describe("OverlayerWrap Backing Protocol", function () {
     );
 
     const StakedOverlayerWrap = await ethers.getContractFactory(
-      "StakedOverlayerWrapFront"
+      "StakedOverlayerWrap"
     );
     const sOverlayerWrap = await StakedOverlayerWrap.deploy(
       await overlayerWrap.getAddress(),
