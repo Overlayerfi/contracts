@@ -94,7 +94,7 @@ describe("Staked Overlayer Wrap Front", function () {
     await overlayerWrap.connect(admin).mint(mintOrder);
 
     const StakedOverlayerWrap = await ethers.getContractFactory(
-      "StakedOverlayerWrapFront"
+      "StakedOverlayerWrap"
     );
     const stakedoverlayerWrap = await StakedOverlayerWrap.deploy(
       await overlayerWrap.getAddress(),
