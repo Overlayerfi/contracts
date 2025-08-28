@@ -1,8 +1,7 @@
-<p align="center">
-  <a href="https://docs.ova.finance/" rel="noopener" target="_blank"><img width="500" src="./assets/sc.png" alt="Overlayer social card"></a>
-</p>
 
 # Overlayer smart contracts
+
+[![Overlayer social card](./assets/sc.png)](https://docs.ova.finance/)
 
 [![Actions Status](https://github.com/Ovafi/contracts/workflows/CI/badge.svg)](https://github.com/Ovafi/contracts/actions)
 
