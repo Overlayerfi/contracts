@@ -19,7 +19,7 @@ import { AAVE_POOL_V3_ABI } from "../scripts/abi/AAVE_POOL_V3";
 let swapped = false;
 
 //NOTE: this test works only on ETH mainnet (0x1)
-describe("OverlayerWrapBacking", function () {
+describe("OverlayerWrap Backing Protocol", function () {
   async function deployFixture() {
     await network.provider.request({
       method: "hardhat_reset",
@@ -207,13 +207,13 @@ describe("OverlayerWrapBacking", function () {
     };
   }
 
-  describe("Deployment", function () {
-    it("Should set the admin", async function () {
+  describe("Contract Initialization", function () {
+    it("Should properly assign administrative roles", async function () {
       const { overlayerWrapBacking, admin } = await loadFixture(deployFixture);
       expect(await overlayerWrapBacking.owner()).to.equal(admin.address);
     });
 
-    it("Should set OverlayerWrap collateral spender", async function () {
+    it("Should correctly configure initial collateral spender", async function () {
       const { overlayerWrapBacking, overlayerWrap } = await loadFixture(
         deployFixture
       );
@@ -223,8 +223,8 @@ describe("OverlayerWrapBacking", function () {
     });
   });
 
-  describe("AAVE change", function () {
-    it("Should change AAVE contract", async function () {
+  describe("AAVE Integration Management", function () {
+    it("Should update AAVE protocol contract address", async function () {
       const { overlayerWrapBacking, admin } = await loadFixture(deployFixture);
       await overlayerWrapBacking.proposeNewAave(admin.address);
       await time.increase(10 * 24 * 60 * 60);
@@ -234,8 +234,8 @@ describe("OverlayerWrapBacking", function () {
     });
   });
 
-  describe("Team allocation change", function () {
-    it("Should change team allocation points", async function () {
+  describe("Team Allocation Management", function () {
+    it("Should modify team reward allocation parameters", async function () {
       const { overlayerWrapBacking, admin } = await loadFixture(deployFixture);
       await overlayerWrapBacking.proposeNewOvaDispatcherAllocation(10);
       await time.increase(10 * 24 * 60 * 60);
@@ -247,8 +247,8 @@ describe("OverlayerWrapBacking", function () {
     });
   });
 
-  describe("Dispatcher change", function () {
-    it("Should change team dispatcher address", async function () {
+  describe("Dispatcher Configuration", function () {
+    it("Should update rewards dispatcher contract address", async function () {
       const { overlayerWrapBacking, admin, alice } = await loadFixture(
         deployFixture
       );
@@ -260,8 +260,8 @@ describe("OverlayerWrapBacking", function () {
     });
   });
 
-  describe("Supply", function () {
-    it("Should supply to backing", async function () {
+  describe("Collateral Supply Operations", function () {
+    it("Should properly supply collateral to backing contract", async function () {
       const {
         usdt,
         overlayerWrap,
@@ -317,8 +317,8 @@ describe("OverlayerWrapBacking", function () {
     });
   });
 
-  describe("2 Assets", function () {
-    it("Should mint and redeem with both assets", async function () {
+  describe("Multi-Asset Operations", function () {
+    it("Should handle minting and redemption with multiple collateral types", async function () {
       const {
         usdt,
         aaveV3,
@@ -473,8 +473,8 @@ describe("OverlayerWrapBacking", function () {
     });
   });
 
-  describe("Redeem", function () {
-    it("Should redeem", async function () {
+  describe("Redemption Operations", function () {
+    it("Should process basic redemption requests", async function () {
       const { usdt, overlayerWrap, alice, initialCollateralAmount } =
         await loadFixture(deployFixture);
       const amount = "10";
@@ -506,7 +506,7 @@ describe("OverlayerWrapBacking", function () {
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(0);
     });
 
-    it("Should redeem USDT when collateral is aUSDT", async function () {
+    it("Should allow USDT redemption when collateral is aUSDT", async function () {
       const {
         usdt,
         aaveV3,
@@ -587,7 +587,7 @@ describe("OverlayerWrapBacking", function () {
       ).to.be.equal((+usdtBalBefore + +amount).toFixed(1));
     });
 
-    it("Should redeem aToken in emergency", async function () {
+    it("Should handle emergency aToken redemptions", async function () {
       const {
         ausdt,
         usdt,
@@ -655,7 +655,7 @@ describe("OverlayerWrapBacking", function () {
       );
     });
 
-    it("Donation larger than total supply should not influence", async function () {
+    it("Should properly handle donations exceeding total supply", async function () {
       const {
         admin,
         usdt,
@@ -685,7 +685,7 @@ describe("OverlayerWrapBacking", function () {
       );
     });
 
-    it("Donation should not influence", async function () {
+    it("Should maintain correct accounting with donations", async function () {
       const {
         admin,
         usdt,
@@ -789,7 +789,7 @@ describe("OverlayerWrapBacking", function () {
       );
     });
 
-    it("Should withdraw from backing", async function () {
+    it("Should process withdrawals from backing contract", async function () {
       const {
         usdt,
         overlayerWrap,
@@ -900,7 +900,7 @@ describe("OverlayerWrapBacking", function () {
       //################################################################################################################################################
     });
 
-    it("Should withdraw from backing aToken", async function () {
+    it("Should handle aToken withdrawals from backing", async function () {
       const {
         usdt,
         overlayerWrap,
@@ -1016,8 +1016,8 @@ describe("OverlayerWrapBacking", function () {
     });
   });
 
-  describe("Compound on staking (Integration test)", function () {
-    it("Should compound backing contract when staking", async function () {
+  describe("Yield Distribution", function () {
+    it("Should properly compound and distribute staking rewards", async function () {
       const { usdt, overlayerWrap, sOverlayerWrap, alice } = await loadFixture(
         deployFixture
       );
@@ -1055,8 +1055,8 @@ describe("OverlayerWrapBacking", function () {
     });
   });
 
-  describe("Coumpound (Integration test)", function () {
-    it("Should mint new OverlayerWrap and split between recipients", async function () {
+  describe("Yield Management", function () {
+    it("Should mint and distribute yield between stakeholders", async function () {
       const {
         usdt,
         overlayerWrap,
@@ -1110,7 +1110,7 @@ describe("OverlayerWrapBacking", function () {
       expect(realStakingAssets).to.be.equal(expectedStakingAssets);
     });
 
-    it("Should mint new OverlayerWrap and split between recipients with aToken", async function () {
+    it("Should handle yield distribution with aToken holdings", async function () {
       const {
         usdt,
         overlayerWrap,
@@ -1187,8 +1187,8 @@ describe("OverlayerWrapBacking", function () {
     });
   });
 
-  describe("Admin emergency ops", function () {
-    it("Should unstake from AAVE and return user funds to protocol with aToken", async function () {
+  describe("Emergency Operations", function () {
+    it("Should safely unstake and return funds during emergency", async function () {
       const {
         usdt,
         overlayerWrap,
