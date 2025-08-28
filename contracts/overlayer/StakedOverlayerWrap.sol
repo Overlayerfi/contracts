@@ -66,7 +66,35 @@ contract StakedOverlayerWrap is
         withdrawAaveDuringCompound = true;
     }
 
-    /* ------------- EXTERNAL ------------- */
+    /**
+     * @dev See {IERC4626-mint}.
+     */
+    function mint(
+        uint256 shares_,
+        address receiver_
+    ) public virtual override returns (uint256) {
+        if (overlayerWrapBacking != address(0)) {
+            IOverlayerWrapBacking(overlayerWrapBacking).compound(
+                withdrawAaveDuringCompound
+            );
+        }
+        return super.mint(shares_, receiver_);
+    }
+
+    /**
+     * @dev See {IERC4626-deposit}.
+     */
+    function deposit(
+        uint256 assets_,
+        address receiver_
+    ) public virtual override returns (uint256) {
+        if (overlayerWrapBacking != address(0)) {
+            IOverlayerWrapBacking(overlayerWrapBacking).compound(
+                withdrawAaveDuringCompound
+            );
+        }
+        return super.deposit(assets_, receiver_);
+    }
 
     /**
      * @dev See {IERC4626-withdraw}.
