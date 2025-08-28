@@ -61,14 +61,14 @@ abstract contract StakedOverlayerWrap is
     /* ------------- MODIFIERS ------------- */
 
     /// @notice Ensure input amount nonzero
-    modifier notZero(uint256 amount) {
-        if (amount == 0) revert StakedOverlayerWrapInvalidAmount();
+    modifier notZero(uint256 amount_) {
+        if (amount_ == 0) revert StakedOverlayerWrapInvalidAmount();
         _;
     }
 
     /// @notice Ensures blacklist target is not owner
-    modifier notOwner(address target) {
-        if (target == owner()) revert StakedOverlayerWrapCantBlacklistOwner();
+    modifier notOwner(address target_) {
+        if (target_ == owner()) revert StakedOverlayerWrapCantBlacklistOwner();
         _;
     }
 
@@ -89,109 +89,109 @@ abstract contract StakedOverlayerWrap is
     /**
      * @notice Constructor for StakedOverlayerWrap contract.
      * @param asset_ The address of the OverlayerWrap token.
-     * @param initialRewarder The address of the initial rewarder.
-     * @param admin The address of the admin role.
-     * @param vestingPeriod The rewards vesting period
+     * @param initialRewarder_ The address of the initial rewarder.
+     * @param admin_ The address of the admin role.
+     * @param vestingPeriod_ The rewards vesting period
      */
     constructor(
         IERC20 asset_,
-        address initialRewarder,
-        address admin,
-        uint256 vestingPeriod
+        address initialRewarder_,
+        address admin_,
+        uint256 vestingPeriod_
     )
         ERC20("Staked OverlayerWrap", "sOverlayerWrap")
         ERC4626(asset_)
         ERC20Permit("sOverlayerWrap")
     {
         if (
-            admin == address(0) ||
-            initialRewarder == address(0) ||
+            admin_ == address(0) ||
+            initialRewarder_ == address(0) ||
             address(asset_) == address(0)
         ) {
             revert StakedOverlayerWrapInvalidZeroAddress();
         }
 
-        _grantRole(REWARDER_ROLE, initialRewarder);
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(REWARDER_ROLE, initialRewarder_);
+        _grantRole(DEFAULT_ADMIN_ROLE, admin_);
 
-        _vestingPeriod = vestingPeriod;
+        _vestingPeriod = vestingPeriod_;
     }
 
     /* ------------- EXTERNAL ------------- */
 
     /**
      * @notice Allows the owner to transfer rewards from the controller contract into this contract.
-     * @param amount The amount of rewards to transfer.
+     * @param amount_ The amount of rewards to transfer.
      */
     function transferInRewards(
-        uint256 amount
-    ) external nonReentrant onlyRole(REWARDER_ROLE) notZero(amount) {
-        _updateVestingAmount(amount);
+        uint256 amount_
+    ) external nonReentrant onlyRole(REWARDER_ROLE) notZero(amount_) {
+        _updateVestingAmount(amount_);
         // transfer assets from rewarder to this contract
-        IERC20(asset()).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20(asset()).safeTransferFrom(msg.sender, address(this), amount_);
 
-        emit RewardsReceived(amount);
+        emit RewardsReceived(amount_);
     }
 
     /**
      * @notice Allows the owner (DEFAULT_ADMIN_ROLE) and blacklist managers to blacklist addresses.
-     * @param target The address to blacklist.
-     * @param isFullBlacklisting Soft or full blacklisting level.
+     * @param target_ The address to blacklist.
+     * @param isFullBlacklisting_ Soft or full blacklisting level.
      */
     function addToBlacklist(
-        address target,
-        bool isFullBlacklisting
+        address target_,
+        bool isFullBlacklisting_
     )
         external
         blacklistAllowed
         onlyRole(BLACKLIST_MANAGER_ROLE)
-        notOwner(target)
+        notOwner(target_)
     {
-        bytes32 role = isFullBlacklisting
+        bytes32 role = isFullBlacklisting_
             ? WHOLE_RESTRICTED_ROLE
             : STAKE_RESTRICTED_ROLE;
-        _grantRole(role, target);
+        _grantRole(role, target_);
     }
 
     /**
      * @notice Allows the owner (DEFAULT_ADMIN_ROLE) and blacklist managers to un-blacklist addresses.
-     * @param target The address to un-blacklist.
-     * @param isFullBlacklisting Soft or full blacklisting level.
+     * @param target_ The address to un-blacklist.
+     * @param isFullBlacklisting_ Soft or full blacklisting level.
      */
     function removeFromBlacklist(
-        address target,
-        bool isFullBlacklisting
+        address target_,
+        bool isFullBlacklisting_
     ) external blacklistAllowed onlyRole(BLACKLIST_MANAGER_ROLE) {
-        bytes32 role = isFullBlacklisting
+        bytes32 role = isFullBlacklisting_
             ? WHOLE_RESTRICTED_ROLE
             : STAKE_RESTRICTED_ROLE;
-        _revokeRole(role, target);
+        _revokeRole(role, target_);
     }
 
     /**
      * @notice Sets the blacklist time.
      * @dev Disables blakclist if time is zero.
-     * @param time The starting timestamp.
+     * @param time_ The starting timestamp.
      */
     function setBlackListTime(
-        uint256 time
+        uint256 time_
     ) external onlyRole(BLACKLIST_MANAGER_ROLE) {
-        if (time > 0 && time < block.timestamp) {
+        if (time_ > 0 && time_ < block.timestamp) {
             revert StakedOverlayerWrapInvalidTime();
         }
-        blacklistActivationTime = time;
+        blacklistActivationTime = time_;
     }
 
     /**
      * @notice Sets the overlayerWrap backing contract
      * @dev Zero address not disable
-     * @param backing The overlayerWrap backing contract
+     * @param backing_ The overlayerWrap backing contract
      */
     function setOverlayerWrapBacking(
-        address backing
+        address backing_
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        overlayerWrapBacking = backing;
-        emit OverlayerWrapBackingSet(backing);
+        overlayerWrapBacking = backing_;
+        emit OverlayerWrapBackingSet(backing_);
     }
 
     /**
@@ -199,40 +199,40 @@ abstract contract StakedOverlayerWrap is
      * Note that the owner cannot rescue OverlayerWrap tokens because they functionally sit here
      * and belong to stakers but can rescue staked OverlayerWrap as they should never actually
      * sit in this contract and a staker may well transfer them here by accident.
-     * @param token The token to be rescued.
-     * @param amount The amount of tokens to be rescued.
-     * @param to Where to send rescued tokens
+     * @param token_ The token to be rescued.
+     * @param amount_ The amount of tokens to be rescued.
+     * @param to_ Where to send rescued tokens
      */
     function rescueTokens(
-        address token,
-        uint256 amount,
-        address to
+        address token_,
+        uint256 amount_,
+        address to_
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (address(token) == asset()) revert StakedOverlayerWrapInvalidToken();
-        IERC20(token).safeTransfer(to, amount);
+        if (address(token_) == asset()) revert StakedOverlayerWrapInvalidToken();
+        IERC20(token_).safeTransfer(to_, amount_);
     }
 
     /**
      * @dev Burns the full restricted user amount and mints to the desired owner address.
-     * @param from The address to burn the entire balance, with the WHOLE_RESTRICTED_ROLE
-     * @param to The address to mint the entire balance of "from" parameter.
+     * @param from_ The address to burn the entire balance, with the WHOLE_RESTRICTED_ROLE
+     * @param to_ The address to mint the entire balance of "from" parameter.
      */
     function redistributeLockedAmount(
-        address from,
-        address to
+        address from_,
+        address to_
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (to == address(0)) revert StakedOverlayerWrapInvalidZeroAddress();
+        if (to_ == address(0)) revert StakedOverlayerWrapInvalidZeroAddress();
         if (
-            hasRole(WHOLE_RESTRICTED_ROLE, from) &&
-            (!hasRole(WHOLE_RESTRICTED_ROLE, to) &&
-                !hasRole(STAKE_RESTRICTED_ROLE, to))
+            hasRole(WHOLE_RESTRICTED_ROLE, from_) &&
+            (!hasRole(WHOLE_RESTRICTED_ROLE, to_) &&
+                !hasRole(STAKE_RESTRICTED_ROLE, to_))
         ) {
-            uint256 amountToDistribute = balanceOf(from);
-            _burn(from, amountToDistribute);
+            uint256 amountToDistribute = balanceOf(from_);
+            _burn(from_, amountToDistribute);
             // to address of address(0) enables burning
-            _mint(to, amountToDistribute);
+            _mint(to_, amountToDistribute);
 
-            emit LockedAmountRedistributed(from, to, amountToDistribute);
+            emit LockedAmountRedistributed(from_, to_, amountToDistribute);
         } else {
             revert StakedOverlayerWrapOperationNotAllowed();
         }
@@ -288,88 +288,88 @@ abstract contract StakedOverlayerWrap is
 
     /**
      * @dev Deposit/mint common workflow.
-     * @param caller sender of assets
-     * @param receiver where to send shares
-     * @param assets assets to deposit
-     * @param shares shares to mint
+     * @param caller_ sender of assets
+     * @param receiver_ where to send shares
+     * @param assets_ assets to deposit
+     * @param shares_ shares to mint
      */
     function _deposit(
-        address caller,
-        address receiver,
-        uint256 assets,
-        uint256 shares
-    ) internal override nonReentrant notZero(assets) notZero(shares) {
+        address caller_,
+        address receiver_,
+        uint256 assets_,
+        uint256 shares_
+    ) internal override nonReentrant notZero(assets_) notZero(shares_) {
         if (
-            hasRole(STAKE_RESTRICTED_ROLE, caller) ||
-            hasRole(STAKE_RESTRICTED_ROLE, receiver)
+            hasRole(STAKE_RESTRICTED_ROLE, caller_) ||
+            hasRole(STAKE_RESTRICTED_ROLE, receiver_)
         ) {
             revert StakedOverlayerWrapOperationNotAllowed();
         }
         if (
-            hasRole(WHOLE_RESTRICTED_ROLE, caller) ||
-            hasRole(WHOLE_RESTRICTED_ROLE, receiver)
+            hasRole(WHOLE_RESTRICTED_ROLE, caller_) ||
+            hasRole(WHOLE_RESTRICTED_ROLE, receiver_)
         ) {
             revert StakedOverlayerWrapOperationNotAllowed();
         }
-        super._deposit(caller, receiver, assets, shares);
+        super._deposit(caller_, receiver_, assets_, shares_);
         _checkMinShares();
     }
 
     /**
      * @dev Withdraw/redeem common workflow.
-     * @param caller tx sender
-     * @param receiver where to send assets
-     * @param sharesOwner where to burn shares from
-     * @param assets asset amount to transfer out
-     * @param shares shares to burn
+     * @param caller_ tx sender
+     * @param receiver_ where to send assets
+     * @param sharesOwner_ where to burn shares from
+     * @param assets_ asset amount to transfer out
+     * @param shares_ shares to burn
      */
     function _withdraw(
-        address caller,
-        address receiver,
-        address sharesOwner,
-        uint256 assets,
-        uint256 shares
-    ) internal override nonReentrant notZero(assets) notZero(shares) {
+        address caller_,
+        address receiver_,
+        address sharesOwner_,
+        uint256 assets_,
+        uint256 shares_
+    ) internal override nonReentrant notZero(assets_) notZero(shares_) {
         if (
-            hasRole(WHOLE_RESTRICTED_ROLE, caller) ||
-            hasRole(WHOLE_RESTRICTED_ROLE, receiver) ||
-            hasRole(WHOLE_RESTRICTED_ROLE, sharesOwner)
+            hasRole(WHOLE_RESTRICTED_ROLE, caller_) ||
+            hasRole(WHOLE_RESTRICTED_ROLE, receiver_) ||
+            hasRole(WHOLE_RESTRICTED_ROLE, sharesOwner_)
         ) {
             revert StakedOverlayerWrapOperationNotAllowed();
         }
 
-        super._withdraw(caller, receiver, sharesOwner, assets, shares);
+        super._withdraw(caller_, receiver_, sharesOwner_, assets_, shares_);
         _checkMinShares();
     }
 
     /// @notice Update vesting amount and timestamp for new rewards distribution
-    /// @param newVestingAmount Amount of tokens to vest over time
+    /// @param newVestingAmount_ Amount of tokens to vest over time
     /// @dev Reverts if there are still unvested tokens from previous distribution
-    function _updateVestingAmount(uint256 newVestingAmount) internal {
+    function _updateVestingAmount(uint256 newVestingAmount_) internal {
         if (getUnvestedAmount() > 0) revert StakedOverlayerWrapStillVesting();
 
-        vestingAmount = newVestingAmount;
+        vestingAmount = newVestingAmount_;
         lastDistributionTimestamp = block.timestamp;
     }
 
     /**
      * @notice Override of ERC20 transfer logic to handle restricted accounts
      * @dev Prevents transfers involving accounts with WHOLE_RESTRICTED_ROLE
-     * @param from Source address
-     * @param to Destination address
-     * @param value Amount to transfer
+     * @param from_ Source address
+     * @param to_ Destination address
+     * @param value_ Amount to transfer
      */
     function _update(
-        address from,
-        address to,
-        uint256 value
+        address from_,
+        address to_,
+        uint256 value_
     ) internal virtual override {
-        if (hasRole(WHOLE_RESTRICTED_ROLE, from) && to != address(0)) {
+        if (hasRole(WHOLE_RESTRICTED_ROLE, from_) && to_ != address(0)) {
             revert StakedOverlayerWrapOperationNotAllowed();
         }
-        if (hasRole(WHOLE_RESTRICTED_ROLE, to)) {
+        if (hasRole(WHOLE_RESTRICTED_ROLE, to_)) {
             revert StakedOverlayerWrapOperationNotAllowed();
         }
-        super._update(from, to, value);
+        super._update(from_, to_, value_);
     }
 }

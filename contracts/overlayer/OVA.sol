@@ -9,6 +9,6 @@ import "./MintableTokenBase.sol";
  */
 contract OVA is MintableTokenBase {
     ///@notice The constructor
-    ///@param admin The contract admin
-    constructor(address admin) MintableTokenBase(admin, "OVA", "OVA") {}
+    ///@param admin_ The contract admin
+    constructor(address admin_) MintableTokenBase(admin_, "OVA", "OVA") {}
 }

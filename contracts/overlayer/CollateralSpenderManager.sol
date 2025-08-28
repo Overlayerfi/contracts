@@ -43,15 +43,15 @@ abstract contract CollateralSpenderManager is
     constructor() OverlayerWrapCollateral() {}
 
     /// @notice Initializes the contract with admin and collateral configurations
-    /// @param admin Address of the contract administrator
+    /// @param admin_ Address of the contract administrator
     /// @param collateral_ Configuration for the main collateral token
     /// @param aCollateral_ Configuration for the associated collateral token
     function _initalize(
-        address admin,
+        address admin_,
         OverlayerWrapCoreTypes.StableCoin memory collateral_,
         OverlayerWrapCoreTypes.StableCoin memory aCollateral_
     ) internal {
-        OverlayerWrapCollateral._initialize(admin, collateral_, aCollateral_);
+        OverlayerWrapCollateral._initialize(admin_, collateral_, aCollateral_);
     }
 
     /// @notice View the spender
@@ -62,13 +62,13 @@ abstract contract CollateralSpenderManager is
 
     /// @notice Propose a new spender
     /// @dev Can not be zero address
-    /// @param spender The proposed new spender
+    /// @param spender_ The proposed new spender
     function proposeNewCollateralSpender(
-        address spender
+        address spender_
     ) external onlyRole(COLLATERAL_MANAGER_ROLE) {
-        if (spender == address(0))
+        if (spender_ == address(0))
             revert CollateralSpenderManagerInvalidSpenderAddress();
-        proposedSpender = spender;
+        proposedSpender = spender_;
         proposalTime = block.timestamp;
     }
 

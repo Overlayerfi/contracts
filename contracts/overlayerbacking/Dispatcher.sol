@@ -37,18 +37,18 @@ contract OvaDispatcher is Ownable, IDispatcher {
     uint8 public buyBackAllocation = 0;
 
     /// @notice Initializes the dispatcher with required addresses
-    /// @param admin Address of contract administrator
+    /// @param admin_ Address of contract administrator
     /// @param team_ Address receiving team allocation
     /// @param safetyModule_ Address of safety module
     /// @param buyBack_ Address for buyback operations
     /// @param overlayerWrap_ Address of OverlayerWrap token
     constructor(
-        address admin,
+        address admin_,
         address team_,
         address safetyModule_,
         address buyBack_,
         address overlayerWrap_
-    ) Ownable(admin) {
+    ) Ownable(admin_) {
         if (
             team_ == address(0) ||
             safetyModule_ == address(0) ||
@@ -108,10 +108,10 @@ contract OvaDispatcher is Ownable, IDispatcher {
     }
 
     /// @notice Collects all tokens of a specific type to the safety module
-    /// @param token The address of the token contract
-    function collect(address token) external onlyOwner {
-        uint256 bal = IERC20(token).balanceOf(address(this));
-        IERC20(token).safeTransfer(safetyModule, bal);
+    /// @param token_ The address of the token contract
+    function collect(address token_) external onlyOwner {
+        uint256 bal = IERC20(token_).balanceOf(address(this));
+        IERC20(token_).safeTransfer(safetyModule, bal);
     }
 
     /// @notice Dispatches rewards to team, buyback, and safety module addresses

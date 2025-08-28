@@ -29,15 +29,15 @@ contract MintableTokenBase is Ownable2Step, ERC20Burnable, ERC20Permit {
     mapping(address => bool) public minter;
 
     ///@notice The constructor
-    ///@param admin The contract admin
+    ///@param admin_ The contract admin
     ///@param name_ The token name
     ///@param symbol_ The token symbol
     constructor(
-        address admin,
+        address admin_,
         string memory name_,
         string memory symbol_
-    ) Ownable(admin) ERC20(name_, symbol_) ERC20Permit(name_) {
-        if (admin == address(0)) revert ZeroAddressException();
+    ) Ownable(admin_) ERC20(name_, symbol_) ERC20Permit(name_) {
+        if (admin_ == address(0)) revert ZeroAddressException();
     }
 
     ///@notice Set a new minter
@@ -55,11 +55,11 @@ contract MintableTokenBase is Ownable2Step, ERC20Burnable, ERC20Permit {
     }
 
     ///@notice Mint tokens
-    ///@param to The recipient address
-    ///@param amount The amount to be minted
-    function mint(address to, uint256 amount) external {
+    ///@param to_ The recipient address
+    ///@param amount_ The amount to be minted
+    function mint(address to_, uint256 amount_) external {
         if (!minter[msg.sender]) revert OnlyMinter();
-        _mint(to, amount);
+        _mint(to_, amount_);
     }
 
     ///@notice Renounce contract ownership

@@ -52,17 +52,17 @@ abstract contract OverlayerWrapCore is
     /* --------------- MODIFIERS --------------- */
 
     /// @notice Ensure that the already minted OverlayerWrap in the actual block plus the amount to be minted is below the maxMintPerBlock
-    /// @param mintAmount The OverlayerWrap amount to be minted
-    modifier belowMaxMintPerBlock(uint256 mintAmount) {
-        if (mintedPerBlock[block.number] + mintAmount > maxMintPerBlock)
+    /// @param mintAmount_ The OverlayerWrap amount to be minted
+    modifier belowMaxMintPerBlock(uint256 mintAmount_) {
+        if (mintedPerBlock[block.number] + mintAmount_ > maxMintPerBlock)
             revert OverlayerWrapCoreMaxMintPerBlockExceeded();
         _;
     }
 
     /// @notice Ensure that the already redeemed OverlayerWrap in the actual block plus the amount to be redeemed is below the maxRedeemPerBlock
-    /// @param redeemAmount The OverlayerWrap amount to be redeemed
-    modifier belowMaxRedeemPerBlock(uint256 redeemAmount) {
-        if (redeemedPerBlock[block.number] + redeemAmount > maxRedeemPerBlock)
+    /// @param redeemAmount_ The OverlayerWrap amount to be redeemed
+    modifier belowMaxRedeemPerBlock(uint256 redeemAmount_) {
+        if (redeemedPerBlock[block.number] + redeemAmount_ > maxRedeemPerBlock)
             revert OverlayerWrapCoreMaxRedeemPerBlockExceeded();
         _;
     }
@@ -71,12 +71,12 @@ abstract contract OverlayerWrapCore is
 
     /// @notice Initializes the OverlayerWrapCore contract with the provided parameters
     /// @dev Sets up the OFT, ERC20Permit, and Ownable functionality
-    /// @param params A struct containing initialization parameters.
+    /// @param params_ A struct containing initialization parameters.
     constructor(
-        IOverlayerWrapDefs.ConstructorParams memory params
+        IOverlayerWrapDefs.ConstructorParams memory params_
     )
-        OFT(params.name, params.symbol, params.lzEndpoint, params.admin)
-        ERC20Permit(params.name)
+        OFT(params_.name, params_.symbol, params_.lzEndpoint, params_.admin)
+        ERC20Permit(params_.name)
         Ownable(msg.sender)
     {}
 
@@ -141,11 +141,11 @@ abstract contract OverlayerWrapCore is
     }
 
     /// @notice Removes the collateral manager role from an account, this can ONLY be executed by the gatekeeper role
-    /// @param collateralManager The address to remove the COLLATERAL_MANAGER_ROLE role from
+    /// @param collateralManager_ The address to remove the COLLATERAL_MANAGER_ROLE role from
     function removeCollateralManagerRole(
-        address collateralManager
+        address collateralManager_
     ) external onlyRole(GATEKEEPER_ROLE) {
-        _revokeRole(COLLATERAL_MANAGER_ROLE, collateralManager);
+        _revokeRole(COLLATERAL_MANAGER_ROLE, collateralManager_);
     }
 
     /// @notice Pause the contract
@@ -162,11 +162,11 @@ abstract contract OverlayerWrapCore is
 
     /// @notice Supply funds to the active backing contract (aka approvedCollateralSpender)
     /// @dev The approveCollateralSpender will colect the funds, as the only entity allowed to do so
-    /// @param amountCollateral The amount to supply of collateral
-    /// @param amountACollateral The amount to supply of aCollateral
+    /// @param amountCollateral_ The amount to supply of collateral
+    /// @param amountACollateral_ The amount to supply of aCollateral
     function supplyToBacking(
-        uint256 amountCollateral,
-        uint256 amountACollateral
+        uint256 amountCollateral_,
+        uint256 amountACollateral_
     ) external nonReentrant whenNotPaused {
         if (approvedCollateralSpender != address(0)) {
             uint256 collateralBal = IERC20(collateral.addr).balanceOf(
@@ -175,12 +175,12 @@ abstract contract OverlayerWrapCore is
             uint256 aCollateralBal = IERC20(aCollateral.addr).balanceOf(
                 address(this)
             );
-            uint256 amountToSupplyCollateral = amountCollateral == 0
+            uint256 amountToSupplyCollateral = amountCollateral_ == 0
                 ? collateralBal
-                : amountCollateral;
-            uint256 amountToSupplyACollateral = amountACollateral == 0
+                : amountCollateral_;
+            uint256 amountToSupplyACollateral = amountACollateral_ == 0
                 ? aCollateralBal
-                : amountACollateral;
+                : amountACollateral_;
             if (amountToSupplyCollateral > collateralBal)
                 revert OverlayerWrapCoreInsufficientFunds();
             if (amountToSupplyACollateral > aCollateralBal)
@@ -206,75 +206,78 @@ abstract contract OverlayerWrapCore is
     /// @notice Initialize the contract with base parameters
     /// @param collateral_ Configuration for the main collateral token
     /// @param aCollateral_ Configuration for the associated collateral token
-    /// @param admin Address of the contract administrator
+    /// @param admin_ Address of the contract administrator
     /// @param maxMintPerBlock_ Maximum amount that can be minted per block
     /// @param maxRedeemPerBlock_ Maximum amount that can be redeemed per block
     function _initialize(
         OverlayerWrapCoreTypes.StableCoin memory collateral_,
         OverlayerWrapCoreTypes.StableCoin memory aCollateral_,
-        address admin,
+        address admin_,
         uint256 maxMintPerBlock_,
         uint256 maxRedeemPerBlock_
     ) internal {
-        CollateralSpenderManager._initalize(admin, collateral_, aCollateral_);
+        CollateralSpenderManager._initalize(admin_, collateral_, aCollateral_);
         // Set the max mint/redeem limits per block
         _setMaxMintPerBlock(maxMintPerBlock_);
         _setMaxRedeemPerBlock(maxRedeemPerBlock_);
     }
 
     /// @notice Validate the collateral tokens in an order
-    /// @param order Order parameters to validate
+    /// @param order_ Order parameters to validate
     /// @dev Reverts if the collateral token is not valid
     function _validateInputTokens(
-        OverlayerWrapCoreTypes.Order calldata order
+        OverlayerWrapCoreTypes.Order calldata order_
     ) internal view {
         if (
-            !(order.collateral == aCollateral.addr ||
-                order.collateral == collateral.addr)
+            !(order_.collateral == aCollateral.addr ||
+                order_.collateral == collateral.addr)
         ) {
             revert OverlayerWrapCoreCollateralNotValid();
         }
     }
 
     /// @notice Internal function to handle minting operations
-    /// @param order Order details containing mint parameters
+    /// @param order_ Order details containing mint parameters
     /// @dev Updates minted amount per block and transfers collateral
     function _managerMint(
-        OverlayerWrapCoreTypes.Order calldata order
-    ) internal belowMaxMintPerBlock(order.overlayerWrapAmount) {
+        OverlayerWrapCoreTypes.Order calldata order_
+    ) internal belowMaxMintPerBlock(order_.overlayerWrapAmount) {
         // Check for wanted source tokens
-        _validateInputTokens(order);
+        _validateInputTokens(order_);
         // Add to the minted amount in this block
-        mintedPerBlock[block.number] += order.overlayerWrapAmount;
+        mintedPerBlock[block.number] += order_.overlayerWrapAmount;
         _transferCollateral(
-            order.collateralAmount,
-            order.collateral,
+            order_.collateralAmount,
+            order_.collateral,
             address(this)
         );
     }
 
     /// @notice Redeem stablecoins for assets
-    /// @param order Struct containing order details
+    /// @param order_ Struct containing order details
     function _managerRedeem(
-        OverlayerWrapCoreTypes.Order calldata order
+        OverlayerWrapCoreTypes.Order calldata order_
     )
         internal
-        belowMaxRedeemPerBlock(order.overlayerWrapAmount)
+        belowMaxRedeemPerBlock(order_.overlayerWrapAmount)
         returns (uint256 amountToBurn, uint256 back)
     {
         // Check for wanted source tokens
-        _validateInputTokens(order);
+        _validateInputTokens(order_);
         // Add to the redeemed amount in this block
-        redeemedPerBlock[block.number] += order.overlayerWrapAmount;
+        redeemedPerBlock[block.number] += order_.overlayerWrapAmount;
 
         (
             uint256 checkedBurnAmount,
             uint256 checkedBack
-        ) = _withdrawFromProtocol(order.overlayerWrapAmount, order.collateral);
+        ) = _withdrawFromProtocol(
+                order_.overlayerWrapAmount,
+                order_.collateral
+            );
 
         _transferToBeneficiary(
-            order.beneficiary,
-            order.collateral,
+            order_.beneficiary,
+            order_.collateral,
             checkedBack
         );
 
@@ -284,28 +287,28 @@ abstract contract OverlayerWrapCore is
 
     /// @notice Redeem collateral from the protocol
     /// @dev It will trigger the backing contract (aka approvedCollateralSpender) withdraw method if the collateral is not sufficient
-    /// @param amount The amount of OverlayerWrap to burn
-    /// @param wantCollateral The wanted collateral to withdraw
+    /// @param amount_ The amount of OverlayerWrap to burn
+    /// @param wantCollateral_ The wanted collateral to withdraw
     /// @return checkedBurnAmount The checked amount to burn
     /// @return back The amount of the underlying or their aToken version returned to user
     function _withdrawFromProtocol(
-        uint256 amount,
-        address wantCollateral
+        uint256 amount_,
+        address wantCollateral_
     ) internal returns (uint256 checkedBurnAmount, uint256 back) {
-        if (amount == 0) {
+        if (amount_ == 0) {
             return (0, 0);
         }
         //Here does hold the inveriant that decimals() >= token.decimals
         unchecked {
             uint256 diffDecimals = decimals() -
                 (
-                    wantCollateral == aCollateral.addr
+                    wantCollateral_ == aCollateral.addr
                         ? aCollateral.decimals
                         : collateral.decimals
                 );
-            uint256 needAmount = amount / (10 ** diffDecimals);
+            uint256 needAmount = amount_ / (10 ** diffDecimals);
             uint256 collateralBal = IERC20(
-                wantCollateral == aCollateral.addr
+                wantCollateral_ == aCollateral.addr
                     ? aCollateral.addr
                     : collateral.addr
             ).balanceOf(address(this));
@@ -319,7 +322,7 @@ abstract contract OverlayerWrapCore is
             if (amountFromBacking > 0) {
                 IOverlayerWrapBacking(approvedCollateralSpender).withdraw(
                     amountFromBacking,
-                    wantCollateral
+                    wantCollateral_
                 );
             }
 
@@ -331,30 +334,30 @@ abstract contract OverlayerWrapCore is
     /// @notice Transfer supported asset to beneficiary address
     /// @dev This contract needs to have available funds
     /// @dev Asset validation has to be performed by the caller
-    /// @param beneficiary The redeem beneficiary
-    /// @param asset The redeemed asset
-    /// @param amount The redeemed amount
+    /// @param beneficiary_ The redeem beneficiary
+    /// @param asset_ The redeemed asset
+    /// @param amount_ The redeemed amount
     function _transferToBeneficiary(
-        address beneficiary,
-        address asset,
-        uint256 amount
+        address beneficiary_,
+        address asset_,
+        uint256 amount_
     ) internal {
-        IERC20(asset).safeTransfer(beneficiary, amount);
+        IERC20(asset_).safeTransfer(beneficiary_, amount_);
     }
 
     /// @notice Transfer supported asset to target addresses
     /// @dev User must have approved this contract for allowance
     /// @dev Asset validation has to be performed by the caller
-    /// @param amount The amount to be transfered
-    /// @param asset The asset to be transfered
-    /// @param recipient The destination address
+    /// @param amount_ The amount to be transfered
+    /// @param asset_ The asset to be transfered
+    /// @param recipient_ The destination address
     function _transferCollateral(
-        uint256 amount,
-        address asset,
-        address recipient
+        uint256 amount_,
+        address asset_,
+        address recipient_
     ) internal {
-        IERC20 token = IERC20(asset);
-        token.safeTransferFrom(msg.sender, recipient, amount);
+        IERC20 token = IERC20(asset_);
+        token.safeTransferFrom(msg.sender, recipient_, amount_);
     }
 
     /// @notice Sets the max mintPerBlock limit
