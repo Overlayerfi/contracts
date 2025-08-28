@@ -117,16 +117,16 @@ describe("OverlayerWrap", function () {
     };
   }
 
-  describe("Deployment", function () {
-    it("Should set the admin", async function () {
+  describe("Contract Initialization", function () {
+    it("Should assign correct administrative permissions", async function () {
       const { overlayerWrap, admin } = await loadFixture(deployFixture);
       const adminAddress = await admin.getAddress();
       expect(await overlayerWrap.owner()).to.equal(adminAddress);
     });
   });
 
-  describe("Deployment", function () {
-    it("Should pause", async function () {
+  describe("Protocol Security Controls", function () {
+    it("Should implement emergency protocol pause", async function () {
       const { overlayerWrap, admin, collateral } = await loadFixture(
         deployFixture
       );
@@ -140,7 +140,7 @@ describe("OverlayerWrap", function () {
         .eventually.rejected;
     });
 
-    it("Should unpause", async function () {
+    it("Should allow resuming protocol operations", async function () {
       const { overlayerWrap, admin } = await loadFixture(deployFixture);
       await overlayerWrap.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("GATEKEEPER_ROLE")),
@@ -153,8 +153,8 @@ describe("OverlayerWrap", function () {
     });
   });
 
-  describe("OverlayerWrapCollateral Manager", function () {
-    it("Should set first collateral manager", async function () {
+  describe("Collateral Management", function () {
+    it("Should establish initial collateral manager authority", async function () {
       const { overlayerWrap, admin, alice } = await loadFixture(deployFixture);
       const collateralManagerAddress = await admin.getAddress();
       await overlayerWrap.grantRole(
@@ -170,7 +170,7 @@ describe("OverlayerWrap", function () {
       expect(await overlayerWrap.getSpender()).to.be.equal(alice.address);
     });
 
-    it("Should reject acceptance if not the proposed spender", async function () {
+    it("Should enforce proper spender authorization process", async function () {
       const { overlayerWrap, admin, alice } = await loadFixture(deployFixture);
       const collateralManagerAddress = await admin.getAddress();
       await overlayerWrap.grantRole(
@@ -187,7 +187,7 @@ describe("OverlayerWrap", function () {
       ).to.be.eventually.rejected;
     });
 
-    it("Should not propose spender if not allowed", async function () {
+    it("Should restrict collateral management permissions", async function () {
       const { overlayerWrap, admin, alice } = await loadFixture(deployFixture);
       const collateralManagerAddress = await admin.getAddress();
       await overlayerWrap.grantRole(
@@ -199,7 +199,7 @@ describe("OverlayerWrap", function () {
       ).to.be.eventually.rejected;
     });
 
-    it("Should set next collateral manager", async function () {
+    it("Should handle collateral manager succession properly", async function () {
       const { overlayerWrap, admin, alice } = await loadFixture(deployFixture);
       const collateralManagerAddress = await admin.getAddress();
       await overlayerWrap.grantRole(
@@ -228,7 +228,7 @@ describe("OverlayerWrap", function () {
       expect(await overlayerWrap.getSpender()).to.be.equal(admin.address);
     });
 
-    it("Should not set next collateral manager if time not respected", async function () {
+    it("Should enforce timelock on manager transitions", async function () {
       const { overlayerWrap, admin, alice } = await loadFixture(deployFixture);
       const collateralManagerAddress = await admin.getAddress();
       await overlayerWrap.grantRole(
@@ -259,7 +259,7 @@ describe("OverlayerWrap", function () {
     });
   });
 
-  describe("Roles", function () {
+  describe("Access Control System", function () {
     it("Should set the collateral manager", async function () {
       const { overlayerWrap, admin, alice } = await loadFixture(deployFixture);
       const collateralManagerAddress = await admin.getAddress();
@@ -366,7 +366,7 @@ describe("OverlayerWrap", function () {
     });
   });
 
-  describe("Mint Redeem Per Block", function () {
+  describe("Transaction Limits", function () {
     it("Should set initial values", async function () {
       const { overlayerWrap } = await loadFixture(deployFixture);
       expect(await overlayerWrap.maxMintPerBlock()).to.equal(ethers.MaxUint256);
@@ -424,7 +424,7 @@ describe("OverlayerWrap", function () {
     });
   });
 
-  describe("Mint", function () {
+  describe("Token Minting Operations", function () {
     it("Should mint", async function () {
       const { collateral, overlayerWrap, admin, alice } = await loadFixture(
         deployFixture
@@ -601,7 +601,7 @@ describe("OverlayerWrap", function () {
     });
   });
 
-  describe("Redeem", function () {
+  describe("Token Redemption Operations", function () {
     it("Should redeem", async function () {
       const { collateral, overlayerWrap, alice } = await loadFixture(
         deployFixture

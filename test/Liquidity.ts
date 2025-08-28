@@ -64,21 +64,21 @@ describe("Liquidity", function () {
     };
   }
 
-  describe("Deployment", function () {
-    it("Should set the right owner address", async function () {
+  describe("Contract Deployment", function () {
+    it("Should assign the deployer as contract owner", async function () {
       const { liquidity, owner } = await loadFixture(deployFixture);
       expect(await liquidity.owner()).to.equal(await owner.getAddress());
     });
   });
 
-  describe("ModifyParam", function () {
-    it("Should update multiplier", async function () {
+  describe("Parameter Management", function () {
+    it("Should allow owner to update reward multiplier", async function () {
       const { liquidity, owner } = await loadFixture(deployFixture);
       await liquidity.connect(owner).updateMultiplier(2);
       expect(await liquidity.bonusMultiplier()).to.equal(2);
     });
 
-    it("Should revert update multiplier if not owner", async function () {
+    it("Should prevent non-owner from modifying reward multiplier", async function () {
       const { liquidity, notOwner } = await loadFixture(deployFixture);
       await expect(liquidity.connect(notOwner).updateMultiplier(2)).to.be
         .eventually.rejected;
@@ -90,22 +90,22 @@ describe("Liquidity", function () {
     //   expect(await liquidity.startTime()).to.equal(latestTime + 100);
     // });
 
-    it("Should revert update multiplier if not owner", async function () {
+    it("Should prevent non-owner from modifying start time", async function () {
       const { liquidity, notOwner } = await loadFixture(deployFixture);
       await expect(liquidity.connect(notOwner).updateStartTime(2)).to.be
         .eventually.rejected;
     });
   });
 
-  describe("GetInfo", function () {
-    it("Should get pool length", async function () {
+  describe("Pool Information", function () {
+    it("Should initialize with zero pools", async function () {
       const { liquidity } = await loadFixture(deployFixture);
       expect(await liquidity.poolLength()).to.equal(0);
     });
   });
 
-  describe("AddPool", function () {
-    it("Should add a new pool", async function () {
+  describe("Pool Management", function () {
+    it("Should successfully create staking pool with correct settings", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral } =
         await loadFixture(deployFixture);
       await liquidity.setReward(tokenRewardOneOvaReferral.getAddress(), 1);
@@ -130,7 +130,7 @@ describe("Liquidity", function () {
       expect(await liquidity.poolLength()).to.equal(2);
     });
 
-    it("Should return correct allocation points for different pools", async function () {
+    it("Should track allocation points correctly across multiple pools", async function () {
       const {
         liquidity,
         stakedAsset,
@@ -176,7 +176,7 @@ describe("Liquidity", function () {
       ).to.be.equal(110);
     });
 
-    it("Should not add a new pool if not owner", async function () {
+    it("Should restrict pool creation to owner only", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral, notOwner } =
         await loadFixture(deployFixture);
       await liquidity.setReward(tokenRewardOneOvaReferral.getAddress(), 1);
@@ -195,8 +195,8 @@ describe("Liquidity", function () {
     });
   });
 
-  describe("SetReward", function () {
-    it("Should set reward", async function () {
+  describe("Reward System", function () {
+    it("Should enable reward token and set initial rate", async function () {
       const { liquidity, stakedAsset } = await loadFixture(deployFixture);
       await liquidity.setReward(stakedAsset.getAddress(), 1);
       expect(
@@ -204,7 +204,7 @@ describe("Liquidity", function () {
       ).to.be.equal(true);
     });
 
-    it("Should change reward rate", async function () {
+    it("Should allow updating reward emission rate", async function () {
       const { liquidity, stakedAsset } = await loadFixture(deployFixture);
       await liquidity.setReward(stakedAsset.getAddress(), 1);
       expect(
@@ -219,7 +219,7 @@ describe("Liquidity", function () {
       ).to.be.equal(10);
     });
 
-    it("Should not set reward", async function () {
+    it("Should restrict reward configuration to owner only", async function () {
       const { liquidity, stakedAsset, notOwner } = await loadFixture(
         deployFixture
       );
@@ -229,8 +229,8 @@ describe("Liquidity", function () {
     });
   });
 
-  describe("SetPool", function () {
-    it("Should set pool", async function () {
+  describe("Pool Configuration", function () {
+    it("Should allow modifying pool allocation points", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral } =
         await loadFixture(deployFixture);
       await liquidity.setReward(stakedAsset.getAddress(), 1);
@@ -253,7 +253,7 @@ describe("Liquidity", function () {
       expect((await liquidity.poolInfo(0)).allocPoints).to.be.equal(10);
     });
 
-    it("Should not add a new pool if not owner", async function () {
+    it("Should restrict pool modifications to owner only", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral, notOwner } =
         await loadFixture(deployFixture);
       await liquidity.setReward(stakedAsset.getAddress(), 1);
@@ -271,7 +271,7 @@ describe("Liquidity", function () {
   });
 
   describe("CoreFunctionality", function () {
-    it("Deposit", async function () {
+    it("Should handle token deposits and approvals correctly", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
         await loadFixture(deployFixture);
 
@@ -311,7 +311,7 @@ describe("Liquidity", function () {
       );
     });
 
-    it("Pools with endtimestamp should compute rewards uo to the end time stamp", async function () {
+    it("Should calculate time-bounded rewards accurately", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
         await loadFixture(deployFixture);
 
@@ -355,7 +355,7 @@ describe("Liquidity", function () {
       expect(+rewardsBal).to.be.lessThan(expected * 1.01);
     });
 
-    it("Should harvest and not withraw before end time if vesting", async function () {
+    it("Should enforce vesting restrictions on withdrawals", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice } =
         await loadFixture(deployFixture);
       const n = "5";
@@ -415,7 +415,7 @@ describe("Liquidity", function () {
       expect(secondBal).to.be.greaterThan(firstBal);
     });
 
-    it("Deposit, harvest and withdraw with referral", async function () {
+    it("Should process referral bonuses correctly during operations", async function () {
       const {
         liquidity,
         stakedAsset,
@@ -537,7 +537,7 @@ describe("Liquidity", function () {
       ).to.be.greaterThan(bobBonus);
     });
 
-    it("Should return right pending reward with timestamp advance", async function () {
+    it("Should calculate pending rewards accurately over time", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
         await loadFixture(deployFixture);
       const users: Array<any> = [alice, bob];
@@ -661,7 +661,7 @@ describe("Liquidity", function () {
       );
     });
 
-    it("Should have proportioned reward with same reward blocks and deposit with different weights", async function () {
+    it("Should distribute rewards proportionally based on stake weights", async function () {
       const {
         liquidity,
         stakedAsset,
@@ -790,7 +790,7 @@ describe("Liquidity", function () {
       );
     });
 
-    it("Should have same reward with same reward blocks and deposit", async function () {
+    it("Should distribute equal rewards for equal stakes and time", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
         await loadFixture(deployFixture);
       const users: Array<any> = [alice, bob];
@@ -911,7 +911,7 @@ describe("Liquidity", function () {
       );
     });
 
-    it("Should have double reward with same blocks and double deposit deposit", async function () {
+    it("Should distribute proportional rewards for unequal stakes", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
         await loadFixture(deployFixture);
       const PARTICIPATION: string = "10";
@@ -1042,7 +1042,7 @@ describe("Liquidity", function () {
       );
     });
 
-    it("Should harvest correct amount", async function () {
+    it("Should track and distribute harvest rewards correctly", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
         await loadFixture(deployFixture);
       const users: Array<any> = [alice, bob];
@@ -1180,7 +1180,7 @@ describe("Liquidity", function () {
       );
     });
 
-    it("Should not withdraw if requested more tokens than deposited amount", async function () {
+    it("Should enforce deposit limits and prevent excess withdrawals", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
         await loadFixture(deployFixture);
 

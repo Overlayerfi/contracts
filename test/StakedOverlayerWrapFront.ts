@@ -7,7 +7,7 @@ import {
 } from "../scripts/addresses";
 import OVERLAYER_WRAP_ABI from "../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
 
-describe("StakedOverlayerWrapFront", function () {
+describe("Staked Overlayer Wrap Front", function () {
   async function deployFixture() {
     const [admin, alice, bob] = await ethers.getSigners();
 
@@ -138,14 +138,14 @@ describe("StakedOverlayerWrapFront", function () {
     return { stakedoverlayerWrap, usdt, overlayerWrap, admin, alice, bob };
   }
 
-  describe("Deployment", function () {
-    it("Should set the admin role", async function () {
+  describe("Contract Initialization", function () {
+    it("Should properly configure administrative roles", async function () {
       const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
       const adminAddress = await admin.getAddress();
       expect(await stakedoverlayerWrap.owner()).to.equal(adminAddress);
     });
 
-    it("Should set the rewarder role", async function () {
+    it("Should correctly assign rewarder permissions", async function () {
       const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
       const adminAddress = await admin.getAddress();
       expect(
@@ -156,14 +156,14 @@ describe("StakedOverlayerWrapFront", function () {
       ).to.equal(true);
     });
 
-    it("Should not have vesting time", async function () {
+    it("Should initialize with zero vesting duration", async function () {
       const { stakedoverlayerWrap } = await loadFixture(deployFixture);
       expect(await stakedoverlayerWrap.vestingAmount()).to.equal(0);
     });
   });
 
-  describe("Cooldown check", function () {
-    it("Should disable ERC4626 withdraw", async function () {
+  describe("Withdrawal Restrictions", function () {
+    it("Should prevent ERC4626 withdrawals when disabled", async function () {
       const { stakedoverlayerWrap, alice } = await loadFixture(deployFixture);
       await expect(
         stakedoverlayerWrap
@@ -172,7 +172,7 @@ describe("StakedOverlayerWrapFront", function () {
       ).to.be.eventually.rejected;
     });
 
-    it("Should disable ERC4626 redeem", async function () {
+    it("Should prevent ERC4626 redemptions when disabled", async function () {
       const { stakedoverlayerWrap, alice } = await loadFixture(deployFixture);
       await expect(
         stakedoverlayerWrap
@@ -182,8 +182,8 @@ describe("StakedOverlayerWrapFront", function () {
     });
   });
 
-  describe("Blacklist", function () {
-    it("Should set blacklist time", async function () {
+  describe("Access Control Management", function () {
+    it("Should configure blacklist activation time", async function () {
       const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
       await stakedoverlayerWrap.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
@@ -196,7 +196,7 @@ describe("StakedOverlayerWrapFront", function () {
       );
     });
 
-    it("Should not set time < block.timestamp", async function () {
+    it("Should validate blacklist time constraints", async function () {
       const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
       await stakedoverlayerWrap.grantRole(
         ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
@@ -208,8 +208,8 @@ describe("StakedOverlayerWrapFront", function () {
     });
   });
 
-  describe("Stake", function () {
-    it("Should deposit", async function () {
+  describe("Staking Operations", function () {
+    it("Should process deposits and track shares correctly", async function () {
       const { stakedoverlayerWrap, admin, alice, bob } = await loadFixture(
         deployFixture
       );
@@ -250,7 +250,7 @@ describe("StakedOverlayerWrapFront", function () {
       ).to.equal(ethers.parseEther("1"));
     });
 
-    it("Should not not blacklist if not active", async function () {
+    it("Should enforce blacklist restrictions on deposits", async function () {
       const { stakedoverlayerWrap, admin, alice } = await loadFixture(
         deployFixture
       );
@@ -308,8 +308,8 @@ describe("StakedOverlayerWrapFront", function () {
     });
   });
 
-  describe("Preview Redeem", function () {
-    it("Should update preview redeem on asset injection", async function () {
+  describe("Share Value Calculation", function () {
+    it("Should accurately reflect share value after asset injection", async function () {
       const { stakedoverlayerWrap, admin, overlayerWrap, alice, bob } =
         await loadFixture(deployFixture);
       await expect(
@@ -361,8 +361,8 @@ describe("StakedOverlayerWrapFront", function () {
     });
   });
 
-  describe("Cooldown Shares & Unstake", function () {
-    it("Should start cooldown", async function () {
+  describe("Cooldown Mechanism", function () {
+    it("Should initiate share cooldown period", async function () {
       const { stakedoverlayerWrap, alice } = await loadFixture(deployFixture);
       await expect(
         await stakedoverlayerWrap
@@ -384,7 +384,7 @@ describe("StakedOverlayerWrapFront", function () {
       ).to.equal(now + 172800);
     });
 
-    it("Should not unstake before cooldown", async function () {
+    it("Should enforce cooldown period restrictions", async function () {
       const { stakedoverlayerWrap, alice } = await loadFixture(deployFixture);
       await expect(
         await stakedoverlayerWrap
@@ -405,7 +405,7 @@ describe("StakedOverlayerWrapFront", function () {
         .be.eventually.rejected;
     });
 
-    it("Should unstake after cooldown", async function () {
+    it("Should process unstaking after cooldown completion", async function () {
       const { stakedoverlayerWrap, admin, overlayerWrap, alice, bob } =
         await loadFixture(deployFixture);
       await stakedoverlayerWrap
@@ -456,8 +456,8 @@ describe("StakedOverlayerWrapFront", function () {
     });
   });
 
-  describe("ERC4626 flow", function () {
-    it("Should unstake immediately", async function () {
+  describe("ERC4626 Compliance", function () {
+    it("Should handle immediate unstaking when cooldown disabled", async function () {
       const { stakedoverlayerWrap, admin, overlayerWrap, alice, bob } =
         await loadFixture(deployFixture);
 

@@ -2,7 +2,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 
-describe("rOVAV2", function () {
+describe("rOVA V2 Token", function () {
   async function deployFixture() {
     const [admin, whitelisted, nonWhitelisted, another] =
       await ethers.getSigners();

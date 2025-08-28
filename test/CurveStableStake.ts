@@ -116,21 +116,21 @@ describe("CurveStableStake", function () {
     };
   }
 
-  describe("Deployment", function () {
-    it("Should set the right owner address", async function () {
+  describe("Contract Deployment", function () {
+    it("Should assign the deployer as the owner", async function () {
       const { liquidity, owner } = await loadFixture(deployFixture);
       expect(await liquidity.owner()).to.equal(await owner.getAddress());
     });
   });
 
-  describe("ModifyParam", function () {
-    it("Should update multiplier", async function () {
+  describe("Parameter Modification", function () {
+    it("Should allow owner to update reward multiplier", async function () {
       const { liquidity, owner } = await loadFixture(deployFixture);
       await liquidity.connect(owner).updateMultiplier(2);
       expect(await liquidity.bonusMultiplier()).to.equal(2);
     });
 
-    it("Should revert update multiplier if not owner", async function () {
+    it("Should prevent non-owners from updating multiplier", async function () {
       const { liquidity, notOwner } = await loadFixture(deployFixture);
       await expect(liquidity.connect(notOwner).updateMultiplier(2)).to.be
         .eventually.rejected;
@@ -142,22 +142,22 @@ describe("CurveStableStake", function () {
     //   expect(await liquidity.startTime()).to.equal(latestTime + 100);
     // });
 
-    it("Should revert update multiplier if not owner", async function () {
+    it("Should prevent non-owners from updating start time", async function () {
       const { liquidity, notOwner } = await loadFixture(deployFixture);
       await expect(liquidity.connect(notOwner).updateStartTime(2)).to.be
         .eventually.rejected;
     });
   });
 
-  describe("GetInfo", function () {
-    it("Should get pool length", async function () {
+  describe("Pool Information", function () {
+    it("Should return correct number of pools", async function () {
       const { liquidity } = await loadFixture(deployFixture);
       expect(await liquidity.poolLength()).to.equal(0);
     });
   });
 
-  describe("AddPool", function () {
-    it("Should add a new pool", async function () {
+  describe("Pool Management", function () {
+    it("Should successfully add a new staking pool", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral } =
         await loadFixture(deployFixture);
       await liquidity.setRewardForStakedAssets(
@@ -178,7 +178,7 @@ describe("CurveStableStake", function () {
       expect(await liquidity.poolLength()).to.equal(1);
     });
 
-    it("Should return correct allocation points for different pools", async function () {
+    it("Should maintain correct allocation points across multiple pools", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral } =
         await loadFixture(deployFixture);
       await liquidity.setRewardForStakedAssets(
@@ -219,7 +219,7 @@ describe("CurveStableStake", function () {
       ).to.be.equal(10);
     });
 
-    it("Should not add a new pool if not owner", async function () {
+    it("Should restrict pool addition to owner only", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral, notOwner } =
         await loadFixture(deployFixture);
       await liquidity.setRewardForStakedAssets(
@@ -240,8 +240,8 @@ describe("CurveStableStake", function () {
     });
   });
 
-  describe("SetReward", function () {
-    it("Should set reward", async function () {
+  describe("Reward Configuration", function () {
+    it("Should enable reward for staked assets", async function () {
       const { liquidity, stakedAsset } = await loadFixture(deployFixture);
       await liquidity.setRewardForStakedAssets(stakedAsset.getAddress(), 1, 1);
       expect(
@@ -249,7 +249,7 @@ describe("CurveStableStake", function () {
       ).to.be.equal(true);
     });
 
-    it("Should change reward rate", async function () {
+    it("Should allow modification of reward rate", async function () {
       const { liquidity, stakedAsset } = await loadFixture(deployFixture);
       await liquidity.setRewardForStakedAssets(stakedAsset.getAddress(), 1, 1);
       expect(
@@ -264,7 +264,7 @@ describe("CurveStableStake", function () {
       ).to.be.equal(10);
     });
 
-    it("Should not set reward", async function () {
+    it("Should restrict reward configuration to owner only", async function () {
       const { liquidity, stakedAsset, notOwner } = await loadFixture(
         deployFixture
       );
@@ -276,8 +276,8 @@ describe("CurveStableStake", function () {
     });
   });
 
-  describe("CoreFunctionality", function () {
-    it("Deposit", async function () {
+  describe("Staking Operations", function () {
+    it("Should handle deposits correctly", async function () {
       const {
         owner,
         liquidity,
@@ -329,7 +329,7 @@ describe("CurveStableStake", function () {
       );
     });
 
-    it("Pools with endtimestamp should compute rewards uo to the end time stamp", async function () {
+    it("Should calculate rewards correctly until end timestamp", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
         await loadFixture(deployFixture);
 
@@ -380,7 +380,7 @@ describe("CurveStableStake", function () {
       expect(+rewardsBal).to.be.lessThan(expected * 1.01);
     });
 
-    it("Rewards for staked liquidity", async function () {
+    it("Should calculate and distribute rewards accurately for staked assets", async function () {
       const {
         owner,
         liquidity,
@@ -512,7 +512,7 @@ describe("CurveStableStake", function () {
       expect(+pending).to.be.lessThanOrEqual(+expected * 1.05);
     });
 
-    it("Rewards for staked liquidity / 1000", async function () {
+    it("Should handle scaled rewards correctly with denominator", async function () {
       const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice } =
         await loadFixture(deployFixture);
 

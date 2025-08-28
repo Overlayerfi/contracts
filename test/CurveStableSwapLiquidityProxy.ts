@@ -64,8 +64,8 @@ describe("CurveStableSwapLiquidityProxy", function () {
     };
   }
 
-  describe("Add stable swap liquidity", function () {
-    it("Should add liquidity", async function () {
+  describe("Liquidity Operations", function () {
+    it("Should successfully add liquidity to Curve stable pool", async function () {
       const {
         curve,
         token0,

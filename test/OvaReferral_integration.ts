@@ -162,119 +162,121 @@ describe("CurveStableStake", function () {
     };
   }
 
-  describe("OvaReferral", function () {
-    it("Integration with staking pools", async function () {
-      const {
-        curveLiquidity,
-        singleLiquidity,
-        stakedAsset,
-        tokenRewardOneOvaReferral,
-        owner,
-        alice
-      } = await loadFixture(deployFixture);
-      await curveLiquidity.setRewardForStakedAssets(
-        tokenRewardOneOvaReferral.getAddress(),
-        100_000,
-        1
-      );
-      await singleLiquidity.setRewardForStakedAssets(
-        tokenRewardOneOvaReferral.getAddress(),
-        200_000,
-        1
-      );
-      await curveLiquidity.addWithNumCoinsAndPool(
-        stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
-        1,
-        3,
-        CURVE_DAI_USDC_USDT_POOL,
-        0,
-        false,
-        true
-      );
-      await singleLiquidity.add(
-        stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
-        1,
-        0,
-        false,
-        true
-      );
-      expect(await curveLiquidity.poolLength()).to.equal(1);
-      expect(await singleLiquidity.poolLength()).to.equal(1);
+  describe("OVA Referral System Integration", function () {
+    describe("Multi-Pool Referral System", function () {
+      it("Should correctly track and distribute rewards across multiple staking pools", async function () {
+        const {
+          curveLiquidity,
+          singleLiquidity,
+          stakedAsset,
+          tokenRewardOneOvaReferral,
+          owner,
+          alice
+        } = await loadFixture(deployFixture);
+        await curveLiquidity.setRewardForStakedAssets(
+          tokenRewardOneOvaReferral.getAddress(),
+          100_000,
+          1
+        );
+        await singleLiquidity.setRewardForStakedAssets(
+          tokenRewardOneOvaReferral.getAddress(),
+          200_000,
+          1
+        );
+        await curveLiquidity.addWithNumCoinsAndPool(
+          stakedAsset.getAddress(),
+          tokenRewardOneOvaReferral.getAddress(),
+          1,
+          3,
+          CURVE_DAI_USDC_USDT_POOL,
+          0,
+          false,
+          true
+        );
+        await singleLiquidity.add(
+          stakedAsset.getAddress(),
+          tokenRewardOneOvaReferral.getAddress(),
+          1,
+          0,
+          false,
+          true
+        );
+        expect(await curveLiquidity.poolLength()).to.equal(1);
+        expect(await singleLiquidity.poolLength()).to.equal(1);
 
-      await curveLiquidity.connect(alice).deposit(0, ethers.parseEther("10"));
-      await singleLiquidity.connect(alice).deposit(0, ethers.parseEther("10"));
+        await curveLiquidity.connect(alice).deposit(0, ethers.parseEther("10"));
+        await singleLiquidity.connect(alice).deposit(0, ethers.parseEther("10"));
 
-      // 1 days
-      await time.increase(60 * 60 * 24);
+        // 1 days
+        await time.increase(60 * 60 * 24);
 
-      expect(
-        await curveLiquidity.pendingReward(0, alice.address)
-      ).to.be.greaterThan(0);
-      expect(
-        await singleLiquidity.pendingReward(0, alice.address)
-      ).to.be.greaterThan(0);
+        expect(
+          await curveLiquidity.pendingReward(0, alice.address)
+        ).to.be.greaterThan(0);
+        expect(
+          await singleLiquidity.pendingReward(0, alice.address)
+        ).to.be.greaterThan(0);
 
-      await tokenRewardOneOvaReferral
-        .connect(owner)
-        .addCode("2025", owner.address);
-      expect(
-        await tokenRewardOneOvaReferral.balanceOf(alice.address)
-      ).to.be.equal(0);
-      await tokenRewardOneOvaReferral.connect(alice).consumeReferral("2025");
+        await tokenRewardOneOvaReferral
+          .connect(owner)
+          .addCode("2025", owner.address);
+        expect(
+          await tokenRewardOneOvaReferral.balanceOf(alice.address)
+        ).to.be.equal(0);
+        await tokenRewardOneOvaReferral.connect(alice).consumeReferral("2025");
 
-      // By using a referral we harvest all the previous amounts
-      expect(await curveLiquidity.pendingReward(0, alice.address)).to.be.equal(
-        0
-      );
-      expect(await singleLiquidity.pendingReward(0, alice.address)).to.be.equal(
-        0
-      );
-      expect(
-        await tokenRewardOneOvaReferral.balanceOf(alice.address)
-      ).to.be.greaterThan(0);
-      expect(
-        +ethers.formatEther(
-          await tokenRewardOneOvaReferral.codeTotalPoints("2025")
-        )
-      ).to.be.equal(0);
+        // By using a referral we harvest all the previous amounts
+        expect(await curveLiquidity.pendingReward(0, alice.address)).to.be.equal(
+          0
+        );
+        expect(await singleLiquidity.pendingReward(0, alice.address)).to.be.equal(
+          0
+        );
+        expect(
+          await tokenRewardOneOvaReferral.balanceOf(alice.address)
+        ).to.be.greaterThan(0);
+        expect(
+          +ethers.formatEther(
+            await tokenRewardOneOvaReferral.codeTotalPoints("2025")
+          )
+        ).to.be.equal(0);
 
-      await singleLiquidity.connect(alice).withdraw(0, ethers.parseEther("10"));
-      await singleLiquidity.connect(alice).deposit(0, ethers.parseEther("10"));
+        await singleLiquidity.connect(alice).withdraw(0, ethers.parseEther("10"));
+        await singleLiquidity.connect(alice).deposit(0, ethers.parseEther("10"));
 
-      const days = 1;
-      // 1 days
-      await time.increase(60 * 60 * 24 * days);
+        const days = 1;
+        // 1 days
+        await time.increase(60 * 60 * 24 * days);
 
-      await singleLiquidity.connect(alice).withdraw(0, ethers.parseEther("10"));
-      await curveLiquidity.connect(alice).withdraw(0, ethers.parseEther("10"));
-      const expectedOne =
-        ((0.05 * ((10 * 200_000) / 1)) / (60 * 60 * 24 * 365)) *
-        (60 * 60 * 24 * days);
-      const expectedTwo =
-        ((0.05 * ((10 * 100_000) / 1)) / (60 * 60 * 24 * 365)) *
-        (60 * 60 * 24 * days);
-      expect(
-        +ethers.formatEther(
-          await tokenRewardOneOvaReferral.codeTotalPoints("2025")
-        )
-      ).to.be.greaterThan((expectedOne + expectedTwo) * 0.995);
-      expect(
-        +ethers.formatEther(
-          await tokenRewardOneOvaReferral.codeTotalPoints("2025")
-        )
-      ).to.be.lessThan((expectedOne + expectedTwo) * 1.015);
-      expect(
-        +ethers.formatEther(
-          await tokenRewardOneOvaReferral.generatedPoints(owner.address)
-        )
-      ).to.be.greaterThan((expectedOne + expectedTwo) * 0.995);
-      expect(
-        +ethers.formatEther(
-          await tokenRewardOneOvaReferral.generatedPoints(owner.address)
-        )
-      ).to.be.lessThan((expectedOne + expectedTwo) * 1.015);
+        await singleLiquidity.connect(alice).withdraw(0, ethers.parseEther("10"));
+        await curveLiquidity.connect(alice).withdraw(0, ethers.parseEther("10"));
+        const expectedOne =
+          ((0.05 * ((10 * 200_000) / 1)) / (60 * 60 * 24 * 365)) *
+          (60 * 60 * 24 * days);
+        const expectedTwo =
+          ((0.05 * ((10 * 100_000) / 1)) / (60 * 60 * 24 * 365)) *
+          (60 * 60 * 24 * days);
+        expect(
+          +ethers.formatEther(
+            await tokenRewardOneOvaReferral.codeTotalPoints("2025")
+          )
+        ).to.be.greaterThan((expectedOne + expectedTwo) * 0.995);
+        expect(
+          +ethers.formatEther(
+            await tokenRewardOneOvaReferral.codeTotalPoints("2025")
+          )
+        ).to.be.lessThan((expectedOne + expectedTwo) * 1.015);
+        expect(
+          +ethers.formatEther(
+            await tokenRewardOneOvaReferral.generatedPoints(owner.address)
+          )
+        ).to.be.greaterThan((expectedOne + expectedTwo) * 0.995);
+        expect(
+          +ethers.formatEther(
+            await tokenRewardOneOvaReferral.generatedPoints(owner.address)
+          )
+        ).to.be.lessThan((expectedOne + expectedTwo) * 1.015);
+      });
     });
   });
 });

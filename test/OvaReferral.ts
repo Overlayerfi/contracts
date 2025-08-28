@@ -2,7 +2,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 
-describe("OvaReferral", function () {
+describe("OVA Referral System", function () {
   async function deployFixture() {
     const [admin, minter, bob, alice] = await ethers.getSigners();
 
@@ -32,21 +32,21 @@ describe("OvaReferral", function () {
     return { ovaReferral, admin, minter, bob, alice };
   }
 
-  describe("Deployment & Minter", function () {
-    it("Should set the admin role", async function () {
+  describe("Authorization Management", function () {
+    it("Should correctly assign initial admin role", async function () {
       const { ovaReferral, admin } = await loadFixture(deployFixture);
       const adminAddress = await admin.getAddress();
       expect(await ovaReferral.owner()).to.equal(adminAddress);
     });
 
-    it("Should set the minter role", async function () {
+    it("Should properly configure minter privileges", async function () {
       const { ovaReferral, minter } = await loadFixture(deployFixture);
       expect(await ovaReferral.minter(minter.address)).to.equal(true);
     });
   });
 
-  describe("StakingPools", function () {
-    it("Should add staking pools", async function () {
+  describe("Staking Pool Configuration", function () {
+    it("Should register multiple staking pool addresses", async function () {
       const { ovaReferral, admin, bob, alice } = await loadFixture(
         deployFixture
       );
@@ -58,8 +58,8 @@ describe("OvaReferral", function () {
     });
   });
 
-  describe("Mint", function () {
-    it("Should mint", async function () {
+  describe("Token Operations", function () {
+    it("Should allow authorized minting of tokens", async function () {
       const { ovaReferral, minter, bob } = await loadFixture(deployFixture);
       expect(await ovaReferral.balanceOf(bob.address)).to.equal(
         ethers.parseEther("0")
@@ -75,8 +75,8 @@ describe("OvaReferral", function () {
     });
   });
 
-  describe("Code", function () {
-    it("Should add a new refarral code", async function () {
+  describe("Referral Code Management", function () {
+    it("Should register new referral codes with proper validation", async function () {
       const { ovaReferral, admin, alice } = await loadFixture(deployFixture);
       await expect(
         await ovaReferral
@@ -102,8 +102,8 @@ describe("OvaReferral", function () {
     });
   });
 
-  describe("Referral", function () {
-    it("Should add new referral", async function () {
+  describe("Referral Processing", function () {
+    it("Should process new referral relationships correctly", async function () {
       const { ovaReferral, admin, bob, alice } = await loadFixture(
         deployFixture
       );
@@ -133,24 +133,7 @@ describe("OvaReferral", function () {
         .rejected;
     });
 
-    it("Should not use referral if has given one", async function () {
-      const { ovaReferral, admin, bob, alice } = await loadFixture(
-        deployFixture
-      );
-      await ovaReferral.connect(admin).addPointsTracker(admin.address);
-      await expect(
-        await ovaReferral
-          .connect(admin)
-          .addCode("ALICE", await alice.getAddress())
-      ).to.emit(ovaReferral, "NewCode");
-      await expect(
-        await ovaReferral.connect(admin).addCode("BOB", await bob.getAddress())
-      ).to.emit(ovaReferral, "NewCode");
-      await expect(ovaReferral.connect(alice).consumeReferral("BOB")).to.be
-        .eventually.rejected;
-    });
-
-    it("Should not be referred multiple times", async function () {
+    it("Should prevent duplicate referral registrations", async function () {
       const { ovaReferral, admin, bob, alice } = await loadFixture(
         deployFixture
       );
@@ -167,7 +150,24 @@ describe("OvaReferral", function () {
         .eventually.rejected;
     });
 
-    it("Should not be referred from zero address", async function () {
+    it("Should enforce single referral per address", async function () {
+      const { ovaReferral, admin, bob, alice } = await loadFixture(
+        deployFixture
+      );
+      await ovaReferral.connect(admin).addPointsTracker(admin.address);
+      await expect(
+        await ovaReferral
+          .connect(admin)
+          .addCode("ALICE", await alice.getAddress())
+      ).to.emit(ovaReferral, "NewCode");
+      await expect(
+        await ovaReferral.connect(admin).addCode("BOB", await bob.getAddress())
+      ).to.emit(ovaReferral, "NewCode");
+      await expect(ovaReferral.connect(alice).consumeReferral("BOB")).to.be
+        .eventually.rejected;
+    });
+
+    it("Should validate referral source address", async function () {
       const { ovaReferral, admin } = await loadFixture(deployFixture);
       await ovaReferral.connect(admin).addPointsTracker(admin.address);
       await expect(
@@ -176,8 +176,8 @@ describe("OvaReferral", function () {
     });
   });
 
-  describe("Trackers", function () {
-    it("Should add and remove new tracker", async function () {
+  describe("Points Tracking System", function () {
+    it("Should register authorized points tracking contracts", async function () {
       const { ovaReferral, admin, minter } = await loadFixture(deployFixture);
       await expect(
         await ovaReferral.connect(admin).addPointsTracker(minter.address)
@@ -196,7 +196,7 @@ describe("OvaReferral", function () {
       ).to.be.equal(false);
     });
 
-    it("Should not add new tracker if not admin", async function () {
+    it("Should restrict tracker registration to admin", async function () {
       const { ovaReferral, minter } = await loadFixture(deployFixture);
       await expect(ovaReferral.connect(minter).addPointsTracker(minter.address))
         .to.be.eventually.rejected;
