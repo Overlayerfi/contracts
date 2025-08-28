@@ -67,7 +67,6 @@ async function main() {
     const overlayerWrapAddr = await deploy_OverlayerWrap(
       USDT_ADDRESS,
       AUSDT_ADDRESS,
-      true,
       2
     );
 
