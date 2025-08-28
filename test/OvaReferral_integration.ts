@@ -205,7 +205,9 @@ describe("CurveStableStake", function () {
         expect(await singleLiquidity.poolLength()).to.equal(1);
 
         await curveLiquidity.connect(alice).deposit(0, ethers.parseEther("10"));
-        await singleLiquidity.connect(alice).deposit(0, ethers.parseEther("10"));
+        await singleLiquidity
+          .connect(alice)
+          .deposit(0, ethers.parseEther("10"));
 
         // 1 days
         await time.increase(60 * 60 * 24);
@@ -226,12 +228,12 @@ describe("CurveStableStake", function () {
         await tokenRewardOneOvaReferral.connect(alice).consumeReferral("2025");
 
         // By using a referral we harvest all the previous amounts
-        expect(await curveLiquidity.pendingReward(0, alice.address)).to.be.equal(
-          0
-        );
-        expect(await singleLiquidity.pendingReward(0, alice.address)).to.be.equal(
-          0
-        );
+        expect(
+          await curveLiquidity.pendingReward(0, alice.address)
+        ).to.be.equal(0);
+        expect(
+          await singleLiquidity.pendingReward(0, alice.address)
+        ).to.be.equal(0);
         expect(
           await tokenRewardOneOvaReferral.balanceOf(alice.address)
         ).to.be.greaterThan(0);
@@ -241,15 +243,23 @@ describe("CurveStableStake", function () {
           )
         ).to.be.equal(0);
 
-        await singleLiquidity.connect(alice).withdraw(0, ethers.parseEther("10"));
-        await singleLiquidity.connect(alice).deposit(0, ethers.parseEther("10"));
+        await singleLiquidity
+          .connect(alice)
+          .withdraw(0, ethers.parseEther("10"));
+        await singleLiquidity
+          .connect(alice)
+          .deposit(0, ethers.parseEther("10"));
 
         const days = 1;
         // 1 days
         await time.increase(60 * 60 * 24 * days);
 
-        await singleLiquidity.connect(alice).withdraw(0, ethers.parseEther("10"));
-        await curveLiquidity.connect(alice).withdraw(0, ethers.parseEther("10"));
+        await singleLiquidity
+          .connect(alice)
+          .withdraw(0, ethers.parseEther("10"));
+        await curveLiquidity
+          .connect(alice)
+          .withdraw(0, ethers.parseEther("10"));
         const expectedOne =
           ((0.05 * ((10 * 200_000) / 1)) / (60 * 60 * 24 * 365)) *
           (60 * 60 * 24 * days);
