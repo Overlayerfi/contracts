@@ -2,7 +2,7 @@ import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 
-describe("OvaAmbassadorTracker", function () {
+describe("OVA Ambassador Tracking System", function () {
   async function deployFixture() {
     const [admin, a1, a2, a3] = await ethers.getSigners();
 
@@ -29,8 +29,8 @@ describe("OvaAmbassadorTracker", function () {
     return { contract, ovaReferral, admin, a1, a2, a3 };
   }
 
-  describe("Ambassador flow", function () {
-    it("Should add an ambassador", async function () {
+  describe("Ambassador Management", function () {
+    it("Should successfully register multiple ambassadors in batch", async function () {
       const { contract, admin, a1, a2, a3 } = await loadFixture(deployFixture);
       const ambassadors = [a1.address, a2.address, a3.address];
       await contract.addAmbassadorBatch(ambassadors);
@@ -40,7 +40,7 @@ describe("OvaAmbassadorTracker", function () {
       expect(await contract.ambassadors(admin.address)).to.be.equal(false);
     });
 
-    it("Should remove an ambassador", async function () {
+    it("Should successfully remove ambassador from active list", async function () {
       const { contract, admin, a1, a2, a3 } = await loadFixture(deployFixture);
       const ambassadors = [a1.address, a2.address, a3.address];
       await contract.addAmbassadorBatch(ambassadors);
@@ -53,7 +53,7 @@ describe("OvaAmbassadorTracker", function () {
       expect(await contract.ambassadors(a2.address)).to.be.equal(false);
     });
 
-    it("Should add points", async function () {
+    it("Should assign and validate points for registered ambassadors", async function () {
       const { contract, admin, a1, a2, a3 } = await loadFixture(deployFixture);
       const ambassadors = [a1.address, a2.address];
       await contract.addAmbassadorBatch(ambassadors);
@@ -81,7 +81,7 @@ describe("OvaAmbassadorTracker", function () {
         .eventually.rejected;
     });
 
-    it("Should collect points", async function () {
+    it("Should process point collection within specified timeframe", async function () {
       const { contract, ovaReferral, admin, a1, a2, a3 } = await loadFixture(
         deployFixture
       );

@@ -2,7 +2,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 
-describe("OVA", function () {
+describe("OVA Token", function () {
   async function deployFixture() {
     const [admin, minter, bob] = await ethers.getSigners();
 
@@ -24,8 +24,8 @@ describe("OVA", function () {
     return { liquidityAirdropReward, admin, minter, bob };
   }
 
-  describe("Deployment & Minter", function () {
-    it("Should set the admin role", async function () {
+  describe("Access Control", function () {
+    it("Should correctly set admin role during deployment", async function () {
       const { liquidityAirdropReward, admin } = await loadFixture(
         deployFixture
       );
@@ -33,7 +33,7 @@ describe("OVA", function () {
       expect(await liquidityAirdropReward.owner()).to.equal(adminAddress);
     });
 
-    it("Should set the minter role", async function () {
+    it("Should correctly assign minter role to designated address", async function () {
       const { liquidityAirdropReward, minter } = await loadFixture(
         deployFixture
       );
@@ -43,8 +43,8 @@ describe("OVA", function () {
     });
   });
 
-  describe("Mint", function () {
-    it("Should mint", async function () {
+  describe("Token Minting", function () {
+    it("Should allow minter to mint tokens to specified address", async function () {
       const { liquidityAirdropReward, minter, bob } = await loadFixture(
         deployFixture
       );
