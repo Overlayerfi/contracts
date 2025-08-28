@@ -28,7 +28,7 @@ import {
 } from "../functions";
 import OVA_ABI from "../../artifacts/contracts/overlayer/OVA.sol/OVA.json";
 import OverlayerWrap_ABI from "../../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
-import SOverlayerWrap_ABI from "../../artifacts/contracts/overlayer/StakedOverlayerWrapFront.sol/StakedOverlayerWrapFront.json";
+import SOverlayerWrap_ABI from "../../artifacts/contracts/overlayer/StakedOverlayerWrap.sol/StakedOverlayerWrap.json";
 import CURVE_STABLE_STAKE_ABI from "../../artifacts/contracts/liquidity/CurveStableStake.sol/CurveStableStake.json";
 import SINGLE_STABLE_STAKE_ABI from "../../artifacts/contracts/liquidity/SingleStableStake.sol/SingleStableStake.json";
 import OVA_REFERRAL_ABI from "../../artifacts/contracts/overlayer/OvaReferral.sol/OvaReferral.json";

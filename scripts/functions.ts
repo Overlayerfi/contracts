@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { LZ_ENDPOINT_ETH_MAINNET_V2, USDT_ADDRESS } from "./addresses";
-import STAKED_USDX_ABI from "../artifacts/contracts/overlayer/StakedOverlayerWrapFront.sol/StakedOverlayerWrapFront.json";
+import STAKED_USDX_ABI from "../artifacts/contracts/overlayer/StakedOverlayerWrap.sol/StakedOverlayerWrap.json";
 import rOVA_ABI from "../artifacts/contracts/overlayer/rOVA.sol/rOVA.json";
 import rOVAV2_ABI from "../artifacts/contracts/overlayer/rOVAV2.sol/rOVAV2.json";
 import OVAWHITELIST_ABI from "../artifacts/contracts/whitelist/OvaWhitelist.sol/OvaWhitelist.json";
@@ -9,7 +9,7 @@ import TESTMATH_ABI from "../artifacts/contracts/test/TestMath.sol/TestMath.json
 import LIQUIDITY_ABI from "../artifacts/contracts/liquidity/Liquidity.sol/Liquidity.json";
 import OverlayerWrap_ABI from "../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
 import OVAREFERRAL_ABI from "../artifacts/contracts/overlayer/OvaReferral.sol/OvaReferral.json";
-import SOverlayerWrap_ABI from "../artifacts/contracts/overlayer/StakedOverlayerWrapFront.sol/StakedOverlayerWrapFront.json";
+import SOverlayerWrap_ABI from "../artifacts/contracts/overlayer/StakedOverlayerWrap.sol/StakedOverlayerWrap.json";
 import { ILiquidity } from "./types";
 import { USDT_ABI } from "./abi/USDT_abi";
 
@@ -129,7 +129,7 @@ export async function deploy_StakedOverlayerWrap(
   );
 
   const ContractSource = await ethers.getContractFactory(
-    "StakedOverlayerWrapFront"
+    "StakedOverlayerWrap"
   );
   const deployedContract = await ContractSource.deploy(
     overlayerWrap,
