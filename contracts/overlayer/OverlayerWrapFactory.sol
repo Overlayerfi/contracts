@@ -68,8 +68,8 @@ contract OverlayerWrapFactory is Ownable {
     }
 
     function deployOverlayerWrap(
-        string memory name,
-        string memory symbol,
+        string memory name_,
+        string memory symbol_,
         OverlayerWrapCoreTypes.StableCoin memory collateral_,
         OverlayerWrapCoreTypes.StableCoin memory aCollateral_,
         address lzEndpoint_,
@@ -79,16 +79,16 @@ contract OverlayerWrapFactory is Ownable {
         if (msg.sender != governor) {
             revert OnlyGovernor();
         }
-        // Reject if symbol already exists
-        if (symbolToToken[symbol] != address(0)) {
-            revert SymbolAlreadyExists(symbol);
+        // Reject if symbol_ already exists
+        if (symbolToToken[symbol_] != address(0)) {
+            revert SymbolAlreadyExists(symbol_);
         }
         IOverlayerWrapDefs.ConstructorParams memory params = IOverlayerWrapDefs
             .ConstructorParams(
                 owner(),
                 lzEndpoint_,
-                name,
-                symbol,
+                name_,
+                symbol_,
                 collateral_,
                 aCollateral_,
                 maxMintPerBlock_,
@@ -96,9 +96,9 @@ contract OverlayerWrapFactory is Ownable {
             );
         OverlayerWrap token = new OverlayerWrap(params);
 
-        symbolToToken[symbol] = address(token);
+        symbolToToken[symbol_] = address(token);
 
-        emit OverlayerWrapDeployed(address(token), name, symbol);
+        emit OverlayerWrapDeployed(address(token), name_, symbol_);
         return address(token);
     }
 }

@@ -17,25 +17,25 @@ contract OverlayerWrapBacking is AaveHandler, IOverlayerWrapBackingDefs {
     //########################################## MODIFIERS ##########################################
 
     /// @notice Ensures the asset is not a protocol-managed token (USDT/aUSDT)
-    /// @param asset Address of the token to check
-    modifier notProtocolAssets(address asset) {
-        if (asset == USDT || asset == AUSDT)
+    /// @param asset_ Address of the token to check
+    modifier notProtocolAssets(address asset_) {
+        if (asset_ == USDT || asset_ == AUSDT)
             revert OverlayerWrapBackingOperationNotAllowed();
         _;
     }
 
     /// @notice Constructor for OverlayerWrapBacking
-    /// @param admin Address of the contract administrator
-    /// @param dispatcher Address of the rewards dispatcher contract
+    /// @param admin_ Address of the contract administrator
+    /// @param dispatcher_ Address of the rewards dispatcher contract
     /// @param overlayerWrap_ Address of the OverlayerWrap token contract
     /// @param sOverlayerWrap_ Address of the Staked OverlayerWrap contract
     /// @dev Automatically accepts role as collateral spender for OverlayerWrap
     constructor(
-        address admin,
-        address dispatcher,
+        address admin_,
+        address dispatcher_,
         address overlayerWrap_,
         address sOverlayerWrap_
-    ) AaveHandler(admin, dispatcher, overlayerWrap_, sOverlayerWrap_) {
+    ) AaveHandler(admin_, dispatcher_, overlayerWrap_, sOverlayerWrap_) {
         IOverlayerWrap(overlayerWrap_).acceptProposedCollateralSpender();
         emit OverlayerWrapSpenderAccepted();
     }
@@ -43,14 +43,14 @@ contract OverlayerWrapBacking is AaveHandler, IOverlayerWrapBackingDefs {
     //########################################## EXTERNAL FUNCTIONS ##########################################
 
     ///@notice Recover asset from the contract
-    ///@param asset The asset to recover
-    ///@param amount The amount to recover
+    ///@param asset_ The asset to recover
+    ///@param amount_ The amount to recover
     function recoverAsset(
-        address asset,
-        uint256 amount
-    ) external onlyOwner notProtocolAssets(asset) {
-        if (asset == address(0))
+        address asset_,
+        uint256 amount_
+    ) external onlyOwner notProtocolAssets(asset_) {
+        if (asset_ == address(0))
             revert OverlayerWrapBackingZeroAddressException();
-        IERC20(asset).safeTransfer(owner(), amount);
+        IERC20(asset_).safeTransfer(owner(), amount_);
     }
 }
