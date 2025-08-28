@@ -3,11 +3,6 @@ import { Contract } from "ethers";
 import {
   deploy_OverlayerWrap,
   deploy_StakedOverlayerWrap,
-  deploy_LiquidityAirdropReward,
-  deploy_Liquidity,
-  deploy_OVA,
-  Liquidity_addReward,
-  Liquidity_addPool,
   StakedOverlayerWrap_setCooldownStaking,
   grantRole,
   OverlayerWrap_proposeNewCollateralSpender,
@@ -15,37 +10,20 @@ import {
   OverlayerWrap_mint,
   StakedOverlayerWrap_deposit,
   deploy_AirdropReward,
-  deploy_AirdropPoolCurveStableStake,
   deploy_AirdropSingleStableStake,
-  CurveStableStake_setRewardForStakedAssets,
   SingleStableStake_setRewardForStakedAssets,
-  CurveStableStake_addWithNumCoinsAndPool,
   SingleStableStake_addPool,
   AirdropReward_setStakingPools,
   AirdropReward_addTrackers,
   Liquidity_updateReferral,
   deploy_Dispatcher
 } from "../functions";
-import OVA_ABI from "../../artifacts/contracts/overlayer/OVA.sol/OVA.json";
 import OverlayerWrap_ABI from "../../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
 import SOverlayerWrap_ABI from "../../artifacts/contracts/overlayer/StakedOverlayerWrapFront.sol/StakedOverlayerWrapFront.json";
-import CURVE_STABLE_STAKE_ABI from "../../artifacts/contracts/liquidity/CurveStableStake.sol/CurveStableStake.json";
 import SINGLE_STABLE_STAKE_ABI from "../../artifacts/contracts/liquidity/SingleStableStake.sol/SingleStableStake.json";
 import OVA_REFERRAL_ABI from "../../artifacts/contracts/overlayer/OvaReferral.sol/OvaReferral.json";
-import { swap } from "../uniswap_swapper/proxy";
 import { getContractAddress } from "@ethersproject/address";
-import {
-  CURVE_DAI_USDC_USDT_LP,
-  CURVE_DAI_USDC_USDT_POOL,
-  DAI_ADDRESS,
-  USDC_ADDRESS,
-  USDT_SEPOLIA_ADDRESS,
-  AUSDT_SEPOLIA_ADDRESS
-} from "../addresses";
-import { DAI_ABI } from "../abi/DAI_abi";
-import { USDC_ABI } from "../abi/USDC_abi";
-import { USDT_ABI } from "../abi/USDT_abi";
-import { addLiquidityTriStable } from "../curve/addLiqTriStable";
+import { USDT_SEPOLIA_ADDRESS, AUSDT_SEPOLIA_ADDRESS } from "../addresses";
 
 const AIRDROP_POOLS_REWARD_TOKEN_ADMIN =
   "0x1b4b7eD919416550457d142E54e7f98583E4B018";
@@ -53,29 +31,26 @@ const AIRDROP_POOLS_ADMIN = "0x1b4b7eD919416550457d142E54e7f98583E4B018";
 const OVA_SEPOLIA_RESERVE_FUND = "0x7bE51020c8c6a9153B3C8688410d201bbbb27fB9";
 const OVA_SEPOLIA_TEAM = "0x4b05A19E5b50498fe94d9F7A7c8362f5ACc457b1";
 
+const mockLp = "0x1Ac7E198685e53cCc3599e1656E48Dd7E278EbbE";
+const signerAddr = "0x1b4b7eD919416550457d142E54e7f98583E4B018";
+
 // Curve pools are mocked by using single token pools
 async function main() {
   try {
-    const admin = await ethers.getSigner(
-      "0x1b4b7eD919416550457d142E54e7f98583E4B018"
-    );
-    console.log("Signer address:", admin.address);
+    const admin = await ethers.getSigner(signerAddr);
+    console.log("[main] Signer address:", admin.address);
 
     const latestTime: number = Math.floor(new Date().getTime() / 1000);
-    console.log(`Starting pools timestamp: ${latestTime}`);
+    console.log(`[main] Starting pools timestamp: ${latestTime}`);
 
     const defaultTransactionOptions = {
       gasLimit: 2000000
     };
 
-    // 0. Retrieve mock tokens
-    const fakeUsdtUsdo = "0x1Ac7E198685e53cCc3599e1656E48Dd7E278EbbE";
-
     // 1. Deploy USDO
     const overlayerWrapAddr = await deploy_OverlayerWrap(
       USDT_SEPOLIA_ADDRESS,
       AUSDT_SEPOLIA_ADDRESS,
-      true,
       2
     );
 
@@ -132,7 +107,7 @@ async function main() {
     );
     let receipt = await tx.wait();
     console.log(
-      "Airdrop::reward minter set to:",
+      "[main] Airdrop::reward minter set to:",
       singleStableStakeAddr,
       "hash =",
       tx.hash
@@ -143,7 +118,7 @@ async function main() {
     );
     receipt = await tx.wait();
     console.log(
-      "Airdrop::reward minter set to:",
+      "[main] Airdrop::reward minter set to:",
       singleStableStakePremiumAddr,
       "hash =",
       tx.hash
@@ -154,7 +129,7 @@ async function main() {
     );
     receipt = await tx.wait();
     console.log(
-      "Airdrop::reward minter set to:",
+      "[main] Airdrop::reward minter set to:",
       curveStableStakeCrvAddr,
       "hash =",
       tx.hash
@@ -187,11 +162,11 @@ async function main() {
     );
     // Fake USDT-USDT+ LP with predeployed token
     const endTimeStamp = latestTime + 60 * 60 * 24 * 30 * 12; //12 months
-    console.log(`Ending pools timestamp: ${endTimeStamp}`);
+    console.log(`[main] Ending pools timestamp: ${endTimeStamp}`);
     await SingleStableStake_addPool(
       curveStableStakeCrvContract,
       admin,
-      fakeUsdtUsdo,
+      mockLp,
       ovaReferralAddress,
       1,
       endTimeStamp,
@@ -304,7 +279,7 @@ async function main() {
       defaultTransactionOptions
     );
     receipt = await tx.wait();
-    console.log(`Approved deployer USDO to sUSDO hash = ${tx.hash}`);
+    console.log(`[main] Approved deployer USDO to sUSDO hash = ${tx.hash}`);
     await StakedOverlayerWrap_deposit(sOverlayerWrapAddr, "1", admin.address);
 
     // 13. Set staking pools inside the referral contract
@@ -329,7 +304,7 @@ async function main() {
       ovaReferralAddress
     );
   } catch (err) {
-    console.error("Batch deployment failed ->", err);
+    console.error("[main] Batch deployment failed ->", err);
   }
 }
 

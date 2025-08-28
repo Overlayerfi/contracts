@@ -1,10 +1,5 @@
 import { ethers } from "hardhat";
-import {
-  AUSDC_ADDRESS,
-  AUSDT_ADDRESS,
-  USDC_ADDRESS,
-  USDT_ADDRESS
-} from "./addresses";
+import { LZ_ENDPOINT_ETH_MAINNET_V2, USDT_ADDRESS } from "./addresses";
 import STAKED_USDX_ABI from "../artifacts/contracts/overlayer/StakedOverlayerWrapFront.sol/StakedOverlayerWrapFront.json";
 import rOVA_ABI from "../artifacts/contracts/overlayer/rOVA.sol/rOVA.json";
 import rOVAV2_ABI from "../artifacts/contracts/overlayer/rOVAV2.sol/rOVAV2.json";
@@ -16,7 +11,6 @@ import OverlayerWrap_ABI from "../artifacts/contracts/overlayer/OverlayerWrap.so
 import OVAREFERRAL_ABI from "../artifacts/contracts/overlayer/OvaReferral.sol/OvaReferral.json";
 import SOverlayerWrap_ABI from "../artifacts/contracts/overlayer/StakedOverlayerWrapFront.sol/StakedOverlayerWrapFront.json";
 import { ILiquidity } from "./types";
-import { USDC_ABI } from "./abi/USDC_abi";
 import { USDT_ABI } from "./abi/USDT_abi";
 
 export async function deploy_ERC20(
@@ -26,7 +20,9 @@ export async function deploy_ERC20(
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
-  console.log(`Deploying ${name} contract with signer: ${deployer.address}`);
+  console.log(
+    `[deploy_ERC20] Deploying ${name} contract with signer: ${deployer.address}`
+  );
 
   const block = await deployer.provider.getBlock("latest");
   const baseFee = block.baseFeePerGas;
@@ -46,21 +42,29 @@ export async function deploy_ERC20(
   );
   await deployedContract.waitForDeployment();
 
-  console.log("Contract deployed at:", await deployedContract.getAddress());
+  console.log(
+    "[deploy_ERC20] Contract deployed at:",
+    await deployedContract.getAddress()
+  );
 
   return await deployedContract.getAddress();
 }
 
 export async function deploy_OverlayerWrap(
-  usdtAddr: string,
-  aUsdtAddr: string,
-  approveDeployerCollateral?: boolean,
-  baseGasFeeMult?: number
+  tokenAddr: string,
+  aTokenAddr: string,
+  baseGasFeeMult: number = 1,
+  name: string = "Tether+",
+  symbol: string = "T+",
+  tokenDecimals: number = 6,
+  aTokenDecimals: number = 6,
+  lzEndpointAddr: string = LZ_ENDPOINT_ETH_MAINNET_V2,
+  approveDeployerCollateral: boolean = true
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
   console.log(
-    "Deploying OverlayerWrap contract with signer:",
+    "[deploy_OverlayerWrap] Deploying contract with signer:",
     deployer.address
   );
 
@@ -72,40 +76,37 @@ export async function deploy_OverlayerWrap(
     maxFeePerGas: maxFee
   };
 
-  const Factory = await ethers.getContractFactory("OverlayerWrapFactory");
-  const factory = await Factory.deploy(
-    await deployer.getAddress(),
-    await deployer.getAddress(),
+  const OverlayerWrap = await ethers.getContractFactory("OverlayerWrap");
+  const overlayerWrap = await OverlayerWrap.deploy(
+    {
+      admin: await deployer.getAddress(),
+      lzEndpoint: lzEndpointAddr,
+      name: name,
+      symbol: symbol,
+      collateral: {
+        addr: tokenAddr,
+        decimals: tokenDecimals
+      },
+      aCollateral: {
+        addr: aTokenAddr,
+        decimals: aTokenDecimals
+      },
+      maxMintPerBlock: ethers.MaxUint256,
+      maxRedeemPerBlock: ethers.MaxUint256
+    },
     defaultTransactionOptions
   );
-  await factory.waitForDeployment();
+  await overlayerWrap.waitForDeployment();
 
-  const overlayerWrapAddressTx = await factory.deployInitialOverlayerWrap(
-    {
-      addr: usdtAddr,
-      decimals: 6
-    },
-    {
-      addr: aUsdtAddr,
-      decimals: 6
-    },
-    ethers.parseEther("100000000"),
-    ethers.parseEther("100000000")
-  );
-  await overlayerWrapAddressTx.wait();
-  const overlayerWrapAddress = await factory.symbolToToken("USDT+");
-
-  console.log("Contract deployed at:", overlayerWrapAddress);
+  const addr = await overlayerWrap.getAddress();
+  console.log("[deploy_OverlayerWrap] Contract deployed at:", addr);
 
   if (approveDeployerCollateral) {
     const usdt = new ethers.Contract(USDT_ADDRESS, USDT_ABI, deployer);
-    await (usdt.connect(deployer) as Contract).approve(
-      overlayerWrapAddress,
-      ethers.MaxUint256
-    );
+    await (usdt.connect(deployer) as Contract).approve(addr, ethers.MaxUint256);
   }
 
-  return await overlayerWrapAddress;
+  return addr;
 }
 
 export async function deploy_StakedOverlayerWrap(
@@ -123,7 +124,7 @@ export async function deploy_StakedOverlayerWrap(
   };
 
   console.log(
-    "Deploying StakedOverlayerWrap contract with signer:",
+    "[deploy_StakedOverlayerWrap] Deploying contract with signer:",
     deployer.address
   );
 
@@ -139,7 +140,10 @@ export async function deploy_StakedOverlayerWrap(
   );
   await deployedContract.waitForDeployment();
 
-  console.log("Contract deployed at:", await deployedContract.getAddress());
+  console.log(
+    "[deploy_StakedOverlayerWrap] Contract deployed at:",
+    await deployedContract.getAddress()
+  );
   return await deployedContract.getAddress();
 }
 
@@ -149,7 +153,7 @@ export async function deploy_AirdropOVAReceipt(
   const [deployer] = await ethers.getSigners();
 
   console.log(
-    "Deploying AirdropOVAReceipt contract with signer:",
+    "[deploy_AirdropOVAReceipt] Deploying contract with signer:",
     deployer.address
   );
 
@@ -160,7 +164,10 @@ export async function deploy_AirdropOVAReceipt(
   );
   await deployedContract.waitForDeployment();
 
-  console.log("Contract deployed at:", await deployedContract.getAddress());
+  console.log(
+    "[deploy_AirdropOVAReceipt] Contract deployed at:",
+    await deployedContract.getAddress()
+  );
 }
 
 export async function deploy_AirdropReward(
@@ -174,7 +181,7 @@ export async function deploy_AirdropReward(
   }
 
   console.log(
-    "Deploying Airdrop::Reward contract with signer:",
+    "[deploy_AirdropReward] Deploying Airdrop::Reward contract with signer:",
     deployer.address
   );
 
@@ -184,7 +191,10 @@ export async function deploy_AirdropReward(
   });
   await deployedContract.waitForDeployment();
 
-  console.log("Contract deployed at:", await deployedContract.getAddress());
+  console.log(
+    "[deploy_AirdropReward] Contract deployed at:",
+    await deployedContract.getAddress()
+  );
   return await deployedContract.getAddress();
 }
 
@@ -195,18 +205,18 @@ export async function AirdropReward_setStakingPools(
   const [deployer] = await ethers.getSigners();
 
   console.log(
-    "Setting ova referral token staking pools with:",
+    "[AirdropReward_setStakingPools] Setting ova referral token staking pools with:",
     deployer.address
   );
-  console.log("Address:", addr);
-  console.log("Pools:", pools);
+  console.log("[AirdropReward_setStakingPools] Address:", addr);
+  console.log("[AirdropReward_setStakingPools] Pools:", pools);
 
   const contract = new ethers.Contract(addr, OVAREFERRAL_ABI.abi, deployer);
   await (contract.connect(deployer) as Contract).setStakingPools(pools, {
     gasLimit: 2000000
   });
 
-  console.log("Operation passed");
+  console.log("[AirdropReward_setStakingPools] Operation passed");
 }
 
 export async function AirdropReward_addTrackers(
@@ -215,9 +225,12 @@ export async function AirdropReward_addTrackers(
 ): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
-  console.log("Setting ova referral token trackers with:", deployer.address);
-  console.log("Address:", addr);
-  console.log("Trackers:", trackers);
+  console.log(
+    "[AirdropReward_addTrackers] Setting ova referral token trackers with:",
+    deployer.address
+  );
+  console.log("[AirdropReward_addTrackers] Address:", addr);
+  console.log("[AirdropReward_addTrackers] Trackers:", trackers);
 
   const contract = new ethers.Contract(addr, OVAREFERRAL_ABI.abi, deployer);
   for (const t of trackers) {
@@ -225,7 +238,7 @@ export async function AirdropReward_addTrackers(
       gasLimit: 2000000
     });
   }
-  console.log("Operation passed");
+  console.log("[AirdropReward_addTrackers] Operation passed");
 }
 
 export async function deploy_LiquidityAirdropReward(
@@ -238,7 +251,7 @@ export async function deploy_LiquidityAirdropReward(
   }
 
   console.log(
-    "Deploying LiquidityAirdropReward contract with signer:",
+    "[deploy_LiquidityAirdropReward] Deploying contract with signer:",
     deployer.address
   );
 
@@ -248,7 +261,10 @@ export async function deploy_LiquidityAirdropReward(
   const deployedContract = await ContractSource.deploy(admin);
   await deployedContract.waitForDeployment();
 
-  console.log("Contract deployed at:", await deployedContract.getAddress());
+  console.log(
+    "[deploy_LiquidityAirdropReward] Contract deployed at:",
+    await deployedContract.getAddress()
+  );
   return await deployedContract.getAddress();
 }
 
@@ -258,14 +274,17 @@ export async function StakedOverlayerWrap_setCooldownStaking(
 ): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
-  console.log("Setting cooldown to staking with account:", deployer.address);
+  console.log(
+    "[StakedOverlayerWrap_setCooldownStaking] Setting cooldown to staking with account:",
+    deployer.address
+  );
 
   const contract = new ethers.Contract(addr, STAKED_USDX_ABI.abi, deployer);
   await (contract.connect(deployer) as Contract).setCooldownDuration(seconds, {
     gasLimit: 2000000
   });
 
-  console.log("Operation passed");
+  console.log("[StakedOverlayerWrap_setCooldownStaking] Operation passed");
 }
 
 export async function deploy_AirdropPoolCurveStableStake(
@@ -278,7 +297,7 @@ export async function deploy_AirdropPoolCurveStableStake(
   }
 
   console.log(
-    "Deploying Airdrop::CurveStableStake contract with signer:",
+    "[deploy_AirdropPoolCurveStableStake] Deploying Airdrop::CurveStableStake contract with signer:",
     deployer.address
   );
 
@@ -287,7 +306,10 @@ export async function deploy_AirdropPoolCurveStableStake(
 
   await deployedContract.waitForDeployment();
 
-  console.log("Contract deployed at:", await deployedContract.getAddress());
+  console.log(
+    "[deploy_AirdropPoolCurveStableStake] Contract deployed at:",
+    await deployedContract.getAddress()
+  );
   return await deployedContract.getAddress();
 }
 
@@ -302,7 +324,7 @@ export async function deploy_AirdropSingleStableStake(
   }
 
   console.log(
-    "Deploying Airdrop::SingleStableStake contract with signer:",
+    "[deploy_AirdropSingleStableStake] Deploying Airdrop::SingleStableStake contract with signer:",
     deployer.address
   );
 
@@ -313,7 +335,10 @@ export async function deploy_AirdropSingleStableStake(
 
   await deployedContract.waitForDeployment();
 
-  console.log("Contract deployed at:", await deployedContract.getAddress());
+  console.log(
+    "[deploy_AirdropSingleStableStake] Contract deployed at:",
+    await deployedContract.getAddress()
+  );
   return await deployedContract.getAddress();
 }
 
@@ -324,14 +349,20 @@ export async function deploy_Liquidity(admin: string): Promise<string> {
     throw new Error("admin is not ad address");
   }
 
-  console.log("Deploying Liquidity contract with signer:", deployer.address);
+  console.log(
+    "[deploy_Liquidity] Deploying Liquidity contract with signer:",
+    deployer.address
+  );
 
   const ContractSource = await ethers.getContractFactory("Liquidity");
   const deployedContract = await ContractSource.deploy(admin);
 
   await deployedContract.waitForDeployment();
 
-  console.log("Contract deployed at:", await deployedContract.getAddress());
+  console.log(
+    "[deploy_Liquidity] Contract deployed at:",
+    await deployedContract.getAddress()
+  );
   return await deployedContract.getAddress();
 }
 
@@ -342,7 +373,7 @@ export async function Liquidity_updateReferral(
   const [deployer] = await ethers.getSigners();
 
   console.log(
-    "Setting ova referral address to staking pool with:",
+    "[Liquidity_updateReferral] Setting ova referral address to staking pool with:",
     deployer.address
   );
 
@@ -351,7 +382,7 @@ export async function Liquidity_updateReferral(
     gasLimit: 2000000
   });
 
-  console.log("Operation passed");
+  console.log("[Liquidity_updateReferral] Operation passed");
 }
 
 export async function deploy_OVA(admin: string): Promise<string> {
@@ -361,14 +392,20 @@ export async function deploy_OVA(admin: string): Promise<string> {
     throw new Error("admin is not ad address");
   }
 
-  console.log("Deploying OVA contract with signer:", deployer.address);
+  console.log(
+    "[deploy_OVA] Deploying OVA contract with signer:",
+    deployer.address
+  );
 
   const ContractSource = await ethers.getContractFactory("OVA");
   const deployedContract = await ContractSource.deploy(admin);
 
   await deployedContract.waitForDeployment();
 
-  console.log("Contract deployed at:", await deployedContract.getAddress());
+  console.log(
+    "[deploy_OVA] Contract deployed at:",
+    await deployedContract.getAddress()
+  );
   return await deployedContract.getAddress();
 }
 
@@ -380,7 +417,7 @@ export async function CurveStableStake_setRewardForStakedAssets(
   rateDen: number
 ): Promise<void> {
   console.log(
-    "Airdrop::CurveStableStake adding reward",
+    "[CurveStableStake_setRewardForStakedAssets] Airdrop::CurveStableStake adding reward",
     rewardAddr,
     "with rate",
     rateNum / rateDen,
@@ -389,7 +426,9 @@ export async function CurveStableStake_setRewardForStakedAssets(
   await contract
     .connect(signer)
     .setRewardForStakedAssets(rewardAddr, rateNum, rateDen);
-  console.log("Airdrop::CurveStableStake reward added");
+  console.log(
+    "[CurveStableStake_setRewardForStakedAssets] Airdrop::CurveStableStake reward added"
+  );
 }
 
 export async function SingleStableStake_setRewardForStakedAssets(
@@ -401,7 +440,7 @@ export async function SingleStableStake_setRewardForStakedAssets(
   baseGasFeeMult?: number
 ): Promise<void> {
   console.log(
-    "Airdrop::SingleStableStake adding reward",
+    "[SingleStableStake_setRewardForStakedAssets] Airdrop::SingleStableStake adding reward",
     rewardAddr,
     "with rate",
     rateNum / rateDen,
@@ -414,7 +453,10 @@ export async function SingleStableStake_setRewardForStakedAssets(
       gasLimit: 2000000
     });
   const receipt = await tx.hash;
-  console.log("Airdrop::SingleStableStake reward added hash =", tx.hash);
+  console.log(
+    "[SingleStableStake_setRewardForStakedAssets] Airdrop::SingleStableStake reward added hash =",
+    tx.hash
+  );
 }
 
 export async function CurveStableStake_addWithNumCoinsAndPool(
@@ -430,7 +472,7 @@ export async function CurveStableStake_addWithNumCoinsAndPool(
   update: boolean
 ): Promise<void> {
   console.log(
-    "Airdrop::CurveStableStake adding pool. In",
+    "[CurveStableStake_addWithNumCoinsAndPool] Airdrop::CurveStableStake adding pool. In",
     stakedAddr,
     "Out",
     rewardAddr
@@ -447,7 +489,9 @@ export async function CurveStableStake_addWithNumCoinsAndPool(
       vested,
       update
     );
-  console.log("Airdrop::CurveStableStake pool added");
+  console.log(
+    "[CurveStableStake_addWithNumCoinsAndPool] Airdrop::CurveStableStake pool added"
+  );
 }
 
 export async function deploy_Dispatcher(
@@ -461,7 +505,7 @@ export async function deploy_Dispatcher(
   const [deployer] = await ethers.getSigners();
 
   console.log(
-    "Deploying Ova dispatcher contract with signer:",
+    "[deploy_Dispatcher] Deploying Ova dispatcher contract with signer:",
     deployer.address
   );
 
@@ -476,7 +520,10 @@ export async function deploy_Dispatcher(
   );
   await deployedContract.waitForDeployment();
 
-  console.log("Contract deployed at:", await deployedContract.getAddress());
+  console.log(
+    "[deploy_Dispatcher] Contract deployed at:",
+    await deployedContract.getAddress()
+  );
 
   return await deployedContract.getAddress();
 }
@@ -493,7 +540,7 @@ export async function SingleStableStake_addPool(
   baseGasFeeMult?: number
 ): Promise<void> {
   console.log(
-    "Airdrop::SingleStableStake adding pool. In",
+    "[SingleStableStake_addPool] Airdrop::SingleStableStake adding pool. In",
     stakedAddr,
     "Out",
     rewardAddr
@@ -505,7 +552,10 @@ export async function SingleStableStake_addPool(
       gasLimit: 2000000
     });
   const receipt = await tx.wait();
-  console.log("Airdrop::SingleStableStake pool added hash =", tx.hash);
+  console.log(
+    "[SingleStableStake_addPool] Airdrop::SingleStableStake pool added hash =",
+    tx.hash
+  );
 }
 
 export async function Liquidity_addReward(
@@ -524,7 +574,7 @@ export async function Liquidity_addReward(
   }
 
   console.log(
-    "Adding rewards to Liquidity contract with signer:",
+    "[Liquidity_addReward] Adding rewards to Liquidity contract with signer:",
     deployer.address
   );
 
@@ -536,7 +586,7 @@ export async function Liquidity_addReward(
     );
   }
 
-  console.log("Rewards added");
+  console.log("[Liquidity_addReward] Rewards added");
 }
 
 export async function Liquidity_addPool(
@@ -564,7 +614,7 @@ export async function Liquidity_addPool(
   }
 
   console.log(
-    "Adding pools to Liquidity contract with signer:",
+    "[Liquidity_addPool] Adding pools to Liquidity contract with signer:",
     deployer.address
   );
 
@@ -578,7 +628,7 @@ export async function Liquidity_addPool(
     );
   }
 
-  console.log("Pools added");
+  console.log("[Liquidity_addPool] Pools added");
 }
 
 export async function grantRole(
@@ -594,7 +644,12 @@ export async function grantRole(
     gasLimit: 2000000
   };
   const contract = new ethers.Contract(addr, abi, admin);
-  console.log("Granting role:", role, "with address:", admin.address);
+  console.log(
+    "[grantRole] Granting role:",
+    role,
+    "with address:",
+    admin.address
+  );
   const tx = await (contract.connect(admin) as Contract).grantRole(
     ethers.keccak256(ethers.toUtf8Bytes(role)),
     to,
@@ -602,7 +657,7 @@ export async function grantRole(
   );
   const receipt = await tx.wait();
 
-  console.log("Role granted hash =", tx.hash);
+  console.log("[grantRole] Role granted hash =", tx.hash);
 }
 
 export async function OverlayerWrap_proposeNewCollateralSpender(
@@ -611,21 +666,27 @@ export async function OverlayerWrap_proposeNewCollateralSpender(
 ) {
   const [admin] = await ethers.getSigners();
   const contract = new ethers.Contract(addr, OverlayerWrap_ABI.abi, admin);
-  console.log("Proposing new collateral spender:", spender);
+  console.log(
+    "[OverlayerWrap_proposeNewCollateralSpender] Proposing new collateral spender:",
+    spender
+  );
   await (contract.connect(admin) as Contract).proposeNewCollateralSpender(
     spender
   );
-  console.log("Spender proposed");
+  console.log("[OverlayerWrap_proposeNewCollateralSpender] Spender proposed");
 }
 
 export async function OverlayerWrap_mint(addr: string, order: any) {
   const [admin] = await ethers.getSigners();
   const contract = new ethers.Contract(addr, OverlayerWrap_ABI.abi, admin);
-  console.log("Minting OverlayerWrap with account:", admin.address);
+  console.log(
+    "[OverlayerWrap_mint] Minting OverlayerWrap with account:",
+    admin.address
+  );
   await (contract.connect(admin) as Contract).mint(order, {
     gasLimit: 2000000
   });
-  console.log("OverlayerWrap minted");
+  console.log("[OverlayerWrap_mint] OverlayerWrap minted");
 }
 
 export async function StakedOverlayerWrap_deposit(
@@ -636,7 +697,7 @@ export async function StakedOverlayerWrap_deposit(
   const [admin] = await ethers.getSigners();
   const contract = new ethers.Contract(addr, SOverlayerWrap_ABI.abi, admin);
   console.log(
-    "Depositing OverlayerWrap into staking account with singer:",
+    "[StakedOverlayerWrap_deposit] Depositing OverlayerWrap into staking account with singer:",
     admin.address
   );
   await (contract.connect(admin) as Contract).deposit(
@@ -647,7 +708,7 @@ export async function StakedOverlayerWrap_deposit(
     }
   );
   console.log(
-    "OverlayerWrap staked, sOverlayerWrap balance:",
+    "[StakedOverlayerWrap_deposit] OverlayerWrap staked, sOverlayerWrap balance:",
     ethers.formatEther(await contract.balanceOf(admin.address))
   );
 }
@@ -661,7 +722,7 @@ export async function deploy_OverlayerWrapBacking(
   const [deployer] = await ethers.getSigners();
 
   console.log(
-    "Deploying OverlayerWrapBacking contract with signer:",
+    "[deploy_OverlayerWrapBacking] Deploying contract with signer:",
     deployer.address
   );
 
@@ -679,7 +740,10 @@ export async function deploy_OverlayerWrapBacking(
   );
   await overlayerWrapbacking.waitForDeployment();
 
-  console.log("Contract deployed at:", await overlayerWrapbacking.getAddress());
+  console.log(
+    "[deploy_OverlayerWrapBacking] Contract deployed at:",
+    await overlayerWrapbacking.getAddress()
+  );
   return await overlayerWrapbacking.getAddress();
 }
 
@@ -688,25 +752,31 @@ export function decodeCustomError(error: any, abi: any) {
   if (error.data) {
     try {
       const decodedError = iface.parseError(error.data);
-      console.log("Custom error decoded:", decodedError);
+      console.log("[decodeCustomError] Custom error decoded:", decodedError);
     } catch (e) {
-      console.error("Unable to decode custom error:", e);
+      console.error("[decodeCustomError] Unable to decode custom error:", e);
     }
   } else {
-    console.error("No return data in error:", error);
+    console.error("[decodeCustomError] No return data in error:", error);
   }
 }
 
 export async function deploy_OvaWhitelist(admin: string): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
-  console.log("Deploying OvaWhitelist contract with signer:", deployer.address);
+  console.log(
+    "[deploy_OvaWhitelist] Deploying contract with signer:",
+    deployer.address
+  );
 
   const ContractSource = await ethers.getContractFactory("OvaWhitelist");
   const deployedContract = await ContractSource.deploy(admin);
   await deployedContract.waitForDeployment();
 
-  console.log("Contract deployed at:", await deployedContract.getAddress());
+  console.log(
+    "[deploy_OvaWhitelist] Contract deployed at:",
+    await deployedContract.getAddress()
+  );
 }
 
 export async function OvaWhitelist_add(
@@ -733,11 +803,11 @@ export async function OvaWhitelist_add(
       const tx = await contract.connect(signer).add(a);
       const recepit = await tx.wait();
       console.log(
-        `${a} added to whitelist. Transaction executed at ${tx.hash}`
+        `[OvaWhitelist_add] ${a} added to whitelist. Transaction executed at ${tx.hash}`
       );
     }
   } catch (e) {
-    console.error(e);
+    console.error("[OvaWhitelist_add] Operation failed:", e);
   }
 }
 
@@ -758,7 +828,7 @@ export async function OvaWhitelist_count(
     const tx = await contract.users();
     return tx;
   } catch (e) {
-    console.error(e);
+    console.error("[OvaWhitelist_count] Operation failed:", e);
     return -1;
   }
 }
@@ -790,7 +860,7 @@ export async function OvaWhitelist_verify(
     }
     return res;
   } catch (e) {
-    console.error(e);
+    console.error("[OvaWhitelist_verify] Operation failed:", e);
     return [];
   }
 }
@@ -820,10 +890,10 @@ export async function OvaWhitelist_batchAdd(
       .batchAdd(who, { gasLimit: 10000000 });
     const recepit = await tx.wait();
     console.log(
-      `${who} added to whitelist. Transaction executed at ${tx.hash}`
+      `[OvaWhitelist_batchAdd] ${who} added to whitelist. Transaction executed at ${tx.hash}`
     );
   } catch (e) {
-    console.error(e);
+    console.error("[OvaWhitelist_batchAdd] Operation failed:", e);
   }
 }
 
@@ -848,10 +918,10 @@ export async function OvaWhitelist_remove(
     const tx = await contract.connect(signer).remove(who);
     const recepit = await tx.wait();
     console.log(
-      `${who} removed from whitelist. Transaction executed at ${tx.hash}`
+      `[OvaWhitelist_remove] ${who} removed from whitelist. Transaction executed at ${tx.hash}`
     );
   } catch (e) {
-    console.error(e);
+    console.error("[OvaWhitelist_remove] Operation failed:", e);
   }
 }
 
@@ -859,7 +929,7 @@ export async function deploy_SubscriptionConsumerSepolia(id: string) {
   const [deployer] = await ethers.getSigners();
 
   console.log(
-    "Deploying OvaExtractorSepolia contract with signer:",
+    "[deploy_SubscriptionConsumerSepolia] Deploying OvaExtractorSepolia contract with signer:",
     deployer.address
   );
 
@@ -867,7 +937,10 @@ export async function deploy_SubscriptionConsumerSepolia(id: string) {
   const deployedContract = await ContractSource.deploy(id);
   await deployedContract.waitForDeployment();
 
-  console.log("Contract deployed at:", await deployedContract.getAddress());
+  console.log(
+    "[deploy_SubscriptionConsumerSepolia] Contract deployed at:",
+    await deployedContract.getAddress()
+  );
 }
 
 export async function SubscriptionConsumerSepolia_addParticipants(
@@ -887,9 +960,15 @@ export async function SubscriptionConsumerSepolia_addParticipants(
     );
     const tx = await contract.connect(signer).setParticipants(handles);
     const recepit = await tx.wait();
-    console.log("Transaction executed at", tx.hash);
+    console.log(
+      "[SubscriptionConsumerSepolia_addParticipants] Transaction executed at",
+      tx.hash
+    );
   } catch (e) {
-    console.error(e);
+    console.error(
+      "[SubscriptionConsumerSepolia_addParticipants] Operation failed:",
+      e
+    );
   }
 }
 
@@ -909,9 +988,12 @@ export async function SubscriptionConsumerSepolia_request(
     );
     const tx = await contract.connect(signer).requestRandomWords(true);
     const recepit = await tx.wait();
-    console.log("Transaction executed at", tx.hash);
+    console.log(
+      "[SubscriptionConsumerSepolia_request] Transaction executed at",
+      tx.hash
+    );
   } catch (e) {
-    console.error(e);
+    console.error("[SubscriptionConsumerSepolia_request] Operation failed:", e);
   }
 }
 
@@ -931,16 +1013,19 @@ export async function SubscriptionConsumerSepolia_get(
       provider
     );
     const res = await contract.getRequestStatus(id);
-    console.log("Request:", res);
+    console.log("[SubscriptionConsumerSepolia_get] Request:", res);
   } catch (e) {
-    console.error(e);
+    console.error("[SubscriptionConsumerSepolia_get] Operation failed:", e);
   }
 }
 
 export async function deploy_TestMath() {
   const [deployer] = await ethers.getSigners();
 
-  console.log("Deploying Math contract with signer:", deployer.address);
+  console.log(
+    "[deploy_TestMath] Deploying Math contract with signer:",
+    deployer.address
+  );
 
   const ContractSource = await ethers.getContractFactory("TestMath");
   const deployedContract = await ContractSource.deploy({
@@ -948,7 +1033,10 @@ export async function deploy_TestMath() {
   });
   await deployedContract.waitForDeployment();
 
-  console.log("Contract deployed at:", await deployedContract.getAddress());
+  console.log(
+    "[deploy_TestMath] Contract deployed at:",
+    await deployedContract.getAddress()
+  );
 }
 
 export async function TestMath_mod(
@@ -971,9 +1059,9 @@ export async function TestMath_mod(
       ethers.parseUnits(a, 0),
       ethers.parseUnits(b, 0)
     );
-    console.log("Mod:", res);
+    console.log("[TestMath_mod] Mod:", res);
   } catch (e) {
-    console.error(e);
+    console.error("[TestMath_mod] Operation failed:", e);
   }
 }
 
@@ -983,13 +1071,15 @@ export async function deploy_rOVAV2(deploymentGas: {
 }) {
   try {
     const [signer] = await ethers.getSigners();
-    console.log(`Deploying rOVA with ${signer.address}`);
+    console.log(`[deploy_rOVAV2] Deploying rOVA with ${signer.address}`);
     const rOVA = await ethers.getContractFactory("rOVAV2");
     const rova = await rOVA.deploy(signer.address, deploymentGas);
     await rova.waitForDeployment();
-    console.log(`Contract deployed at ${await rova.getAddress()}`);
+    console.log(
+      `[deploy_rOVAV2] Contract deployed at ${await rova.getAddress()}`
+    );
   } catch (e) {
-    console.error(e);
+    console.error("[deploy_rOVAV2] Deployment failed:", e);
   }
 }
 
@@ -999,13 +1089,15 @@ export async function deploy_rOVA(deploymentGas: {
 }) {
   try {
     const [signer] = await ethers.getSigners();
-    console.log(`Deploying rOVA with ${signer.address}`);
+    console.log(`[deploy_rOVA] Deploying rOVA with ${signer.address}`);
     const rOVA = await ethers.getContractFactory("rOVA");
     const rova = await rOVA.deploy(signer.address, deploymentGas);
     await rova.waitForDeployment();
-    console.log(`Contract deployed at ${await rova.getAddress()}`);
+    console.log(
+      `[deploy_rOVA] Contract deployed at ${await rova.getAddress()}`
+    );
   } catch (e) {
-    console.error(e);
+    console.error("[deploy_rOVA] Deployment failed:", e);
   }
 }
 
@@ -1021,12 +1113,12 @@ export async function rOVAV2_addBatch(
       throw new Error(`${contractAddr} is not a valid address`);
     }
     const contract = new ethers.Contract(contractAddr, rOVAV2_ABI.abi, signer);
-    console.log(`Adding batch rOVA with ${signer.address}`);
+    console.log(`[rOVAV2_addBatch] Adding batch with ${signer.address}`);
     const tx = await contract.batchAdd(who, amount, deploymentGas);
     const receipt = await tx.wait();
-    console.log(`Executed at ${tx.hash}`);
+    console.log(`[rOVAV2_addBatch] Executed at ${tx.hash}`);
   } catch (e) {
-    console.error(e);
+    console.error("[rOVAV2_addBatch] Operation failed:", e);
   }
 }
 
@@ -1046,12 +1138,12 @@ export async function rOVA_addBatch(
       throw new Error(`${type} must be 0 for USDT and 1 for rOVA`);
     }
     const contract = new ethers.Contract(contractAddr, rOVA_ABI.abi, signer);
-    console.log(`Adding batch rOVA with ${signer.address}`);
+    console.log(`[rOVA_addBatch] Adding batch with ${signer.address}`);
     const tx = await contract.batchAdd(who, amount, type, deploymentGas);
     const receipt = await tx.wait();
-    console.log(`Executed at ${tx.hash}`);
+    console.log(`[rOVA_addBatch] Executed at ${tx.hash}`);
   } catch (e) {
-    console.error(e);
+    console.error("[rOVA_addBatch] Operation failed:", e);
   }
 }
 
@@ -1070,12 +1162,14 @@ export async function rOVA_removeBatch(
       throw new Error(`${type} must be 0 for USDT and 1 for rOVA`);
     }
     const contract = new ethers.Contract(contractAddr, rOVA_ABI.abi, signer);
-    console.log(`Removing batch rOVA with ${signer.address}`);
+    console.log(
+      `[rOVA_removeBatch] Removing batch rOVA with ${signer.address}`
+    );
     const tx = await contract.batchRemove(who, type, deploymentGas);
     const receipt = await tx.wait();
-    console.log(`Executed at ${tx.hash}`);
+    console.log(`[rOVA_removeBatch] Executed at ${tx.hash}`);
   } catch (e) {
-    console.error(e);
+    console.error("[rOVA_removeBatch] Operation failed:", e);
   }
 }
 export async function deploy_SepoliaFaucet(
@@ -1090,7 +1184,7 @@ export async function deploy_SepoliaFaucet(
   }
 
   console.log(
-    "Deploying SepoliaFaucet contract with signer:",
+    "[deploy_SepoliaFaucet] Deploying contract with signer:",
     deployer.address
   );
 
@@ -1101,5 +1195,8 @@ export async function deploy_SepoliaFaucet(
   );
   await deployedContract.waitForDeployment();
 
-  console.log("Contract deployed at:", await deployedContract.getAddress());
+  console.log(
+    "[deploy_SepoliaFaucet] Contract deployed at:",
+    await deployedContract.getAddress()
+  );
 }
