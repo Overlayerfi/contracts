@@ -20,6 +20,7 @@ import {
 } from "../functions";
 import OverlayerWrap_ABI from "../../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
 import SOverlayerWrap_ABI from "../../artifacts/contracts/overlayer/StakedOverlayerWrap.sol/StakedOverlayerWrap.json";
+import OverlayerWrapBacking_ABI from "../../artifacts/contracts/overlayerbacking/OverlayerBacking.sol/OverlayerWrapBacking.json";
 import SINGLE_STABLE_STAKE_ABI from "../../artifacts/contracts/liquidity/SingleStableStake.sol/SingleStableStake.json";
 import OVA_REFERRAL_ABI from "../../artifacts/contracts/overlayer/OvaReferral.sol/OvaReferral.json";
 import { getContractAddress } from "@ethersproject/address";
@@ -239,6 +240,15 @@ async function main() {
       throw new Error("The predicted USDOBacking address is not valid");
     }
 
+    const usdobackingContract = new ethers.Contract(
+      usdobackingAddr,
+      OverlayerWrapBacking_ABI.abi,
+      admin
+    );
+    await (
+      usdobackingContract.connect(admin) as Contract
+    ).acceptCollateralSpender();
+
     // 11. Grant to the backing contract the rewarder role
     await grantRole(
       sOverlayerWrapAddr,
@@ -247,17 +257,6 @@ async function main() {
       usdobackingAddr,
       2
     );
-
-    // const usdtContract = new ethers.Contract(
-    //   USDT_SEPOLIA_ADDRESS,
-    //   USDT_ABI,
-    //   admin
-    // );
-    // tx = await (usdtContract.connect(admin) as Contract).approve(
-    //   overlayerWrapAddr,
-    //   ethers.MaxUint256,
-    //   defaultTransactionOptions
-    // );
 
     // 12. Mint and stake initial USDO
     const order = {
