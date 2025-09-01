@@ -15,6 +15,7 @@ import { Contract } from "ethers";
 import Big from "big.js";
 import OVERLAYER_WRAP_ABI from "../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
 import { AAVE_POOL_V3_ABI } from "../scripts/abi/AAVE_POOL_V3";
+import { HARDHAT_CHAIN_ID } from "../scripts/constants";
 
 let swapped = false;
 
@@ -73,7 +74,8 @@ describe("OverlayerWrap Backing Protocol", function () {
           decimals: await ausdt.decimals()
         },
         maxMintPerBlock: ethers.MaxUint256,
-        maxRedeemPerBlock: ethers.MaxUint256
+        maxRedeemPerBlock: ethers.MaxUint256,
+        hubChainId: HARDHAT_CHAIN_ID
       },
       defaultTransactionOptions
     );

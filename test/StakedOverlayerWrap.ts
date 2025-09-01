@@ -6,6 +6,7 @@ import {
   LZ_ENDPOINT_ETH_MAINNET_V2
 } from "../scripts/addresses";
 import OVERLAYER_WRAP_ABI from "../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
+import { HARDHAT_CHAIN_ID } from "../scripts/constants";
 
 describe("Staked Overlayer Wrap Front", function () {
   async function deployFixture() {
@@ -48,7 +49,8 @@ describe("Staked Overlayer Wrap Front", function () {
           decimals: await ausdt.decimals()
         },
         maxMintPerBlock: ethers.MaxUint256,
-        maxRedeemPerBlock: ethers.MaxUint256
+        maxRedeemPerBlock: ethers.MaxUint256,
+        hubChainId: HARDHAT_CHAIN_ID
       },
       defaultTransactionOptions
     );
