@@ -192,6 +192,8 @@ describe("OverlayerWrap Backing Protocol", function () {
       );
     }
 
+    await overlayerWrapBacking.connect(admin).acceptCollateralSpender();
+
     return {
       usdt,
       ausdt,
