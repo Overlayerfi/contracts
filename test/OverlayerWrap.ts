@@ -4,6 +4,7 @@ import { expect } from "chai";
 
 import OVERLAYER_WRAP_ABI from "../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
 import { LZ_ENDPOINT_ETH_MAINNET_V2 } from "../scripts/addresses";
+import { HARDHAT_CHAIN_ID } from "../scripts/constants";
 
 describe("OverlayerWrap", function () {
   async function deployFixture() {
@@ -46,7 +47,8 @@ describe("OverlayerWrap", function () {
           decimals: await acollateral.decimals()
         },
         maxMintPerBlock: ethers.MaxUint256,
-        maxRedeemPerBlock: ethers.MaxUint256
+        maxRedeemPerBlock: ethers.MaxUint256,
+        hubChainId: HARDHAT_CHAIN_ID
       },
       defaultTransactionOptions
     );

@@ -59,7 +59,8 @@ contract OverlayerWrap is IOverlayerWrapDefs, OverlayerWrapCore {
             params_.aCollateral,
             params_.admin,
             params_.maxMintPerBlock,
-            params_.maxRedeemPerBlock
+            params_.maxRedeemPerBlock,
+            params_.hubChainId
         );
         if (params_.admin == address(0))
             revert OverlayerWrapZeroAddressException();

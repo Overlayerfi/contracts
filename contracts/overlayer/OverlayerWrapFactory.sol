@@ -36,7 +36,8 @@ contract OverlayerWrapFactory is Ownable {
         OverlayerWrapCoreTypes.StableCoin memory aCollateral_,
         address lzEndpoint_,
         uint256 maxMintPerBlock_,
-        uint256 maxRedeemPerBlock_
+        uint256 maxRedeemPerBlock_,
+        uint256 hubChainId_
     ) external onlyOwner returns (address) {
         // Reject if symbol already exists
         string memory overlayerZeroSymbol = "USDT+";
@@ -53,7 +54,8 @@ contract OverlayerWrapFactory is Ownable {
                 collateral_,
                 aCollateral_,
                 maxMintPerBlock_,
-                maxRedeemPerBlock_
+                maxRedeemPerBlock_,
+                hubChainId_
             );
         OverlayerWrap token = new OverlayerWrap(params);
 
@@ -74,7 +76,8 @@ contract OverlayerWrapFactory is Ownable {
         OverlayerWrapCoreTypes.StableCoin memory aCollateral_,
         address lzEndpoint_,
         uint256 maxMintPerBlock_,
-        uint256 maxRedeemPerBlock_
+        uint256 maxRedeemPerBlock_,
+        uint256 hubChainId_
     ) external returns (address) {
         if (msg.sender != governor) {
             revert OnlyGovernor();
@@ -92,7 +95,8 @@ contract OverlayerWrapFactory is Ownable {
                 collateral_,
                 aCollateral_,
                 maxMintPerBlock_,
-                maxRedeemPerBlock_
+                maxRedeemPerBlock_,
+                hubChainId_
             );
         OverlayerWrap token = new OverlayerWrap(params);
 

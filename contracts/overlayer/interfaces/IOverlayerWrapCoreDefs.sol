@@ -43,4 +43,7 @@ interface IOverlayerWrapCoreDefs is IOverlayerWrapCoreEvents {
 
     /// @notice Thrown when there are insufficient funds for an operation
     error OverlayerWrapCoreInsufficientFunds();
+
+    /// @notice Thrown when the chain id is not the hub chain id
+    error OverlayerWrapCoreNotHubChainId();
 }

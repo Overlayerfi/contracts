@@ -48,6 +48,8 @@ abstract contract OverlayerWrapCore is
     uint256 public maxMintPerBlock;
     /// @notice Max redeemed OverlayerWrap allowed per block
     uint256 public maxRedeemPerBlock;
+    /// @notice Hub chain id
+    uint256 public hubChainId;
 
     /* --------------- MODIFIERS --------------- */
 
@@ -64,6 +66,15 @@ abstract contract OverlayerWrapCore is
     modifier belowMaxRedeemPerBlock(uint256 redeemAmount_) {
         if (redeemedPerBlock[block.number] + redeemAmount_ > maxRedeemPerBlock)
             revert OverlayerWrapCoreMaxRedeemPerBlockExceeded();
+        _;
+    }
+
+    /// @notice Restricts the execution of a function to only be callable by the `hubChain` address.
+    /// @param chainId_ The current chain id
+    modifier onlyHubChain(uint256 chainId_) {
+        if (chainId_ != hubChainId) {
+            revert OverlayerWrapCoreNotHubChainId();
+        }
         _;
     }
 
@@ -209,17 +220,20 @@ abstract contract OverlayerWrapCore is
     /// @param admin_ Address of the contract administrator
     /// @param maxMintPerBlock_ Maximum amount that can be minted per block
     /// @param maxRedeemPerBlock_ Maximum amount that can be redeemed per block
+    /// @param hubChainId_ The parent chain id
     function _initialize(
         OverlayerWrapCoreTypes.StableCoin memory collateral_,
         OverlayerWrapCoreTypes.StableCoin memory aCollateral_,
         address admin_,
         uint256 maxMintPerBlock_,
-        uint256 maxRedeemPerBlock_
+        uint256 maxRedeemPerBlock_,
+        uint256 hubChainId_
     ) internal {
         CollateralSpenderManager._initalize(admin_, collateral_, aCollateral_);
         // Set the max mint/redeem limits per block
         _setMaxMintPerBlock(maxMintPerBlock_);
         _setMaxRedeemPerBlock(maxRedeemPerBlock_);
+        hubChainId = hubChainId_;
     }
 
     /// @notice Validate the collateral tokens in an order
@@ -241,7 +255,11 @@ abstract contract OverlayerWrapCore is
     /// @dev Updates minted amount per block and transfers collateral
     function _managerMint(
         OverlayerWrapCoreTypes.Order calldata order_
-    ) internal belowMaxMintPerBlock(order_.overlayerWrapAmount) {
+    )
+        internal
+        belowMaxMintPerBlock(order_.overlayerWrapAmount)
+        onlyHubChain(block.chainid)
+    {
         // Check for wanted source tokens
         _validateInputTokens(order_);
         // Add to the minted amount in this block
@@ -260,6 +278,7 @@ abstract contract OverlayerWrapCore is
     )
         internal
         belowMaxRedeemPerBlock(order_.overlayerWrapAmount)
+        onlyHubChain(block.chainid)
         returns (uint256 amountToBurn, uint256 back)
     {
         // Check for wanted source tokens
