@@ -35,8 +35,11 @@ contract OverlayerWrapBacking is AaveHandler, IOverlayerWrapBackingDefs {
         address dispatcher_,
         address overlayerWrap_,
         address sOverlayerWrap_
-    ) AaveHandler(admin_, dispatcher_, overlayerWrap_, sOverlayerWrap_) {
-        IOverlayerWrap(overlayerWrap_).acceptProposedCollateralSpender();
+    ) AaveHandler(admin_, dispatcher_, overlayerWrap_, sOverlayerWrap_) {}
+
+    /// @notice Approves self as collateral spender of an overlayer token
+    function acceptCollateralSpender() external onlyOwner {
+        IOverlayerWrap(overlayerWrap).acceptProposedCollateralSpender();
         emit OverlayerWrapSpenderAccepted();
     }
 
