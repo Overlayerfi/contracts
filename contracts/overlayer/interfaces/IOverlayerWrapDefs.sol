@@ -15,6 +15,7 @@ interface IOverlayerWrapDefs is IOverlayerWrapEvents {
     /// @param aCollateral Associated collateral token
     /// @param maxMintPerBlock Maximum amount that can be minted per block
     /// @param maxRedeemPerBlock Maximum amount that can be redeemed per block
+    /// @param hubChainId The parent chain id
     struct ConstructorParams {
         address admin;
         address lzEndpoint;
@@ -24,6 +25,7 @@ interface IOverlayerWrapDefs is IOverlayerWrapEvents {
         OverlayerWrapCoreTypes.StableCoin aCollateral;
         uint256 maxMintPerBlock;
         uint256 maxRedeemPerBlock;
+        uint256 hubChainId;
     }
     /// @notice Zero address not allowed
     error OverlayerWrapZeroAddressException();
