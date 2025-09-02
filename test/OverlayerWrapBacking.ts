@@ -145,6 +145,8 @@ describe("OverlayerWrap Backing Protocol", function () {
       await dispatcher.getAddress(),
       await overlayerWrap.getAddress(),
       await sOverlayerWrap.getAddress(),
+      USDT_ADDRESS,
+      AUSDT_ADDRESS,
       defaultTransactionOptions
     );
 
