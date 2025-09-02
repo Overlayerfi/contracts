@@ -53,6 +53,7 @@ export async function deploy_ERC20(
 export async function deploy_OverlayerWrap(
   tokenAddr: string,
   aTokenAddr: string,
+  hubChainId: number,
   baseGasFeeMult: number = 1,
   name: string = "Tether+",
   symbol: string = "T+",
@@ -92,7 +93,8 @@ export async function deploy_OverlayerWrap(
         decimals: aTokenDecimals
       },
       maxMintPerBlock: ethers.MaxUint256,
-      maxRedeemPerBlock: ethers.MaxUint256
+      maxRedeemPerBlock: ethers.MaxUint256,
+      hubChainId: hubChainId
     },
     defaultTransactionOptions
   );
@@ -715,7 +717,9 @@ export async function deploy_OverlayerWrapBacking(
   admin: string,
   treasury: string,
   overlayerWrap: string,
-  soverlayerWrap: string
+  soverlayerWrap: string,
+  usdt: string,
+  ausdt: string
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
@@ -732,6 +736,8 @@ export async function deploy_OverlayerWrapBacking(
     treasury,
     overlayerWrap,
     soverlayerWrap,
+    usdt,
+    ausdt,
     {
       gasLimit: 10000000
     }

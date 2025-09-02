@@ -35,6 +35,8 @@ const OVA_SEPOLIA_TEAM = "0x4b05A19E5b50498fe94d9F7A7c8362f5ACc457b1";
 const mockLp = "0x1Ac7E198685e53cCc3599e1656E48Dd7E278EbbE";
 const signerAddr = "0x1b4b7eD919416550457d142E54e7f98583E4B018";
 
+const oftOverlayerWrapAddr = "0x8a89fb8b215b14F2f58B5B30C8E8189e8795bFc5";
+
 // Curve pools are mocked by using single token pools
 async function main() {
   try {
@@ -48,12 +50,8 @@ async function main() {
       gasLimit: 2000000
     };
 
-    // 1. Deploy USDO
-    const overlayerWrapAddr = await deploy_OverlayerWrap(
-      USDT_SEPOLIA_ADDRESS,
-      AUSDT_SEPOLIA_ADDRESS,
-      2
-    );
+    // 1. Overlayer wrap token should be deployed with the oft way
+    const overlayerWrapAddr = oftOverlayerWrapAddr;
 
     // 2. Deploy sUSDO
     const sOverlayerWrapAddr = await deploy_StakedOverlayerWrap(
@@ -233,7 +231,9 @@ async function main() {
       admin.address,
       dispatcherAddress,
       overlayerWrapAddr,
-      sOverlayerWrapAddr
+      sOverlayerWrapAddr,
+      USDT_SEPOLIA_ADDRESS,
+      AUSDT_SEPOLIA_ADDRESS
     );
 
     if (futureAddress !== usdobackingAddr) {
