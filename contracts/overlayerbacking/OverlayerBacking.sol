@@ -19,7 +19,7 @@ contract OverlayerWrapBacking is AaveHandler, IOverlayerWrapBackingDefs {
     /// @notice Ensures the asset is not a protocol-managed token (USDT/aUSDT)
     /// @param asset_ Address of the token to check
     modifier notProtocolAssets(address asset_) {
-        if (asset_ == USDT || asset_ == AUSDT)
+        if (asset_ == usdt || asset_ == aUsdt)
             revert OverlayerWrapBackingOperationNotAllowed();
         _;
     }
@@ -34,8 +34,19 @@ contract OverlayerWrapBacking is AaveHandler, IOverlayerWrapBackingDefs {
         address admin_,
         address dispatcher_,
         address overlayerWrap_,
-        address sOverlayerWrap_
-    ) AaveHandler(admin_, dispatcher_, overlayerWrap_, sOverlayerWrap_) {}
+        address sOverlayerWrap_,
+        address usdt_,
+        address aUsdt_
+    )
+        AaveHandler(
+            admin_,
+            dispatcher_,
+            overlayerWrap_,
+            sOverlayerWrap_,
+            usdt_,
+            aUsdt_
+        )
+    {}
 
     /// @notice Approves self as collateral spender of an overlayer token
     function acceptCollateralSpender() external onlyOwner {
