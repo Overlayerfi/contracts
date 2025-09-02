@@ -68,7 +68,8 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: PRIVATE_ETH_RPC_PREFIX + process.env.ALCHEMY_KEY!,
+        // url: PRIVATE_ETH_RPC_PREFIX + process.env.ALCHEMY_KEY!,
+        url: "https://sepolia.drpc.org",
         enabled: true,
         blockNumber: 19709557,
       },
