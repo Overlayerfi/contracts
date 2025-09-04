@@ -1,7 +1,6 @@
 import { ethers } from "hardhat";
 import { Contract } from "ethers";
 import {
-  deploy_OverlayerWrap,
   deploy_StakedOverlayerWrap,
   StakedOverlayerWrap_setCooldownStaking,
   grantRole,
@@ -35,7 +34,7 @@ const OVA_SEPOLIA_TEAM = "0x4b05A19E5b50498fe94d9F7A7c8362f5ACc457b1";
 const mockLp = "0x1Ac7E198685e53cCc3599e1656E48Dd7E278EbbE";
 const signerAddr = "0x1b4b7eD919416550457d142E54e7f98583E4B018";
 
-const oftOverlayerWrapAddr = "0x8a89fb8b215b14F2f58B5B30C8E8189e8795bFc5";
+const oftOverlayerWrapAddr = "0xf674FfFd6C4BEAAd55AC2C287DD22f5d89932773";
 
 // Curve pools are mocked by using single token pools
 async function main() {
@@ -245,9 +244,10 @@ async function main() {
       OverlayerWrapBacking_ABI.abi,
       admin
     );
-    await (
+    tx = await (
       usdobackingContract.connect(admin) as Contract
-    ).acceptCollateralSpender();
+    ).acceptCollateralSpender(defaultTransactionOptions);
+    receipt = await tx.wait();
 
     // 11. Grant to the backing contract the rewarder role
     await grantRole(
