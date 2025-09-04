@@ -229,6 +229,12 @@ abstract contract OverlayerWrapCore is
         uint256 maxRedeemPerBlock_,
         uint256 hubChainId_
     ) internal {
+        if (collateral_.decimals > decimals()) {
+            revert OverlayerWrapCoreInvalidDecimals();
+        }
+        if (aCollateral_.decimals > decimals()) {
+            revert OverlayerWrapCoreInvalidDecimals();
+        }
         CollateralSpenderManager._initalize(admin_, collateral_, aCollateral_);
         // Set the max mint/redeem limits per block
         _setMaxMintPerBlock(maxMintPerBlock_);
