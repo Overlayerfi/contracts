@@ -1,0 +1,67 @@
+[main] Signer address: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[main] Starting pools timestamp: 1756913528
+[deploy_StakedOverlayerWrap] Deploying contract with signer: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[deploy_StakedOverlayerWrap] Contract deployed at: 0x049f695B30571870181baEB8C35fF75f304005cf
+[deploy_AirdropReward] Deploying Airdrop::Reward contract with signer: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[deploy_AirdropReward] Contract deployed at: 0xe5bafd5402C334a95aB5bdCA13D960206bB565Eb
+[deploy_AirdropSingleStableStake] Deploying Airdrop::SingleStableStake contract with signer: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[deploy_AirdropSingleStableStake] Contract deployed at: 0xeCaF4c9A1E1D6fdD4191DeED4Eeb12a4B820AfBe
+[deploy_AirdropSingleStableStake] Deploying Airdrop::SingleStableStake contract with signer: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[deploy_AirdropSingleStableStake] Contract deployed at: 0x76b50b2bDF374D36CE16AB7137163767313D9F01
+[deploy_AirdropSingleStableStake] Deploying Airdrop::SingleStableStake contract with signer: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[deploy_AirdropSingleStableStake] Contract deployed at: 0x60658514678A8333C249318B88cB2fc2A88b827F
+[main] Airdrop::reward minter set to: 0xeCaF4c9A1E1D6fdD4191DeED4Eeb12a4B820AfBe hash = 0x6be812d09ec59f46d54bb409cb5ce059b671be944454ffa119dd86321d71fcb8
+[main] Airdrop::reward minter set to: 0x76b50b2bDF374D36CE16AB7137163767313D9F01 hash = 0x1049012fe125767db16f5488f9b41ce48f260a05d69a5d48adcbbe121f785a80
+[main] Airdrop::reward minter set to: 0x60658514678A8333C249318B88cB2fc2A88b827F hash = 0x288ef70d6c03c6290f320f50411a921fdc831cd97a3723002e920b4f546971ff
+[SingleStableStake_setRewardForStakedAssets] Airdrop::SingleStableStake adding reward 0xe5bafd5402C334a95aB5bdCA13D960206bB565Eb with rate 200 for dollar liquidity (year)
+[SingleStableStake_setRewardForStakedAssets] Airdrop::SingleStableStake reward added hash = 0xe0b288786ae4d2b61a793eca838fec53e8bd7515c9b31d3e771247208e9b156c
+[SingleStableStake_setRewardForStakedAssets] Airdrop::SingleStableStake adding reward 0xe5bafd5402C334a95aB5bdCA13D960206bB565Eb with rate 500 for dollar liquidity (year)
+[SingleStableStake_setRewardForStakedAssets] Airdrop::SingleStableStake reward added hash = 0x11cf6cd077b7eccc321b2e950e093a9728773dd4c5a9769e0a55374cd08abf9e
+[SingleStableStake_setRewardForStakedAssets] Airdrop::SingleStableStake adding reward 0xe5bafd5402C334a95aB5bdCA13D960206bB565Eb with rate 1000 for dollar liquidity (year)
+[SingleStableStake_setRewardForStakedAssets] Airdrop::SingleStableStake reward added hash = 0x7f76712f5413e7fe85257d6c9731f1a65f174dc912fd466ceb028cfda82f139e
+[main] Ending pools timestamp: 1788017528
+[SingleStableStake_addPool] Airdrop::SingleStableStake adding pool. In 0x1Ac7E198685e53cCc3599e1656E48Dd7E278EbbE Out 0xe5bafd5402C334a95aB5bdCA13D960206bB565Eb
+[SingleStableStake_addPool] Airdrop::SingleStableStake pool added hash = 0xd218dc4deb4eb9557948e71085dab1d22f7f80a82479fc891cde94b069b91f23
+[SingleStableStake_addPool] Airdrop::SingleStableStake adding pool. In 0xf674FfFd6C4BEAAd55AC2C287DD22f5d89932773 Out 0xe5bafd5402C334a95aB5bdCA13D960206bB565Eb
+[SingleStableStake_addPool] Airdrop::SingleStableStake pool added hash = 0x026d9ec41f949cd84eaae9fdf6f9d7046775fbbd4637838314d7857d97f7cd0d
+[SingleStableStake_addPool] Airdrop::SingleStableStake adding pool. In 0xf674FfFd6C4BEAAd55AC2C287DD22f5d89932773 Out 0xe5bafd5402C334a95aB5bdCA13D960206bB565Eb
+[SingleStableStake_addPool] Airdrop::SingleStableStake pool added hash = 0x97027515fd04f3083d7c31ce96bb9dfbb300c6aad9861040b3d0a23a457c92d8
+[deploy_Dispatcher] Deploying Ova dispatcher contract with signer: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[deploy_Dispatcher] Contract deployed at: 0xBDE9301ca37bef6F05726AFfD030Aa8288746fe3
+[StakedOverlayerWrap_setCooldownStaking] Setting cooldown to staking with account: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[StakedOverlayerWrap_setCooldownStaking] Operation passed
+[grantRole] Granting role: COLLATERAL_MANAGER_ROLE with address: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[grantRole] Role granted hash = 0x70a3f0e5983cf02b9da9c8d90e175a82142e4bec8be29afd3d89531eae3c129f
+[OverlayerWrap_proposeNewCollateralSpender] Proposing new collateral spender: 0x74Fd35737d7dfA734922A42a72C8A149EAba013D
+[OverlayerWrap_proposeNewCollateralSpender] Spender proposed
+[deploy_OverlayerWrapBacking] Deploying contract with signer: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[deploy_OverlayerWrapBacking] Contract deployed at: 0x74Fd35737d7dfA734922A42a72C8A149EAba013D
+[grantRole] Granting role: REWARDER_ROLE with address: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[grantRole] Role granted hash = 0xb7271c395ec276125397f5d198e982b94998d7d5b223b0b16060272884d10695
+[OverlayerWrap_mint] Minting OverlayerWrap with account: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[OverlayerWrap_mint] OverlayerWrap minted
+[main] Approved deployer USDO to sUSDO hash = 0x0b5509c50a9e13448122b354b0f6a92cc0e43e829aa24e5eb182868f26f2a5c2
+[StakedOverlayerWrap_deposit] Depositing OverlayerWrap into staking account with singer: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[StakedOverlayerWrap_deposit] OverlayerWrap staked, sOverlayerWrap balance: 0.0
+[AirdropReward_setStakingPools] Setting ova referral token staking pools with: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[AirdropReward_setStakingPools] Address: 0xe5bafd5402C334a95aB5bdCA13D960206bB565Eb
+[AirdropReward_setStakingPools] Pools: [
+  '0x60658514678A8333C249318B88cB2fc2A88b827F',
+  '0x76b50b2bDF374D36CE16AB7137163767313D9F01',
+  '0xeCaF4c9A1E1D6fdD4191DeED4Eeb12a4B820AfBe'
+]
+[AirdropReward_setStakingPools] Operation passed
+[AirdropReward_addTrackers] Setting ova referral token trackers with: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[AirdropReward_addTrackers] Address: 0xe5bafd5402C334a95aB5bdCA13D960206bB565Eb
+[AirdropReward_addTrackers] Trackers: [
+  '0x60658514678A8333C249318B88cB2fc2A88b827F',
+  '0x76b50b2bDF374D36CE16AB7137163767313D9F01',
+  '0xeCaF4c9A1E1D6fdD4191DeED4Eeb12a4B820AfBe'
+]
+[AirdropReward_addTrackers] Operation passed
+[Liquidity_updateReferral] Setting ova referral address to staking pool with: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[Liquidity_updateReferral] Operation passed
+[Liquidity_updateReferral] Setting ova referral address to staking pool with: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[Liquidity_updateReferral] Operation passed
+[Liquidity_updateReferral] Setting ova referral address to staking pool with: 0x1b4b7eD919416550457d142E54e7f98583E4B018
+[Liquidity_updateReferral] Operation passed
