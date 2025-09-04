@@ -155,7 +155,7 @@ abstract contract OverlayerWrapCore is
     /// @param collateralManager_ The address to remove the COLLATERAL_MANAGER_ROLE role from
     function removeCollateralManagerRole(
         address collateralManager_
-    ) external onlyRole(GATEKEEPER_ROLE) {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _revokeRole(COLLATERAL_MANAGER_ROLE, collateralManager_);
     }
 
