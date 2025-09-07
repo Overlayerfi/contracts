@@ -3,13 +3,12 @@ import { Contract } from "ethers";
 import overlayerWrapAbi from "../../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
 import { USDT_SEPOLIA_ADDRESS } from "../addresses";
 
-const overlayerWrapAddr = "0xA0807615Cc7Fd01BAF645e395af093902d691C6c";
+const overlayerWrapAddr = "0xEac6CF272E777864C0B9f6491ECb1821f9A822aB";
+const amount = "10";
+const collateralDecimals = 6;
+const collateralAddr = USDT_SEPOLIA_ADDRESS;
 
-export async function mint(
-  amount: string,
-  decimals: number,
-  collateralAddr: string
-): Promise<void> {
+export async function mint(): Promise<void> {
   const [admin] = await ethers.getSigners();
   console.log(`Signer ${await admin.getAddress()}`);
   const contract = new ethers.Contract(
@@ -22,14 +21,14 @@ export async function mint(
     benefactor: adminAddr,
     beneficiary: adminAddr,
     collateral: collateralAddr,
-    collateralAmount: ethers.parseUnits(amount, decimals),
+    collateralAmount: ethers.parseUnits(amount, collateralDecimals),
     overlayerWrapAmount: ethers.parseEther(amount)
   };
-  const tx = await (contract.connect(admin) as Contract).mint(order);
+  const tx = await contract.mint(order);
   await tx.wait();
   console.log(`Transaction executed ${tx.hash}`);
 }
 
-mint("10", 6, USDT_SEPOLIA_ADDRESS).catch((error) => {
+mint().catch((error) => {
   console.error(error);
 });
