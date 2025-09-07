@@ -1,7 +1,6 @@
 import { ethers } from "hardhat";
 import { Contract } from "ethers";
 import {
-  deploy_StakedOverlayerWrap,
   StakedOverlayerWrap_setCooldownStaking,
   grantRole,
   OverlayerWrap_proposeNewCollateralSpender,
@@ -34,7 +33,8 @@ const OVA_SEPOLIA_TEAM = "0x4b05A19E5b50498fe94d9F7A7c8362f5ACc457b1";
 const mockLp = "0x1Ac7E198685e53cCc3599e1656E48Dd7E278EbbE";
 const signerAddr = "0x1b4b7eD919416550457d142E54e7f98583E4B018";
 
-const oftOverlayerWrapAddr = "0xf674FfFd6C4BEAAd55AC2C287DD22f5d89932773";
+const oftOverlayerWrapAddr = "0xEac6CF272E777864C0B9f6491ECb1821f9A822aB";
+const stakedOverlayerWrapAddr = "0xE65D83e2B771D094d37f81831eC2A46Bae3e9109";
 
 // Curve pools are mocked by using single token pools
 async function main() {
@@ -49,16 +49,18 @@ async function main() {
       gasLimit: 2000000
     };
 
-    // 1. Overlayer wrap token should be deployed with the oft way
+    // 1. Overlayer wrap token and its staked version should be deployed with the oft way
     const overlayerWrapAddr = oftOverlayerWrapAddr;
+    const sOverlayerWrapAddr = stakedOverlayerWrapAddr;
 
-    // 2. Deploy sUSDO
-    const sOverlayerWrapAddr = await deploy_StakedOverlayerWrap(
-      overlayerWrapAddr,
-      2
+    console.log(
+      `[main] Using deployed OverlayerWrapped: ${oftOverlayerWrapAddr}`
+    );
+    console.log(
+      `[main] Using deployed OverlayerWrapped: ${stakedOverlayerWrapAddr}`
     );
 
-    // 3. Deploy airdrop points (also referral contract)
+    // 2. Deploy airdrop points (also referral contract)
     const ovaReferralAddress = await deploy_AirdropReward(
       AIRDROP_POOLS_REWARD_TOKEN_ADMIN,
       2
