@@ -46,4 +46,7 @@ interface IOverlayerWrapCoreDefs is IOverlayerWrapCoreEvents {
 
     /// @notice Thrown when the chain id is not the hub chain id
     error OverlayerWrapCoreNotHubChainId();
+
+    /// @notice Thrown when attempted to set a new max redeem per block value before the allowed time
+    error OverlayerWrapCoreDelayNotRespected();
 }

@@ -377,6 +377,19 @@ describe("OverlayerWrap", function () {
       );
     });
 
+    it("Should not change max redeem value before allowed time", async function () {
+      const { overlayerWrap, admin, gatekeeper } = await loadFixture(
+        deployFixture
+      );
+      await overlayerWrap
+        .connect(admin)
+        .proposeMaxRedeemPerBlock(ethers.parseEther("90000000"));
+      await time.increase(60 * 60 * 24 * 14);
+      await expect(
+        overlayerWrap.connect(admin).executeMaxRedeemPerBlockChange()
+      ).to.be.eventually.rejected;
+    });
+
     it("Should change values", async function () {
       const { overlayerWrap, admin, gatekeeper } = await loadFixture(
         deployFixture
@@ -393,17 +406,19 @@ describe("OverlayerWrap", function () {
       await expect(
         overlayerWrap
           .connect(gatekeeper)
-          .setMaxRedeemPerBlock(ethers.parseEther("90000000"))
+          .proposeMaxRedeemPerBlock(ethers.parseEther("90000000"))
       ).to.be.eventually.rejected;
       await overlayerWrap
         .connect(admin)
         .setMaxMintPerBlock(ethers.parseEther("90000000"));
       await overlayerWrap
         .connect(admin)
-        .setMaxRedeemPerBlock(ethers.parseEther("90000000"));
+        .proposeMaxRedeemPerBlock(ethers.parseEther("90000000"));
       expect(await overlayerWrap.maxMintPerBlock()).to.equal(
         ethers.parseEther("90000000")
       );
+      await time.increase(60 * 60 * 24 * 16);
+      await overlayerWrap.connect(admin).executeMaxRedeemPerBlockChange();
       expect(await overlayerWrap.maxRedeemPerBlock()).to.equal(
         ethers.parseEther("90000000")
       );
