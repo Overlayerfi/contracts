@@ -32,6 +32,8 @@ interface IStakedOverlayerWrap {
     error StakedOverlayerWrapInvalidZeroAddress();
     /// @notice Error emitted when blakclist time is not respected
     error StakedOverlayerWrapCannotBlacklist();
+    /// @notice Error emitted when redistribute time is not respected
+    error StakedOverlayerWrapCannotRedistribute();
     /// @notice Error emitted when blakclist time is not valid
     error StakedOverlayerWrapInvalidTime();
 

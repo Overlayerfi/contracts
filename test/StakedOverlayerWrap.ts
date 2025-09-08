@@ -208,6 +208,59 @@ describe("Staked Overlayer Wrap Front", function () {
       await expect(stakedoverlayerWrap.connect(admin).setBlackListTime(t - 100))
         .to.be.eventually.rejected;
     });
+
+    it("Should configure redistribution activation time", async function () {
+      const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
+      await stakedoverlayerWrap.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        admin.address
+      );
+      const t = await time.latest();
+      await stakedoverlayerWrap.connect(admin).setRedistributionTime(t + 100);
+      expect(
+        await stakedoverlayerWrap.redistributionActivationTime()
+      ).to.be.equal(t + 100);
+    });
+
+    it("Should validate blacklist time constraints", async function () {
+      const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
+      await stakedoverlayerWrap.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        admin.address
+      );
+      const t = await time.latest();
+      await expect(
+        stakedoverlayerWrap.connect(admin).setRedistributionTime(t - 100)
+      ).to.be.eventually.rejected;
+    });
+
+    it("Blacklist and redistribution be exclusive", async function () {
+      const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
+      await stakedoverlayerWrap.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        admin.address
+      );
+      const t = await time.latest();
+      await stakedoverlayerWrap.connect(admin).setRedistributionTime(t + 100);
+      expect(
+        await stakedoverlayerWrap.redistributionActivationTime()
+      ).to.be.equal(t + 100);
+      await expect(stakedoverlayerWrap.connect(admin).setBlackListTime(t + 101))
+        .to.be.eventually.rejected;
+    });
+
+    it("Blacklist and redistribution be exclusive", async function () {
+      const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
+      await stakedoverlayerWrap.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        admin.address
+      );
+      const t = await time.latest();
+      await stakedoverlayerWrap.connect(admin).setBlackListTime(t + 100);
+      await expect(
+        stakedoverlayerWrap.connect(admin).setRedistributionTime(t + 101)
+      ).to.be.eventually.rejected;
+    });
   });
 
   describe("Staking Operations", function () {
@@ -252,7 +305,7 @@ describe("Staked Overlayer Wrap Front", function () {
       ).to.equal(ethers.parseEther("1"));
     });
 
-    it("Should enforce blacklist restrictions on deposits", async function () {
+    it("Should fail to add to blacklist after the deadline", async function () {
       const { stakedoverlayerWrap, admin, alice } = await loadFixture(
         deployFixture
       );
@@ -286,6 +339,35 @@ describe("Staked Overlayer Wrap Front", function () {
           .connect(alice)
           .deposit(ethers.parseEther("10"), alice.address)
       ).to.be.eventually.rejected;
+    });
+
+    it("Should redistribute blacklisted amounts", async function () {
+      const { stakedoverlayerWrap, admin, alice, bob } = await loadFixture(
+        deployFixture
+      );
+      await stakedoverlayerWrap.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        admin.address
+      );
+      await stakedoverlayerWrap
+        .connect(alice)
+        .deposit(ethers.parseEther("10"), alice.address);
+      let t = await time.latest();
+      await stakedoverlayerWrap.connect(admin).setBlackListTime(t + 1);
+      await time.increase(60 * 60 * 24 * 15 + 1);
+      await stakedoverlayerWrap
+        .connect(admin)
+        .addToBlacklist(alice.address, true);
+      await stakedoverlayerWrap.connect(admin).setBlackListTime(0);
+      t = await time.latest();
+      await stakedoverlayerWrap.connect(admin).setRedistributionTime(t + 1);
+      await time.increase(60 * 60 * 24 * 15 + 1);
+      await stakedoverlayerWrap
+        .connect(admin)
+        .redistributeLockedAmount(alice.address, bob.address);
+      expect(await stakedoverlayerWrap.balanceOf(bob.address)).to.be.equal(
+        ethers.parseEther("10")
+      );
     });
 
     it("Should not deposit if soft blacklisted", async function () {
