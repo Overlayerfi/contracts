@@ -48,6 +48,12 @@ abstract contract OverlayerWrapCore is
     uint256 public maxMintPerBlock;
     /// @notice Max redeemed OverlayerWrap allowed per block
     uint256 public maxRedeemPerBlock;
+    /// @notice Delay before maxRedeemPerBlock can be changed
+    uint256 private constant REDEEM_CHANGE_DELAY = 15 days;
+    /// @notice Timestamp at which a change was proposed
+    uint256 public proposedRedeemChangeTime;
+    /// @notice Value proposed for maxRedeemPerBlock
+    uint256 public proposedMaxRedeemPerBlock;
     /// @notice Hub chain id
     uint256 public hubChainId;
 
@@ -138,12 +144,37 @@ abstract contract OverlayerWrapCore is
         _setMaxMintPerBlock(maxMintPerBlock_);
     }
 
-    /// @notice Sets the max redeemPerBlock limit
-    /// @param maxRedeemPerBlock_ The new max value
-    function setMaxRedeemPerBlock(
-        uint256 maxRedeemPerBlock_
+    /// @notice Propose a new maxRedeemPerBlock, starts the 15-day delay
+    function proposeMaxRedeemPerBlock(
+        uint256 newMaxRedeemPerBlock_
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setMaxRedeemPerBlock(maxRedeemPerBlock_);
+        if (newMaxRedeemPerBlock_ == 0) {
+            revert OverlayerWrapCoreInvalidMaxRedeemAmount();
+        }
+        proposedRedeemChangeTime = block.timestamp;
+        proposedMaxRedeemPerBlock = newMaxRedeemPerBlock_;
+        emit ProposedMaxRedeemPerBlock(newMaxRedeemPerBlock_, block.timestamp);
+    }
+
+    /// @notice Execute the previously proposed change after REDEEM_CHANGE_DELAY days
+    function executeMaxRedeemPerBlockChange()
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        if (proposedRedeemChangeTime == 0) {
+            revert OverlayerWrapCoreInvalidMaxRedeemAmount();
+        }
+        if (block.timestamp < proposedRedeemChangeTime + REDEEM_CHANGE_DELAY) {
+            revert OverlayerWrapCoreDelayNotRespected();
+        }
+
+        uint256 newValue = proposedMaxRedeemPerBlock;
+
+        // reset proposal state
+        proposedRedeemChangeTime = 0;
+        proposedMaxRedeemPerBlock = 0;
+
+        _setMaxRedeemPerBlock(newValue);
     }
 
     /// @notice Disables the mint and redeem
