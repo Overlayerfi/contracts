@@ -42,6 +42,8 @@ abstract contract StakedOverlayerWrapCore is
     uint256 private constant MIN_SHARES = 1 ether;
     /// @notice Time delay for blacklisting to be activated
     uint256 public constant BLACKLIST_ACTIVATION_TIME = 15 days;
+    /// @notice Time delay for asset redistribution to be activated
+    uint256 public constant REDISTRIBUTION_ACTIVATION_TIME = 15 days;
 
     /* ------------- STATE VARIABLES ------------- */
 
@@ -54,6 +56,9 @@ abstract contract StakedOverlayerWrapCore is
 
     /// @notice The timestamp of the last blacklist activation request
     uint256 public blacklistActivationTime;
+
+    /// @notice The timestamp of the last redistribution activation request
+    uint256 public redistributionActivationTime;
 
     /// @notice OverlayerWrap backing contract
     address public overlayerWrapBacking;
@@ -74,12 +79,30 @@ abstract contract StakedOverlayerWrapCore is
 
     /// @notice Ensures blacklist is on
     modifier blacklistAllowed() {
+        if (blacklistActivationTime == 0) {
+            revert StakedOverlayerWrapCannotBlacklist();
+        }
         if (
-            blacklistActivationTime == 0 ||
             blacklistActivationTime + BLACKLIST_ACTIVATION_TIME >
-            block.timestamp
+            block.timestamp ||
+            redistributionActivationTime > 0
         ) {
             revert StakedOverlayerWrapCannotBlacklist();
+        }
+        _;
+    }
+
+    /// @notice Ensures redistribution is on
+    modifier redistributionAllowed() {
+        if (redistributionActivationTime == 0) {
+            revert StakedOverlayerWrapCannotRedistribute();
+        }
+        if (
+            redistributionActivationTime + REDISTRIBUTION_ACTIVATION_TIME >
+            block.timestamp ||
+            blacklistActivationTime > 0
+        ) {
+            revert StakedOverlayerWrapCannotRedistribute();
         }
         _;
     }
@@ -179,7 +202,27 @@ abstract contract StakedOverlayerWrapCore is
         if (time_ > 0 && time_ < block.timestamp) {
             revert StakedOverlayerWrapInvalidTime();
         }
+        if (redistributionActivationTime > 0) {
+            revert StakedOverlayerWrapCannotBlacklist();
+        }
         blacklistActivationTime = time_;
+    }
+
+    /**
+     * @notice Sets the redistribution time.
+     * @dev Disables redistribution if time is zero.
+     * @param time_ The starting timestamp.
+     */
+    function setRedistributionTime(
+        uint256 time_
+    ) external onlyRole(BLACKLIST_MANAGER_ROLE) {
+        if (time_ > 0 && time_ < block.timestamp) {
+            revert StakedOverlayerWrapInvalidTime();
+        }
+        if (blacklistActivationTime > 0) {
+            revert StakedOverlayerWrapCannotRedistribute();
+        }
+        redistributionActivationTime = time_;
     }
 
     /**
@@ -221,7 +264,7 @@ abstract contract StakedOverlayerWrapCore is
     function redistributeLockedAmount(
         address from_,
         address to_
-    ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) redistributionAllowed {
         if (to_ == address(0)) revert StakedOverlayerWrapInvalidZeroAddress();
         if (
             hasRole(WHOLE_RESTRICTED_ROLE, from_) &&
