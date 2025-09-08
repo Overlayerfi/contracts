@@ -71,4 +71,7 @@ interface IOverlayerWrapCoreEvents {
         uint256 amountCollateral,
         uint256 amountACollateral
     );
+
+    /// @notice Event emitted when a new maxRedeemPerBlock is proposed
+    event ProposedMaxRedeemPerBlock(uint256 newValue, uint256 proposedAt);
 }
