@@ -13,7 +13,6 @@ import ERC20_ABI from "./ERC20_ABI.json";
 import { swap } from "../scripts/uniswap_swapper/proxy";
 import { Contract } from "ethers";
 import Big from "big.js";
-import OVERLAYER_WRAP_ABI from "../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
 import { AAVE_POOL_V3_ABI } from "../scripts/abi/AAVE_POOL_V3";
 import { HARDHAT_CHAIN_ID } from "../scripts/constants";
 
@@ -1249,7 +1248,7 @@ describe("OverlayerWrap Backing Protocol", function () {
       let ausdtBal = await ausdt.balanceOf(
         await overlayerWrapBacking.getAddress()
       );
-      await overlayerWrapBacking.connect(admin).adminWithdraw();
+      await overlayerWrapBacking.connect(admin).adminWithdraw(0);
 
       const atLeastUsdtAdmin =
         0.99 *
