@@ -43,11 +43,15 @@ abstract contract OverlayerWrapCore is
     mapping(uint256 => uint256) public mintedPerBlock;
     /// @notice OverlayerWrap redeemed per block
     mapping(uint256 => uint256) public redeemedPerBlock;
+    /// @notice Whitelist users from max redeem / block
+    mapping(address => bool) public maxRedeemWhitelist;
 
     /// @notice Max minted OverlayerWrap allowed per block
     uint256 public maxMintPerBlock;
     /// @notice Max redeemed OverlayerWrap allowed per block
     uint256 public maxRedeemPerBlock;
+    /// @notice Max redeemed OverlayerWrap allowed per block minimum value
+    uint256 public immutable minValmaxRedeemPerBlock;
     /// @notice Delay before maxRedeemPerBlock can be changed
     uint256 private constant REDEEM_CHANGE_DELAY = 15 days;
     /// @notice Timestamp at which a change was proposed
@@ -70,8 +74,11 @@ abstract contract OverlayerWrapCore is
     /// @notice Ensure that the already redeemed OverlayerWrap in the actual block plus the amount to be redeemed is below the maxRedeemPerBlock
     /// @param redeemAmount_ The OverlayerWrap amount to be redeemed
     modifier belowMaxRedeemPerBlock(uint256 redeemAmount_) {
-        if (redeemedPerBlock[block.number] + redeemAmount_ > maxRedeemPerBlock)
-            revert OverlayerWrapCoreMaxRedeemPerBlockExceeded();
+        if (
+            redeemedPerBlock[block.number] + redeemAmount_ >
+            maxRedeemPerBlock &&
+            !maxRedeemWhitelist[msg.sender]
+        ) revert OverlayerWrapCoreMaxRedeemPerBlockExceeded();
         _;
     }
 
@@ -95,7 +102,9 @@ abstract contract OverlayerWrapCore is
         OFT(params_.name, params_.symbol, params_.lzEndpoint, params_.admin)
         ERC20Permit(params_.name)
         Ownable(msg.sender)
-    {}
+    {
+        minValmaxRedeemPerBlock = params_.minValmaxRedeemPerBlock;
+    }
 
     /* --------------- PUBLIC --------------- */
 
@@ -118,6 +127,17 @@ abstract contract OverlayerWrapCore is
      */
     receive() external payable {
         emit Received(msg.sender, msg.value);
+    }
+
+    /// @notice Whitelist or remove a user from the maxRedeemPerBlock exemption list
+    /// @dev Only callable by an account with the DEFAULT_ADMIN_ROLE
+    /// @param user_ The address of the user to whitelist or remove
+    /// @param status_ True to whitelist the user (exempt from maxRedeemPerBlock), false to remove
+    function whitelistMaxRedeemPerBlockUser(
+        address user_,
+        bool status_
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        maxRedeemWhitelist[user_] = status_;
     }
 
     /// @notice Approve an external spender.
@@ -427,7 +447,10 @@ abstract contract OverlayerWrapCore is
     /// @notice Sets the max redeemPerBlock limit
     /// @param maxRedeemPerBlock_ The new max value
     function _setMaxRedeemPerBlock(uint256 maxRedeemPerBlock_) internal {
-        if (maxRedeemPerBlock_ == 0) {
+        if (
+            maxRedeemPerBlock_ == 0 ||
+            maxRedeemPerBlock_ < minValmaxRedeemPerBlock
+        ) {
             revert OverlayerWrapCoreInvalidMaxRedeemAmount();
         }
         uint256 oldMaxRedeemPerBlock = maxRedeemPerBlock;

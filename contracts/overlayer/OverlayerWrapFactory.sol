@@ -37,6 +37,7 @@ contract OverlayerWrapFactory is Ownable {
         address lzEndpoint_,
         uint256 maxMintPerBlock_,
         uint256 maxRedeemPerBlock_,
+        uint256 minValmaxRedeemPerBlock_,
         uint256 hubChainId_
     ) external onlyOwner returns (address) {
         // Reject if symbol already exists
@@ -55,6 +56,7 @@ contract OverlayerWrapFactory is Ownable {
                 aCollateral_,
                 maxMintPerBlock_,
                 maxRedeemPerBlock_,
+                minValmaxRedeemPerBlock_,
                 hubChainId_
             );
         OverlayerWrap token = new OverlayerWrap(params);
@@ -77,6 +79,7 @@ contract OverlayerWrapFactory is Ownable {
         address lzEndpoint_,
         uint256 maxMintPerBlock_,
         uint256 maxRedeemPerBlock_,
+        uint256 minValmaxRedeemPerBlock_,
         uint256 hubChainId_
     ) external returns (address) {
         if (msg.sender != governor) {
@@ -96,6 +99,7 @@ contract OverlayerWrapFactory is Ownable {
                 aCollateral_,
                 maxMintPerBlock_,
                 maxRedeemPerBlock_,
+                minValmaxRedeemPerBlock_,
                 hubChainId_
             );
         OverlayerWrap token = new OverlayerWrap(params);

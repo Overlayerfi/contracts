@@ -56,6 +56,9 @@ async function main() {
       USDT_ADDRESS,
       AUSDT_ADDRESS,
       31337,
+      "1000000000",
+      "1000000000",
+      "1000000000",
       2
     );
 

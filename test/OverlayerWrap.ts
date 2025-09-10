@@ -48,6 +48,7 @@ describe("OverlayerWrap", function () {
         },
         maxMintPerBlock: ethers.MaxUint256,
         maxRedeemPerBlock: ethers.MaxUint256,
+        minValmaxRedeemPerBlock: 1n,
         hubChainId: HARDHAT_CHAIN_ID
       },
       defaultTransactionOptions
@@ -438,6 +439,63 @@ describe("OverlayerWrap", function () {
       expect(await overlayerWrap.maxMintPerBlock()).to.equal(
         ethers.parseEther("0")
       );
+    });
+
+    it("Should allow whitelisted address to bypass maxRedeemPerBlock", async function () {
+      const { overlayerWrap, admin, alice, collateral } = await loadFixture(
+        deployFixture
+      );
+
+      // Set a very low maxRedeemPerBlock so normal users would be blocked
+      await overlayerWrap
+        .connect(admin)
+        .setMaxMintPerBlock(ethers.parseEther("100000000"));
+      await overlayerWrap
+        .connect(admin)
+        .proposeMaxRedeemPerBlock(ethers.parseEther("1"));
+      await time.increase(60 * 60 * 24 * 16);
+      await overlayerWrap.connect(admin).executeMaxRedeemPerBlockChange();
+
+      // Mint 10 to alice
+      const amount = "10";
+      const order = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: ethers.parseUnits(
+          amount,
+          await collateral.decimals()
+        ),
+        overlayerWrapAmount: ethers.parseEther(amount)
+      };
+      await overlayerWrap.connect(alice).mint(order);
+
+      // Non-whitelisted redemption of 2 should fail due to maxRedeemPerBlock=1
+      const redeemTooHigh = {
+        ...order,
+        collateralAmount: ethers.parseUnits("2", await collateral.decimals()),
+        overlayerWrapAmount: ethers.parseEther("2")
+      };
+      await expect(overlayerWrap.connect(alice).redeem(redeemTooHigh)).to.be
+        .eventually.rejected;
+
+      // Whitelist alice and retry: should pass
+      await overlayerWrap
+        .connect(admin)
+        .whitelistMaxRedeemPerBlockUser(alice.address, true);
+      await overlayerWrap.connect(alice).redeem(redeemTooHigh);
+    });
+
+    it("Should enforce minVal on maxRedeemPerBlock updates", async function () {
+      const { overlayerWrap, admin } = await loadFixture(deployFixture);
+      // Current minVal is 1, proposing 0 should revert in execute and in direct setter logic
+      await expect(overlayerWrap.connect(admin).proposeMaxRedeemPerBlock(0n)).to
+        .be.eventually.rejected;
+      // Propose valid small value and execute ok
+      await overlayerWrap.connect(admin).proposeMaxRedeemPerBlock(1n);
+      await time.increase(60 * 60 * 24 * 16);
+      await overlayerWrap.connect(admin).executeMaxRedeemPerBlockChange();
+      expect(await overlayerWrap.maxRedeemPerBlock()).to.equal(1n);
     });
   });
 
