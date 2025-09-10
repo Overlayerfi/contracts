@@ -50,6 +50,7 @@ describe("Staked Overlayer Wrap Front", function () {
         },
         maxMintPerBlock: ethers.MaxUint256,
         maxRedeemPerBlock: ethers.MaxUint256,
+        minValmaxRedeemPerBlock: 1n,
         hubChainId: HARDHAT_CHAIN_ID
       },
       defaultTransactionOptions
