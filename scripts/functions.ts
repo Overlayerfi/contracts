@@ -54,6 +54,9 @@ export async function deploy_OverlayerWrap(
   tokenAddr: string,
   aTokenAddr: string,
   hubChainId: number,
+  maxMintPerBlock: string,
+  maxRedeemPerBlock: string,
+  minValmaxRedeemPerBlock: string,
   baseGasFeeMult: number = 1,
   name: string = "Tether+",
   symbol: string = "T+",
@@ -92,8 +95,9 @@ export async function deploy_OverlayerWrap(
         addr: aTokenAddr,
         decimals: aTokenDecimals
       },
-      maxMintPerBlock: ethers.MaxUint256,
-      maxRedeemPerBlock: ethers.MaxUint256,
+      maxMintPerBlock: ethers.formatEther(maxMintPerBlock),
+      maxRedeemPerBlock: ethers.formatEther(maxRedeemPerBlock),
+      minValmaxRedeemPerBlock: ethers.formatEther(minValmaxRedeemPerBlock),
       hubChainId: hubChainId
     },
     defaultTransactionOptions

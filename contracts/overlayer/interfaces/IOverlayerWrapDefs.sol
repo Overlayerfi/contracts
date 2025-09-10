@@ -25,6 +25,7 @@ interface IOverlayerWrapDefs is IOverlayerWrapEvents {
         OverlayerWrapCoreTypes.StableCoin aCollateral;
         uint256 maxMintPerBlock;
         uint256 maxRedeemPerBlock;
+        uint256 minValmaxRedeemPerBlock;
         uint256 hubChainId;
     }
     /// @notice Zero address not allowed
