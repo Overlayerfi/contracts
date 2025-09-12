@@ -12,11 +12,14 @@ interface IStakedOverlayerWrap {
         address indexed to,
         uint256 amount
     );
+    /// @notice Event emitted when a new value for aave withdraw during compound is set
+    event StakedOverlayerWrapWithdrawAaveDuringCompoundSet(bool enabled);
     /// @notice Event emitted when the blacklist timestamp is set
     event BlacklistTimeSet(uint256 time);
     /// @notice Event emitted when the overlayerWrap backing contract is set
     event OverlayerWrapBackingSet(address indexed backing);
     /// @notice Error emitted shares or assets equal zero.
+
     error StakedOverlayerWrapInvalidAmount();
     /// @notice Error emitted when owner attempts to rescue OverlayerWrap tokens.
     error StakedOverlayerWrapInvalidToken();
