@@ -315,7 +315,7 @@ describe("OverlayerWrap", function () {
       );
       const blacklisterAddress = await gatekeeper.getAddress();
       await overlayerWrap.grantRole(
-        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        ethers.keccak256(ethers.toUtf8Bytes("CONTROLLER_ROLE")),
         blacklisterAddress
       );
 
@@ -336,18 +336,18 @@ describe("OverlayerWrap", function () {
       const aliceAddress = await alice.getAddress();
       const bobAddress = await bob.getAddress();
       await overlayerWrap.grantRole(
-        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        ethers.keccak256(ethers.toUtf8Bytes("CONTROLLER_ROLE")),
         blacklisterAddress
       );
       expect(
         await overlayerWrap.hasRole(
-          ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+          ethers.keccak256(ethers.toUtf8Bytes("CONTROLLER_ROLE")),
           blacklisterAddress
         )
       ).to.equal(true);
       expect(
         await overlayerWrap.hasRole(
-          ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+          ethers.keccak256(ethers.toUtf8Bytes("CONTROLLER_ROLE")),
           aliceAddress
         )
       ).to.equal(false);
@@ -560,7 +560,7 @@ describe("OverlayerWrap", function () {
         await loadFixture(deployFixture);
       const blacklisterAddress = await gatekeeper.getAddress();
       await overlayerWrap.grantRole(
-        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        ethers.keccak256(ethers.toUtf8Bytes("CONTROLLER_ROLE")),
         blacklisterAddress
       );
       // Test mint
