@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "../shared/SingleAdminAccessControl.sol";
 import "./interfaces/IStakedOverlayerWrap.sol";
 
@@ -282,25 +283,19 @@ abstract contract StakedOverlayerWrapCore is
      * @notice Returns the amount of OverlayerWrap tokens that are vested in the contract.
      */
     function totalAssets() public view override returns (uint256) {
-        return IERC20(asset()).balanceOf(address(this)) - getUnvestedAmount();
+        uint256 bal = IERC20(asset()).balanceOf(address(this));
+        uint256 unvested = getUnvestedAmount();
+        return bal > unvested ? bal - unvested : 0;
     }
 
     /**
      * @notice Returns the amount of OverlayerWrap tokens that are unvested in the contract.
      */
     function getUnvestedAmount() public view returns (uint256) {
-        uint256 timeSinceLastDistribution = block.timestamp -
-            lastDistributionTimestamp;
-
-        if (timeSinceLastDistribution >= _vestingPeriod) {
-            return 0;
-        } else {
-            uint256 deltaT;
-            unchecked {
-                deltaT = (_vestingPeriod - timeSinceLastDistribution);
-            }
-            return (deltaT * vestingAmount) / _vestingPeriod;
-        }
+        uint256 elapsed = block.timestamp - lastDistributionTimestamp;
+        if (elapsed >= _vestingPeriod) return 0;
+        uint256 remaining = _vestingPeriod - elapsed;
+        return Math.mulDiv(remaining, vestingAmount, _vestingPeriod);
     }
 
     /// @dev Necessary because both ERC20 (from ERC20Permit) and ERC4626 declare decimals()
