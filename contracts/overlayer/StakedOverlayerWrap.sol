@@ -234,5 +234,6 @@ contract StakedOverlayerWrap is
         bool doWithdraw_
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         withdrawAaveDuringCompound = doWithdraw_;
+        emit StakedOverlayerWrapWithdrawAaveDuringCompoundSet(doWithdraw_);
     }
 }
