@@ -28,8 +28,7 @@ abstract contract StakedOverlayerWrapCore is
     /// @notice The role that is allowed to distribute rewards to this contract
     bytes32 private constant REWARDER_ROLE = keccak256("REWARDER_ROLE");
     /// @notice The role that is allowed to blacklist and un-blacklist addresses
-    bytes32 private constant BLACKLIST_MANAGER_ROLE =
-        keccak256("BLACKLIST_MANAGER_ROLE");
+    bytes32 private constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
     /// @notice The role which prevents an address to stake
     bytes32 private constant STAKE_RESTRICTED_ROLE =
         keccak256("STAKE_RESTRICTED_ROLE");
@@ -164,12 +163,7 @@ abstract contract StakedOverlayerWrapCore is
     function addToBlacklist(
         address target_,
         bool isFullBlacklisting_
-    )
-        external
-        blacklistAllowed
-        onlyRole(BLACKLIST_MANAGER_ROLE)
-        notOwner(target_)
-    {
+    ) external blacklistAllowed onlyRole(CONTROLLER_ROLE) notOwner(target_) {
         bytes32 role = isFullBlacklisting_
             ? WHOLE_RESTRICTED_ROLE
             : STAKE_RESTRICTED_ROLE;
@@ -184,7 +178,7 @@ abstract contract StakedOverlayerWrapCore is
     function removeFromBlacklist(
         address target_,
         bool isFullBlacklisting_
-    ) external blacklistAllowed onlyRole(BLACKLIST_MANAGER_ROLE) {
+    ) external blacklistAllowed onlyRole(CONTROLLER_ROLE) {
         bytes32 role = isFullBlacklisting_
             ? WHOLE_RESTRICTED_ROLE
             : STAKE_RESTRICTED_ROLE;
@@ -198,7 +192,7 @@ abstract contract StakedOverlayerWrapCore is
      */
     function setBlackListTime(
         uint256 time_
-    ) external onlyRole(BLACKLIST_MANAGER_ROLE) {
+    ) external onlyRole(CONTROLLER_ROLE) {
         if (time_ > 0 && time_ < block.timestamp) {
             revert StakedOverlayerWrapInvalidTime();
         }
@@ -215,7 +209,7 @@ abstract contract StakedOverlayerWrapCore is
      */
     function setRedistributionTime(
         uint256 time_
-    ) external onlyRole(BLACKLIST_MANAGER_ROLE) {
+    ) external onlyRole(CONTROLLER_ROLE) {
         if (time_ > 0 && time_ < block.timestamp) {
             revert StakedOverlayerWrapInvalidTime();
         }

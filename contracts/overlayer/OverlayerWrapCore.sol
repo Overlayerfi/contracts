@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 /* solhint-disable private-vars-leading-underscore */
 /* solhint-disable var-name-mixedcase */
 
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
@@ -217,50 +218,50 @@ abstract contract OverlayerWrapCore is
     }
 
     /// @notice Unpause the contract
-    /// @dev This call is used only to unlock the supplyToBacking public call
     function unpause() external nonReentrant onlyRole(GATEKEEPER_ROLE) {
         _unpause();
     }
 
     /// @notice Supply funds to the active backing contract (aka approvedCollateralSpender)
-    /// @dev The approveCollateralSpender will colect the funds, as the only entity allowed to do so
+    /// @dev The approveCollateralSpender will collect the funds, as the only entity allowed to do so
     /// @param amountCollateral_ The amount to supply of collateral
     /// @param amountACollateral_ The amount to supply of aCollateral
     function supplyToBacking(
         uint256 amountCollateral_,
         uint256 amountACollateral_
     ) external nonReentrant whenNotPaused {
-        if (approvedCollateralSpender != address(0)) {
-            uint256 collateralBal = IERC20(collateral.addr).balanceOf(
-                address(this)
-            );
-            uint256 aCollateralBal = IERC20(aCollateral.addr).balanceOf(
-                address(this)
-            );
-            uint256 amountToSupplyCollateral = amountCollateral_ == 0
-                ? collateralBal
-                : amountCollateral_;
-            uint256 amountToSupplyACollateral = amountACollateral_ == 0
-                ? aCollateralBal
-                : amountACollateral_;
-            if (amountToSupplyCollateral > collateralBal)
-                revert OverlayerWrapCoreInsufficientFunds();
-            if (amountToSupplyACollateral > aCollateralBal)
-                revert OverlayerWrapCoreInsufficientFunds();
-            IOverlayerWrapBacking(approvedCollateralSpender).supply(
-                amountToSupplyCollateral,
-                collateral.addr
-            );
-            IOverlayerWrapBacking(approvedCollateralSpender).supply(
-                amountToSupplyACollateral,
-                aCollateral.addr
-            );
-            emit SuppliedToBacking(
-                msg.sender,
-                amountToSupplyCollateral,
-                amountToSupplyACollateral
-            );
+        if (approvedCollateralSpender == address(0)) {
+            revert OverlayerWrapCoreInvalidZeroAddress();
         }
+        uint256 collateralBal = IERC20(collateral.addr).balanceOf(
+            address(this)
+        );
+        uint256 aCollateralBal = IERC20(aCollateral.addr).balanceOf(
+            address(this)
+        );
+        uint256 amountToSupplyCollateral = amountCollateral_ == 0
+            ? collateralBal
+            : amountCollateral_;
+        uint256 amountToSupplyACollateral = amountACollateral_ == 0
+            ? aCollateralBal
+            : amountACollateral_;
+        if (amountToSupplyCollateral > collateralBal)
+            revert OverlayerWrapCoreInsufficientFunds();
+        if (amountToSupplyACollateral > aCollateralBal)
+            revert OverlayerWrapCoreInsufficientFunds();
+        IOverlayerWrapBacking(approvedCollateralSpender).supply(
+            amountToSupplyCollateral,
+            collateral.addr
+        );
+        IOverlayerWrapBacking(approvedCollateralSpender).supply(
+            amountToSupplyACollateral,
+            aCollateral.addr
+        );
+        emit SuppliedToBacking(
+            msg.sender,
+            amountToSupplyCollateral,
+            amountToSupplyACollateral
+        );
     }
 
     /* --------------- INTERNAL --------------- */
@@ -280,13 +281,23 @@ abstract contract OverlayerWrapCore is
         uint256 maxRedeemPerBlock_,
         uint256 hubChainId_
     ) internal {
+        CollateralSpenderManager._initalize(admin_, collateral_, aCollateral_);
         if (collateral_.decimals > decimals()) {
             revert OverlayerWrapCoreInvalidDecimals();
         }
         if (aCollateral_.decimals > decimals()) {
             revert OverlayerWrapCoreInvalidDecimals();
         }
-        CollateralSpenderManager._initalize(admin_, collateral_, aCollateral_);
+        if (
+            IERC20Metadata(collateral.addr).decimals() != collateral_.decimals
+        ) {
+            revert OverlayerWrapCoreInvalidDecimals();
+        }
+        if (
+            IERC20Metadata(aCollateral.addr).decimals() != aCollateral.decimals
+        ) {
+            revert OverlayerWrapCoreInvalidDecimals();
+        }
         // Set the max mint/redeem limits per block
         _setMaxMintPerBlock(maxMintPerBlock_);
         _setMaxRedeemPerBlock(maxRedeemPerBlock_);
@@ -334,14 +345,11 @@ abstract contract OverlayerWrapCore is
         OverlayerWrapCoreTypes.Order calldata order_
     )
         internal
-        belowMaxRedeemPerBlock(order_.overlayerWrapAmount)
         onlyHubChain(block.chainid)
         returns (uint256 amountToBurn, uint256 back)
     {
         // Check for wanted source tokens
         _validateInputTokens(order_);
-        // Add to the redeemed amount in this block
-        redeemedPerBlock[block.number] += order_.overlayerWrapAmount;
 
         (
             uint256 checkedBurnAmount,
@@ -350,6 +358,16 @@ abstract contract OverlayerWrapCore is
                 order_.overlayerWrapAmount,
                 order_.collateral
             );
+
+        if (checkedBurnAmount == 0) return (0, 0);
+
+        if (
+            redeemedPerBlock[block.number] + checkedBurnAmount >
+            maxRedeemPerBlock &&
+            !maxRedeemWhitelist[msg.sender]
+        ) revert OverlayerWrapCoreMaxRedeemPerBlockExceeded();
+        // Add to the redeemed amount in this block
+        redeemedPerBlock[block.number] += checkedBurnAmount;
 
         _transferToBeneficiary(
             order_.beneficiary,
@@ -361,8 +379,15 @@ abstract contract OverlayerWrapCore is
         back = checkedBack;
     }
 
+    function _pow10(uint256 n) internal pure returns (uint256 r) {
+        // 10**77 < 2^256; 78 would overflow
+        if (n > 77) revert OverlayerWrapCoreInvalidDecimals();
+        return 10 ** n;
+    }
+
     /// @notice Redeem collateral from the protocol
     /// @dev It will trigger the backing contract (aka approvedCollateralSpender) withdraw method if the collateral is not sufficient
+    /// @dev Dust amount will be ignored. Burn amount is rounded to the collateral decimals value
     /// @param amount_ The amount of OverlayerWrap to burn
     /// @param wantCollateral_ The wanted collateral to withdraw
     /// @return checkedBurnAmount The checked amount to burn
@@ -382,7 +407,7 @@ abstract contract OverlayerWrapCore is
                         ? aCollateral.decimals
                         : collateral.decimals
                 );
-            uint256 needAmount = amount_ / (10 ** diffDecimals);
+            uint256 needAmount = amount_ / _pow10(diffDecimals);
             uint256 collateralBal = IERC20(
                 wantCollateral_ == aCollateral.addr
                     ? aCollateral.addr
@@ -394,7 +419,7 @@ abstract contract OverlayerWrapCore is
             if (needAmount > collateralBal) {
                 amountFromBacking = needAmount - collateralBal;
             }
-            // Retrive funds from backing only if needed
+            // Retrieve funds from backing only if needed
             if (amountFromBacking > 0) {
                 IOverlayerWrapBacking(approvedCollateralSpender).withdraw(
                     amountFromBacking,
@@ -403,7 +428,7 @@ abstract contract OverlayerWrapCore is
             }
 
             back = needAmount;
-            checkedBurnAmount = (back * (10 ** diffDecimals));
+            checkedBurnAmount = (back * (_pow10(diffDecimals)));
         }
     }
 
