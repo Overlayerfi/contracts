@@ -18,8 +18,7 @@ contract OverlayerWrap is IOverlayerWrapDefs, OverlayerWrapCore {
     uint256 public constant BLACKLIST_ACTIVATION_TIME = 15 days;
 
     /// @notice Role enabling to disable or enable ERC20 _update for a given address
-    bytes32 private constant CONTROLLER_ROLE =
-        keccak256("BLACKLIST_MANAGER_ROLE");
+    bytes32 private constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
 
     /// @notice Blacklisted accounts role
     bytes32 private constant BLACKLISTED_ROLE = keccak256("BLACKLISTED_ROLE");
@@ -62,11 +61,9 @@ contract OverlayerWrap is IOverlayerWrapDefs, OverlayerWrapCore {
             params_.maxRedeemPerBlock,
             params_.hubChainId
         );
+
         if (params_.admin == address(0))
             revert OverlayerWrapZeroAddressException();
-        if (decimals() < params_.collateral.decimals) {
-            revert OverlayerWrapInvalidDecimals();
-        }
     }
 
     /// @notice Mint tokens
@@ -74,7 +71,13 @@ contract OverlayerWrap is IOverlayerWrapDefs, OverlayerWrapCore {
     /// @param order_ A struct containing the mint order
     function mint(
         OverlayerWrapCoreTypes.Order calldata order_
-    ) external notDisabled(order_.beneficiary) nonReentrant {
+    )
+        external
+        notDisabled(msg.sender)
+        notDisabled(order_.benefactor)
+        notDisabled(order_.beneficiary)
+        nonReentrant
+    {
         if (order_.benefactor != msg.sender)
             revert OverlayerWrapCoreInvalidBenefactor();
         _managerMint(order_);
@@ -106,7 +109,13 @@ contract OverlayerWrap is IOverlayerWrapDefs, OverlayerWrapCore {
     /// @param order_ A struct containing the mint order
     function redeem(
         OverlayerWrapCoreTypes.Order calldata order_
-    ) external notDisabled(order_.benefactor) nonReentrant {
+    )
+        external
+        notDisabled(msg.sender)
+        notDisabled(order_.benefactor)
+        notDisabled(order_.beneficiary)
+        nonReentrant
+    {
         (uint256 toBurn, uint256 back) = _managerRedeem(order_);
         if (msg.sender == order_.benefactor) {
             _burn(msg.sender, toBurn);

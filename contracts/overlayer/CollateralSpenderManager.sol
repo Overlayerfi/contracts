@@ -24,6 +24,12 @@ abstract contract CollateralSpenderManager is
     /// @notice Error thrown when operation is not allowed for the caller
     error CollateralSpenderManagerOperatioNotAllowed();
 
+    /// @notice Emitted when a new collateral spender is proposed
+    event ProposedCollateralSpender(address, uint256);
+
+    /// @notice Emitted when a new collateral spender has accepted the proposal
+    event AcceptedProposedCollateralSpender(uint256);
+
     /// @notice role enabling to transfer collateral to custody wallets
     bytes32 internal constant COLLATERAL_MANAGER_ROLE =
         keccak256("COLLATERAL_MANAGER_ROLE");
@@ -70,6 +76,7 @@ abstract contract CollateralSpenderManager is
             revert CollateralSpenderManagerInvalidSpenderAddress();
         proposedSpender = spender_;
         proposalTime = block.timestamp;
+        emit ProposedCollateralSpender(spender_, block.timestamp);
     }
 
     /// @notice The proposed spender accepts to be the spender
@@ -100,5 +107,7 @@ abstract contract CollateralSpenderManager is
             approvedCollateralSpender,
             type(uint256).max
         );
+
+        emit AcceptedProposedCollateralSpender(block.timestamp);
     }
 }
