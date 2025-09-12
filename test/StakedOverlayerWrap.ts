@@ -189,7 +189,7 @@ describe("Staked Overlayer Wrap Front", function () {
     it("Should configure blacklist activation time", async function () {
       const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
       await stakedoverlayerWrap.grantRole(
-        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        ethers.keccak256(ethers.toUtf8Bytes("CONTROLLER_ROLE")),
         admin.address
       );
       const t = await time.latest();
@@ -202,7 +202,7 @@ describe("Staked Overlayer Wrap Front", function () {
     it("Should validate blacklist time constraints", async function () {
       const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
       await stakedoverlayerWrap.grantRole(
-        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        ethers.keccak256(ethers.toUtf8Bytes("CONTROLLER_ROLE")),
         admin.address
       );
       const t = await time.latest();
@@ -213,7 +213,7 @@ describe("Staked Overlayer Wrap Front", function () {
     it("Should configure redistribution activation time", async function () {
       const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
       await stakedoverlayerWrap.grantRole(
-        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        ethers.keccak256(ethers.toUtf8Bytes("CONTROLLER_ROLE")),
         admin.address
       );
       const t = await time.latest();
@@ -226,7 +226,7 @@ describe("Staked Overlayer Wrap Front", function () {
     it("Should validate blacklist time constraints", async function () {
       const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
       await stakedoverlayerWrap.grantRole(
-        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        ethers.keccak256(ethers.toUtf8Bytes("CONTROLLER_ROLE")),
         admin.address
       );
       const t = await time.latest();
@@ -238,7 +238,7 @@ describe("Staked Overlayer Wrap Front", function () {
     it("Blacklist and redistribution be exclusive", async function () {
       const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
       await stakedoverlayerWrap.grantRole(
-        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        ethers.keccak256(ethers.toUtf8Bytes("CONTROLLER_ROLE")),
         admin.address
       );
       const t = await time.latest();
@@ -253,7 +253,7 @@ describe("Staked Overlayer Wrap Front", function () {
     it("Blacklist and redistribution be exclusive", async function () {
       const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
       await stakedoverlayerWrap.grantRole(
-        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        ethers.keccak256(ethers.toUtf8Bytes("CONTROLLER_ROLE")),
         admin.address
       );
       const t = await time.latest();
@@ -311,7 +311,7 @@ describe("Staked Overlayer Wrap Front", function () {
         deployFixture
       );
       await stakedoverlayerWrap.grantRole(
-        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        ethers.keccak256(ethers.toUtf8Bytes("CONTROLLER_ROLE")),
         admin.address
       );
       await stakedoverlayerWrap.connect(admin).setBlackListTime(0);
@@ -326,7 +326,7 @@ describe("Staked Overlayer Wrap Front", function () {
         deployFixture
       );
       await stakedoverlayerWrap.grantRole(
-        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        ethers.keccak256(ethers.toUtf8Bytes("CONTROLLER_ROLE")),
         admin.address
       );
       const t = await time.latest();
@@ -347,7 +347,7 @@ describe("Staked Overlayer Wrap Front", function () {
         deployFixture
       );
       await stakedoverlayerWrap.grantRole(
-        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        ethers.keccak256(ethers.toUtf8Bytes("CONTROLLER_ROLE")),
         admin.address
       );
       await stakedoverlayerWrap
@@ -376,7 +376,7 @@ describe("Staked Overlayer Wrap Front", function () {
         deployFixture
       );
       await stakedoverlayerWrap.grantRole(
-        ethers.keccak256(ethers.toUtf8Bytes("BLACKLIST_MANAGER_ROLE")),
+        ethers.keccak256(ethers.toUtf8Bytes("CONTROLLER_ROLE")),
         admin.address
       );
       const t = await time.latest();
