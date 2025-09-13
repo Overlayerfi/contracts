@@ -24,17 +24,23 @@ contract OverlayerWrapBacking is AaveHandler, IOverlayerWrapBackingDefs {
         _;
     }
 
-    /// @notice Constructor for OverlayerWrapBacking
-    /// @param admin_ Address of the contract administrator
-    /// @param dispatcher_ Address of the rewards dispatcher contract
-    /// @param overlayerWrap_ Address of the OverlayerWrap token contract
-    /// @param sOverlayerWrap_ Address of the Staked OverlayerWrap contract
-    /// @dev Automatically accepts role as collateral spender for OverlayerWrap
+    /**
+     * @notice Initializes the OverlayerWrapBacking contract.
+     * @param admin_ The address of the contract administrator.
+     * @param dispatcher_ The address of the rewards dispatcher contract.
+     * @param overlayerWrap_ The address of the OverlayerWrap token contract.
+     * @param sOverlayerWrap_ The address of the Staked OverlayerWrap contract.
+     * @param aave_ The address of the Aave protocol contract.
+     * @param usdt_ The address of the USDT token contract.
+     * @param aUsdt_ The address of the aUSDT (Aave interest-bearing USDT) token contract.
+     * @dev This constructor sets up the contract and passes all parameters to the AaveHandler base contract.
+     */
     constructor(
         address admin_,
         address dispatcher_,
         address overlayerWrap_,
         address sOverlayerWrap_,
+        address aave_,
         address usdt_,
         address aUsdt_
     )
@@ -43,6 +49,7 @@ contract OverlayerWrapBacking is AaveHandler, IOverlayerWrapBackingDefs {
             dispatcher_,
             overlayerWrap_,
             sOverlayerWrap_,
+            aave_,
             usdt_,
             aUsdt_
         )
@@ -66,5 +73,6 @@ contract OverlayerWrapBacking is AaveHandler, IOverlayerWrapBackingDefs {
         if (asset_ == address(0))
             revert OverlayerWrapBackingZeroAddressException();
         IERC20(asset_).safeTransfer(owner(), amount_);
+        emit OverlayerWrapBackingAssetRecovered(asset_, amount_);
     }
 }
