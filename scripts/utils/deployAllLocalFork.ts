@@ -22,7 +22,11 @@ import OverlayerWrapBacking_ABI from "../../artifacts/contracts/overlayerbacking
 import SINGLE_STABLE_STAKE_ABI from "../../artifacts/contracts/liquidity/SingleStableStake.sol/SingleStableStake.json";
 import OVA_REFERRAL_ABI from "../../artifacts/contracts/overlayer/OvaReferral.sol/OvaReferral.json";
 import { getContractAddress } from "@ethersproject/address";
-import { USDT_ADDRESS, AUSDT_ADDRESS } from "../addresses";
+import {
+  USDT_ADDRESS,
+  AUSDT_ADDRESS,
+  AAVE_POOL_V3_ADDRESS
+} from "../addresses";
 import { deployFakeLp } from "./deployFakeLpTokens";
 
 const AIRDROP_POOLS_REWARD_TOKEN_ADMIN =
@@ -241,6 +245,7 @@ async function main() {
       dispatcherAddress,
       overlayerWrapAddr,
       sOverlayerWrapAddr,
+      AAVE_POOL_V3_ADDRESS,
       USDT_ADDRESS,
       AUSDT_ADDRESS
     );

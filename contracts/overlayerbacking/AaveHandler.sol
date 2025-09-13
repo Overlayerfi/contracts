@@ -48,7 +48,7 @@ abstract contract AaveHandler is
     //########################################## PUBLIC STORAGE ##########################################
 
     /// @notice Aave Pool contract for lending operations
-    address public aave = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
+    address public aave;
     /// @notice Address of the protocol's reward distribution contract
     address public ovaRewardsDispatcher;
     /// @notice Total amount of usdt supplied to Aave protocol
@@ -80,16 +80,22 @@ abstract contract AaveHandler is
         _;
     }
 
-    ///@notice The constructor
-    ///@param admin_ The contract admin
-    ///@param rewardsDispatcher_ The protocol rewardsDispatcher contract
-    ///@param overlayerWrap_ The overlayerWrap contract
-    ///@param sOverlayerWrap_ The sOverlayerWrap contract
+    /**
+     * @notice Constructor for AaveHandler
+     * @param admin_ Address of the contract administrator
+     * @param rewardsDispatcher_ Address of the protocol rewards dispatcher contract
+     * @param overlayerWrap_ Address of the OverlayerWrap contract
+     * @param sOverlayerWrap_ Address of the Staked OverlayerWrap contract
+     * @param aave_ Address of the Aave Pool contract
+     * @param usdt_ Address of the USDT token contract
+     * @param aUsdt_ Address of the aUSDT (Aave interest-bearing USDT) token contract
+     */
     constructor(
         address admin_,
         address rewardsDispatcher_,
         address overlayerWrap_,
         address sOverlayerWrap_,
+        address aave_,
         address usdt_,
         address aUsdt_
     ) Ownable(admin_) {
@@ -100,6 +106,7 @@ abstract contract AaveHandler is
             revert AaveHandlerZeroAddressException();
         if (sOverlayerWrap_ == address(0))
             revert AaveHandlerZeroAddressException();
+        if (aave_ == address(0)) revert AaveHandlerZeroAddressException();
         if (usdt_ == address(0)) revert AaveHandlerZeroAddressException();
         if (aUsdt_ == address(0)) revert AaveHandlerZeroAddressException();
         if (overlayerWrap_ == sOverlayerWrap_)
@@ -107,6 +114,7 @@ abstract contract AaveHandler is
         ovaRewardsDispatcher = rewardsDispatcher_;
         overlayerWrap = overlayerWrap_;
         sOverlayerWrap = sOverlayerWrap_;
+        aave = aave_;
         usdt = usdt_;
         aUsdt = aUsdt_;
 
@@ -141,12 +149,10 @@ abstract contract AaveHandler is
     /// @notice Compound funds from-to aave protocol
     /// @param withdrawAave_ Withdraw usdt from aave
     function compound(bool withdrawAave_) external nonReentrant {
-        uint256 diff = IERC20(aUsdt).balanceOf(address(this)) -
-            totalSuppliedUSDT;
-        if (diff == 0) {
-            return;
-        }
-        uint256 scaledDiff = diff * DECIMALS_DIFF_AMOUNT;
+        uint256 aUsdtBal = IERC20(aUsdt).balanceOf(address(this));
+        if (aUsdtBal <= totalSuppliedUSDT) return;
+        uint256 diff = aUsdtBal - totalSuppliedUSDT;
+        uint256 scaledDiff = diff.mulDiv(DECIMALS_DIFF_AMOUNT, 1);
 
         if (withdrawAave_) {
             _withdrawInternalAave(diff, address(this));
@@ -176,10 +182,10 @@ abstract contract AaveHandler is
         IDispatcher(ovaRewardsDispatcher).dispatch();
     }
 
-    ///@notice Supply assets to Aave protocol
-    ///@param amountUsdt_ Amount of usdt or aUsdt to supply
+    /// @notice Supply assets to Aave protocol
+    /// @param amountUsdt_ Amount of usdt or aUsdt to supply
     /// @param collateral_ Address of the collateral token (usdt or aUsdt)
-    /// @dev Only callable by OverlayerWrap contract
+    /// @dev Only callable by OverlayerWrap contract and the minimum amount must be gte 1e12
     function supply(
         uint256 amountUsdt_,
         address collateral_
@@ -210,8 +216,10 @@ abstract contract AaveHandler is
 
         // Do not count donations to overlayerWrap: compute how much we have to increase our supply counters.
         // We cannot exceed the overlayerWrap supply.
-        uint256 normalizedSupply = IOverlayerWrap(overlayerWrap).totalSupply() /
-            DECIMALS_DIFF_AMOUNT;
+        uint256 owTotalSupp = IOverlayerWrap(overlayerWrap).totalSupply();
+        if (owTotalSupp < DECIMALS_DIFF_AMOUNT)
+            revert AaveHandlerOverlayerWrapTotalSupplyTooLow();
+        uint256 normalizedSupply = owTotalSupp / DECIMALS_DIFF_AMOUNT;
         uint256 differenceUsdt = normalizedSupply - totalSuppliedUSDT;
         uint256 minIncrease = Math.min(amountUsdt_, differenceUsdt);
         totalSuppliedUSDT += minIncrease;

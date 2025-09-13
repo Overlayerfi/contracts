@@ -4,6 +4,9 @@ pragma solidity ^0.8.20;
 /// @title Interface for Aave Handler Definitions
 /// @notice Defines events and errors for Aave integration handling
 interface IAaveHandlerDefs {
+    /// @notice Error thrown when overlayer wrap total supply is too low
+    error AaveHandlerOverlayerWrapTotalSupplyTooLow();
+
     /// @notice Error thrown when a zero address is provided
     error AaveHandlerZeroAddressException();
 
