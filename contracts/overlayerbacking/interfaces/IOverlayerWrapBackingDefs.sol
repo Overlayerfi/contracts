@@ -15,4 +15,7 @@ interface IOverlayerWrapBackingDefs {
 
     /// @notice Emitted when spender role is accepted
     event OverlayerWrapSpenderAccepted();
+
+    /// @notice Emitted when admin recover an allowed token from this contract
+    event OverlayerWrapBackingAssetRecovered(address, uint256);
 }

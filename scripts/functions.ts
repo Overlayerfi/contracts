@@ -722,6 +722,7 @@ export async function deploy_OverlayerWrapBacking(
   treasury: string,
   overlayerWrap: string,
   soverlayerWrap: string,
+  aave: string,
   usdt: string,
   ausdt: string
 ): Promise<string> {
@@ -740,6 +741,7 @@ export async function deploy_OverlayerWrapBacking(
     treasury,
     overlayerWrap,
     soverlayerWrap,
+    aave,
     usdt,
     ausdt,
     {
