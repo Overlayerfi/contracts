@@ -108,6 +108,9 @@ abstract contract CollateralSpenderManager is
             type(uint256).max
         );
 
+        proposedSpender = address(0);
+        proposalTime = 0;
+
         emit AcceptedProposedCollateralSpender(block.timestamp);
     }
 }
