@@ -11,7 +11,7 @@ describe("OverlayerWrap", function () {
     const [admin, gatekeeper, alice, bob] = await ethers.getSigners();
 
     const block = await admin.provider.getBlock("latest");
-    const baseFee = block.baseFeePerGas;
+    const baseFee = block?.baseFeePerGas ?? 1n;
     const defaultTransactionOptions = {
       maxFeePerGas: baseFee * BigInt(10)
     };
@@ -139,7 +139,7 @@ describe("OverlayerWrap", function () {
       );
       await overlayerWrap.connect(admin).pause();
       expect(await overlayerWrap.paused()).to.equal(true);
-      await expect(overlayerWrap.connect(admin).supplyToBacking(0)).to.be
+      await expect(overlayerWrap.connect(admin).supplyToBacking(0, 0)).to.be
         .eventually.rejected;
     });
 
@@ -555,6 +555,156 @@ describe("OverlayerWrap", function () {
       expect(await collateral.balanceOf(contractAddr)).to.equal(beforeBal);
     });
 
+    it("Should not mint on wrong configuration", async function () {
+      const { collateral, acollateral, overlayerWrap, alice } =
+        await loadFixture(deployFixture);
+      let order = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: ethers.parseUnits("2", await collateral.decimals()),
+        overlayerWrapAmount: ethers.parseEther("1")
+      };
+      await expect(overlayerWrap.connect(alice).mint(order)).to.be.eventually
+        .rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther("0")
+      );
+
+      // Collateral 1, OW 2 (magnitude mismatch)
+      let order2 = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: ethers.parseUnits("1", await collateral.decimals()),
+        overlayerWrapAmount: ethers.parseEther("2")
+      };
+      await expect(overlayerWrap.connect(alice).mint(order2)).to.be.eventually
+        .rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther("0")
+      );
+
+      // Collateral has extra 6-decimal dust; OW is clean 1 ether
+      const orderDustyCollateral = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: ethers.parseUnits(
+          "1.000001",
+          await collateral.decimals()
+        ),
+        overlayerWrapAmount: ethers.parseEther("1")
+      };
+      await expect(overlayerWrap.connect(alice).mint(orderDustyCollateral)).to
+        .be.eventually.rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther("0")
+      );
+
+      // OW has 18-decimal dust not representable by 6-dec collateral
+      const orderDustyOW = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: ethers.parseUnits("1", await collateral.decimals()),
+        overlayerWrapAmount: ethers.parseEther("1.000000000001")
+      };
+      await expect(overlayerWrap.connect(alice).mint(orderDustyOW)).to.be
+        .eventually.rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther("0")
+      );
+
+      // Edge: OW amount too small to be representable by 6-dec collateral (1 wei OW)
+      const orderTinyOw = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: ethers.parseUnits("1", await collateral.decimals()),
+        overlayerWrapAmount: 1n
+      };
+      await expect(overlayerWrap.connect(alice).mint(orderTinyOw)).to.be
+        .eventually.rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther("0")
+      );
+
+      // Edge: just-below factor mismatch (factor=1e12). With 1 unit collateral, set OW to 1e12-1
+      const factor = 10n ** 12n;
+      const orderJustBelow = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: ethers.parseUnits("1", await collateral.decimals()),
+        overlayerWrapAmount: factor - 1n
+      };
+      await expect(overlayerWrap.connect(alice).mint(orderJustBelow)).to.be
+        .eventually.rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther("0")
+      );
+
+      // Edge: OW not divisible by factor, even with large numbers
+      const orderNonDivisible = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: ethers.parseUnits(
+          "1234567890123",
+          await collateral.decimals()
+        ),
+        overlayerWrapAmount: 1234567890123456789n // not divisible by 1e12
+      };
+      await expect(overlayerWrap.connect(alice).mint(orderNonDivisible)).to.be
+        .eventually.rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther("0")
+      );
+
+      // Repeat tiny OW edge with aCollateral
+      const orderTinyOwA = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await acollateral.getAddress(),
+        collateralAmount: ethers.parseUnits("1", await acollateral.decimals()),
+        overlayerWrapAmount: 1n
+      };
+      await expect(overlayerWrap.connect(alice).mint(orderTinyOwA)).to.be
+        .eventually.rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther("0")
+      );
+
+      // Repeat just-below factor mismatch with aCollateral
+      const orderJustBelowA = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await acollateral.getAddress(),
+        collateralAmount: ethers.parseUnits("1", await acollateral.decimals()),
+        overlayerWrapAmount: factor - 1n
+      };
+      await expect(overlayerWrap.connect(alice).mint(orderJustBelowA)).to.be
+        .eventually.rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther("0")
+      );
+
+      // Mismatch using aCollateral branch (also 6 decimals), still should revert
+      const orderACollWrong = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await acollateral.getAddress(),
+        collateralAmount: ethers.parseUnits("1", await acollateral.decimals()),
+        overlayerWrapAmount: ethers.parseEther("2")
+      };
+      await expect(overlayerWrap.connect(alice).mint(orderACollWrong)).to.be
+        .eventually.rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther("0")
+      );
+    });
+
     it("Should not mint if blacklisted", async function () {
       const { collateral, overlayerWrap, alice, gatekeeper, bob } =
         await loadFixture(deployFixture);
@@ -834,6 +984,130 @@ describe("OverlayerWrap", function () {
       expect(
         await collateral.balanceOf(await overlayerWrap.getAddress())
       ).to.be.equal(ethers.parseUnits(mintAmount, await collateral.decimals()));
+    });
+
+    it("Should not redeem on wrong configuration", async function () {
+      const { collateral, acollateral, overlayerWrap, alice } =
+        await loadFixture(deployFixture);
+
+      // Mint a valid OW balance to alice first
+      const mintAmount = "5";
+      const mintOrder = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: ethers.parseUnits(
+          mintAmount,
+          await collateral.decimals()
+        ),
+        overlayerWrapAmount: ethers.parseEther(mintAmount)
+      };
+      await overlayerWrap.connect(alice).mint(mintOrder);
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther(mintAmount)
+      );
+
+      // Collateral 2 vs OW 1 (magnitude mismatch)
+      let order = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: ethers.parseUnits("2", await collateral.decimals()),
+        overlayerWrapAmount: ethers.parseEther("1")
+      };
+      await expect(overlayerWrap.connect(alice).redeem(order)).to.be.eventually
+        .rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther(mintAmount)
+      );
+
+      // Edge: OW amount too small to be representable by 6-dec collateral (1 wei OW)
+      const orderTinyOw = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: ethers.parseUnits("1", await collateral.decimals()),
+        overlayerWrapAmount: 1n
+      };
+      await expect(overlayerWrap.connect(alice).redeem(orderTinyOw)).to.be
+        .eventually.rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther(mintAmount)
+      );
+
+      // Edge: just-below factor mismatch (factor=1e12). With 1 unit collateral, set OW to 1e12-1
+      const factor = 10n ** 12n;
+      const orderJustBelow = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: ethers.parseUnits("1", await collateral.decimals()),
+        overlayerWrapAmount: factor - 1n
+      };
+      await expect(overlayerWrap.connect(alice).redeem(orderJustBelow)).to.be
+        .eventually.rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther(mintAmount)
+      );
+
+      // Edge: OW not divisible by factor, even with large numbers
+      const orderNonDivisible = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: ethers.parseUnits(
+          "1234567890123",
+          await collateral.decimals()
+        ),
+        overlayerWrapAmount: 1234567890123456789n // not divisible by 1e12
+      };
+      await expect(overlayerWrap.connect(alice).redeem(orderNonDivisible)).to.be
+        .eventually.rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther(mintAmount)
+      );
+
+      // Repeat tiny OW edge with aCollateral
+      const orderTinyOwA = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await acollateral.getAddress(),
+        collateralAmount: ethers.parseUnits("1", await acollateral.decimals()),
+        overlayerWrapAmount: 1n
+      };
+      await expect(overlayerWrap.connect(alice).redeem(orderTinyOwA)).to.be
+        .eventually.rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther(mintAmount)
+      );
+
+      // Repeat just-below factor mismatch with aCollateral
+      const orderJustBelowA = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await acollateral.getAddress(),
+        collateralAmount: ethers.parseUnits("1", await acollateral.decimals()),
+        overlayerWrapAmount: factor - 1n
+      };
+      await expect(overlayerWrap.connect(alice).redeem(orderJustBelowA)).to.be
+        .eventually.rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther(mintAmount)
+      );
+
+      // Mismatch using aCollateral branch (also 6 decimals), still should revert
+      const orderACollWrong = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await acollateral.getAddress(),
+        collateralAmount: ethers.parseUnits("1", await acollateral.decimals()),
+        overlayerWrapAmount: ethers.parseEther("2")
+      };
+      await expect(overlayerWrap.connect(alice).redeem(orderACollWrong)).to.be
+        .eventually.rejected;
+      expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+        ethers.parseEther(mintAmount)
+      );
     });
   });
 });

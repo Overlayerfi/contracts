@@ -307,6 +307,8 @@ abstract contract OverlayerWrapCore is
     /// @notice Validate the collateral tokens in an order
     /// @param order_ Order parameters to validate
     /// @dev Reverts if the collateral token is not valid
+    /// @dev Reverts if the collateral amount is not valid
+    /// @dev Given the precision of the collateral and the overlayer wrap, the collateral amount must be scaled to the overlayer wrap amount
     function _validateInputTokens(
         OverlayerWrapCoreTypes.Order calldata order_
     ) internal view {
@@ -315,6 +317,17 @@ abstract contract OverlayerWrapCore is
                 order_.collateral == collateral.addr)
         ) {
             revert OverlayerWrapCoreCollateralNotValid();
+        }
+        uint256 diffDecimals = decimals() -
+            (
+                order_.collateral == aCollateral.addr
+                    ? aCollateral.decimals
+                    : collateral.decimals
+            );
+        uint256 scaledCollateralAmount = order_.collateralAmount *
+            _pow10(diffDecimals);
+        if (scaledCollateralAmount != order_.overlayerWrapAmount) {
+            revert OverlayerWrapCoreInvalidAssetAmounts();
         }
     }
 
@@ -328,8 +341,8 @@ abstract contract OverlayerWrapCore is
         belowMaxMintPerBlock(order_.overlayerWrapAmount)
         onlyHubChain(block.chainid)
     {
-        // Check for wanted source tokens
         _validateInputTokens(order_);
+
         // Add to the minted amount in this block
         mintedPerBlock[block.number] += order_.overlayerWrapAmount;
         _transferCollateral(
@@ -348,7 +361,6 @@ abstract contract OverlayerWrapCore is
         onlyHubChain(block.chainid)
         returns (uint256 amountToBurn, uint256 back)
     {
-        // Check for wanted source tokens
         _validateInputTokens(order_);
 
         (
