@@ -102,8 +102,7 @@ describe("Staked Overlayer Wrap Front", function () {
     const stakedoverlayerWrap = await StakedOverlayerWrap.deploy(
       await overlayerWrap.getAddress(),
       admin.address,
-      admin.address,
-      0
+      admin.address
     );
 
     await stakedoverlayerWrap.connect(admin).setCooldownDuration(172800); // 2 days
@@ -157,11 +156,6 @@ describe("Staked Overlayer Wrap Front", function () {
           adminAddress
         )
       ).to.equal(true);
-    });
-
-    it("Should initialize with zero vesting duration", async function () {
-      const { stakedoverlayerWrap } = await loadFixture(deployFixture);
-      expect(await stakedoverlayerWrap.vestingAmount()).to.equal(0);
     });
   });
 
@@ -427,8 +421,7 @@ describe("Staked Overlayer Wrap Front", function () {
         await stakedoverlayerWrap.previewRedeem(ethers.parseEther("1"))
       ).to.be.lessThan(ethers.parseEther("2.0"));
 
-      //check unvested amount
-      expect(await stakedoverlayerWrap.getUnvestedAmount()).to.equal(0);
+      // vesting removed
 
       await overlayerWrap
         .connect(admin)
