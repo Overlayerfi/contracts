@@ -139,6 +139,22 @@ abstract contract OverlayerWrapCore is
         maxRedeemWhitelist[user_] = status_;
     }
 
+    /// @notice Rescue native tokens (ETH) accidentally sent to this contract
+    /// @param to_ Recipient address
+    /// @param amount_ Amount of native token to transfer
+    function rescueNative(address to_, uint256 amount_)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        if (to_ == address(0)) revert OverlayerWrapCoreInvalidZeroAddress();
+        uint256 bal = address(this).balance;
+        if (amount_ == 0 || amount_ > bal) revert OverlayerWrapCoreInsufficientFunds();
+        (bool ok, ) = payable(to_).call{value: amount_}("");
+        if (!ok) revert OverlayerWrapCoreInsufficientFunds();
+        emit NativeRescued(to_, amount_);
+    }
+
     /// @notice Approve an external spender.
     /// @dev The spender is handled by the CollateralSpenderManager contract
     /// @dev Normally this function is not used as the approval is managed by the acceptance flow
