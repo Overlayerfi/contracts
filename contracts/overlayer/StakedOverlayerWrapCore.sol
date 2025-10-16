@@ -186,7 +186,10 @@ abstract contract StakedOverlayerWrapCore is
         }
         uint256 previous = blacklistActivationTime;
         blacklistActivationTime = time_;
-        emit OvaStakedOverlayerWrapBlackListTimeUpdated(previous, blacklistActivationTime);
+        emit OvaStakedOverlayerWrapBlackListTimeUpdated(
+            previous,
+            blacklistActivationTime
+        );
     }
 
     /**
@@ -205,7 +208,10 @@ abstract contract StakedOverlayerWrapCore is
         }
         uint256 previous = redistributionActivationTime;
         redistributionActivationTime = time_;
-        emit OvaStakedOverlayerWrapRedistributionTimeUpdated(previous, redistributionActivationTime);
+        emit OvaStakedOverlayerWrapRedistributionTimeUpdated(
+            previous,
+            redistributionActivationTime
+        );
     }
 
     /**

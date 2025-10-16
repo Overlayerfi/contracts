@@ -31,7 +31,11 @@ contract OvaDispatcher is Ownable, IDispatcher {
 
     /* ------------- EVENTS ------------- */
     /// @notice Emitted when allocation percentages are updated
-    event OvaDispatcherAllocationsUpdated(uint8 team, uint8 safetyModule, uint8 buyBack);
+    event OvaDispatcherAllocationsUpdated(
+        uint8 team,
+        uint8 safetyModule,
+        uint8 buyBack
+    );
     /// @notice Emitted when team address is updated
     event OvaDispatcherTeamUpdated(address previous, address current);
     /// @notice Emitted when buyback address is updated
@@ -41,7 +45,11 @@ contract OvaDispatcher is Ownable, IDispatcher {
     /// @notice Emitted when tokens are collected to safety module
     event OvaDispatcherCollected(address token, uint256 amount);
     /// @notice Emitted when rewards are dispatched
-    event OvaDispatcherDispatched(uint256 teamAmount, uint256 buyBackAmount, uint256 safetyModuleAmount);
+    event OvaDispatcherDispatched(
+        uint256 teamAmount,
+        uint256 buyBackAmount,
+        uint256 safetyModuleAmount
+    );
 
     /// @notice Percentage of rewards allocated to team (default 10%)
     uint8 public teamAllocation = 10;
@@ -92,7 +100,11 @@ contract OvaDispatcher is Ownable, IDispatcher {
         teamAllocation = teamAlloc_;
         reserveFundModuleAllocation = reserveFundModuleAllocation_;
         buyBackAllocation = buyBackAlloc_;
-        emit OvaDispatcherAllocationsUpdated(teamAllocation, reserveFundModuleAllocation, buyBackAllocation);
+        emit OvaDispatcherAllocationsUpdated(
+            teamAllocation,
+            reserveFundModuleAllocation,
+            buyBackAllocation
+        );
     }
 
     /// @notice Updates team address
@@ -146,6 +158,10 @@ contract OvaDispatcher is Ownable, IDispatcher {
         IERC20(overlayerWrap).safeTransfer(team, teamAmount);
         IERC20(overlayerWrap).safeTransfer(buyBack, buyBackAmount);
         IERC20(overlayerWrap).safeTransfer(safetyModule, safetyModuleAmount);
-        emit OvaDispatcherDispatched(teamAmount, buyBackAmount, safetyModuleAmount);
+        emit OvaDispatcherDispatched(
+            teamAmount,
+            buyBackAmount,
+            safetyModuleAmount
+        );
     }
 }
