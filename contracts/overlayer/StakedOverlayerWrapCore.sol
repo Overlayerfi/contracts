@@ -184,7 +184,9 @@ abstract contract StakedOverlayerWrapCore is
         if (redistributionActivationTime > 0) {
             revert StakedOverlayerWrapCannotBlacklist();
         }
+        uint256 previous = blacklistActivationTime;
         blacklistActivationTime = time_;
+        emit OvaStakedOverlayerWrapBlackListTimeUpdated(previous, blacklistActivationTime);
     }
 
     /**
@@ -201,7 +203,9 @@ abstract contract StakedOverlayerWrapCore is
         if (blacklistActivationTime > 0) {
             revert StakedOverlayerWrapCannotRedistribute();
         }
+        uint256 previous = redistributionActivationTime;
         redistributionActivationTime = time_;
+        emit OvaStakedOverlayerWrapRedistributionTimeUpdated(previous, redistributionActivationTime);
     }
 
     /**
