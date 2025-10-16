@@ -142,14 +142,14 @@ abstract contract OverlayerWrapCore is
     /// @notice Rescue native tokens (ETH) accidentally sent to this contract
     /// @param to_ Recipient address
     /// @param amount_ Amount of native token to transfer
-    function rescueNative(address to_, uint256 amount_)
-        external
-        nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function rescueNative(
+        address to_,
+        uint256 amount_
+    ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
         if (to_ == address(0)) revert OverlayerWrapCoreInvalidZeroAddress();
         uint256 bal = address(this).balance;
-        if (amount_ == 0 || amount_ > bal) revert OverlayerWrapCoreInsufficientFunds();
+        if (amount_ == 0 || amount_ > bal)
+            revert OverlayerWrapCoreInsufficientFunds();
         (bool ok, ) = payable(to_).call{value: amount_}("");
         if (!ok) revert OverlayerWrapCoreInsufficientFunds();
         emit NativeRescued(to_, amount_);
@@ -183,7 +183,10 @@ abstract contract OverlayerWrapCore is
     function proposeMaxRedeemPerBlock(
         uint256 newMaxRedeemPerBlock_
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newMaxRedeemPerBlock_ == 0 || newMaxRedeemPerBlock_ < minValmaxRedeemPerBlock) {
+        if (
+            newMaxRedeemPerBlock_ == 0 ||
+            newMaxRedeemPerBlock_ < minValmaxRedeemPerBlock
+        ) {
             revert OverlayerWrapCoreInvalidMaxRedeemAmount();
         }
         proposedRedeemChangeTime = block.timestamp;

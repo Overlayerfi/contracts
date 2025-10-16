@@ -19,9 +19,15 @@ interface IStakedOverlayerWrap {
     /// @notice Event emitted when the overlayerWrap backing contract is set
     event OverlayerWrapBackingSet(address indexed backing);
     /// @notice Event emitted when the blacklist timestamp is updated
-    event OvaStakedOverlayerWrapBlackListTimeUpdated(uint256 previous, uint256 current);
+    event OvaStakedOverlayerWrapBlackListTimeUpdated(
+        uint256 previous,
+        uint256 current
+    );
     /// @notice Event emitted when the redistribution timestamp is updated
-    event OvaStakedOverlayerWrapRedistributionTimeUpdated(uint256 previous, uint256 current);
+    event OvaStakedOverlayerWrapRedistributionTimeUpdated(
+        uint256 previous,
+        uint256 current
+    );
 
     /// @notice Error emitted shares or assets equal zero.
     error StakedOverlayerWrapInvalidAmount();
