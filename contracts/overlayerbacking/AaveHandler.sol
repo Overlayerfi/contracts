@@ -219,6 +219,7 @@ abstract contract AaveHandler is
         uint256 owTotalSupp = IOverlayerWrap(overlayerWrap).totalSupply();
         if (owTotalSupp < DECIMALS_DIFF_AMOUNT)
             revert AaveHandlerOverlayerWrapTotalSupplyTooLow();
+        // Total supply cannot be less than total supplied usdt as ow token is not burnable
         uint256 normalizedSupply = owTotalSupp / DECIMALS_DIFF_AMOUNT;
         uint256 differenceUsdt = normalizedSupply - totalSuppliedUSDT;
         uint256 minIncrease = Math.min(amountUsdt_, differenceUsdt);

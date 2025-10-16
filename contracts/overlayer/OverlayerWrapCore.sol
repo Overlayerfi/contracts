@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import {OFT} from "@layerzerolabs/oft-evm/contracts/OFT.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -26,7 +25,6 @@ import "./types/OverlayerWrapCoreTypes.sol";
 abstract contract OverlayerWrapCore is
     IOverlayerWrapCoreDefs,
     OFT,
-    ERC20Burnable,
     ERC20Permit,
     CollateralSpenderManager,
     Pausable

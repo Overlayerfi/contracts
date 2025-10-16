@@ -38,6 +38,8 @@ interface IOverlayerWrapDefs is IOverlayerWrapEvents {
     error OverlayerWrapBlacklistNotActive();
     /// @notice Blacklist time not valid
     error OverlayerWrapBlacklistTimeNotValid();
+    /// @notice The benefactor of an operation is not the message sender
+    error OverlayerWrapInvalidBenefactor();
     /// @notice A blacklist event
     event DisableAccount(address account);
     /// @notice A reverted blacklist event
