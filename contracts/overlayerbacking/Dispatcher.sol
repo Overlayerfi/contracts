@@ -29,6 +29,20 @@ contract OvaDispatcher is Ownable, IDispatcher {
     /// @notice Address of the OverlayerWrap token contract
     address public immutable overlayerWrap;
 
+    /* ------------- EVENTS ------------- */
+    /// @notice Emitted when allocation percentages are updated
+    event OvaDispatcherAllocationsUpdated(uint8 team, uint8 safetyModule, uint8 buyBack);
+    /// @notice Emitted when team address is updated
+    event OvaDispatcherTeamUpdated(address previous, address current);
+    /// @notice Emitted when buyback address is updated
+    event OvaDispatcherBuyBackUpdated(address previous, address current);
+    /// @notice Emitted when safety module address is updated
+    event OvaDispatcherSafetyModuleUpdated(address previous, address current);
+    /// @notice Emitted when tokens are collected to safety module
+    event OvaDispatcherCollected(address token, uint256 amount);
+    /// @notice Emitted when rewards are dispatched
+    event OvaDispatcherDispatched(uint256 teamAmount, uint256 buyBackAmount, uint256 safetyModuleAmount);
+
     /// @notice Percentage of rewards allocated to team (default 10%)
     uint8 public teamAllocation = 10;
     /// @notice Percentage of rewards allocated to safety module (default 90%)
@@ -78,6 +92,7 @@ contract OvaDispatcher is Ownable, IDispatcher {
         teamAllocation = teamAlloc_;
         reserveFundModuleAllocation = reserveFundModuleAllocation_;
         buyBackAllocation = buyBackAlloc_;
+        emit OvaDispatcherAllocationsUpdated(teamAllocation, reserveFundModuleAllocation, buyBackAllocation);
     }
 
     /// @notice Updates team address
@@ -86,7 +101,9 @@ contract OvaDispatcher is Ownable, IDispatcher {
         if (team_ == address(0)) {
             revert ZeroAddress();
         }
+        address previous = team;
         team = team_;
+        emit OvaDispatcherTeamUpdated(previous, team);
     }
 
     /// @notice Updates buyback address
@@ -95,7 +112,9 @@ contract OvaDispatcher is Ownable, IDispatcher {
         if (buyBack_ == address(0)) {
             revert ZeroAddress();
         }
+        address previous = buyBack;
         buyBack = buyBack_;
+        emit OvaDispatcherBuyBackUpdated(previous, buyBack);
     }
 
     /// @notice Updates safety module address
@@ -104,7 +123,9 @@ contract OvaDispatcher is Ownable, IDispatcher {
         if (safetyModule_ == address(0)) {
             revert ZeroAddress();
         }
+        address previous = safetyModule;
         safetyModule = safetyModule_;
+        emit OvaDispatcherSafetyModuleUpdated(previous, safetyModule);
     }
 
     /// @notice Collects all tokens of a specific type to the safety module
@@ -112,6 +133,7 @@ contract OvaDispatcher is Ownable, IDispatcher {
     function collect(address token_) external onlyOwner {
         uint256 bal = IERC20(token_).balanceOf(address(this));
         IERC20(token_).safeTransfer(safetyModule, bal);
+        emit OvaDispatcherCollected(token_, bal);
     }
 
     /// @notice Dispatches rewards to team, buyback, and safety module addresses
@@ -124,5 +146,6 @@ contract OvaDispatcher is Ownable, IDispatcher {
         IERC20(overlayerWrap).safeTransfer(team, teamAmount);
         IERC20(overlayerWrap).safeTransfer(buyBack, buyBackAmount);
         IERC20(overlayerWrap).safeTransfer(safetyModule, safetyModuleAmount);
+        emit OvaDispatcherDispatched(teamAmount, buyBackAmount, safetyModuleAmount);
     }
 }
