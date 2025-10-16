@@ -49,8 +49,4 @@ interface IStakedOverlayerWrap {
     /// @param amount Amount of tokens to rescue
     /// @param to Address to receive the rescued tokens
     function rescueTokens(address token, uint256 amount, address to) external;
-
-    /// @notice Returns the current unvested amount
-    /// @return Amount of tokens that are still unvested
-    function getUnvestedAmount() external view returns (uint256);
 }
