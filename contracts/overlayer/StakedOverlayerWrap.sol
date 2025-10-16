@@ -53,21 +53,12 @@ contract StakedOverlayerWrap is
     /// @param asset_ The OverlayerWrap token contract address
     /// @param initialRewarder_ Address authorized to distribute rewards
     /// @param admin_ Contract administrator address
-    /// @param vestingPeriod_ Duration over which rewards are vested
     /// @dev Initializes with maximum cooldown duration and Aave withdrawals enabled
     constructor(
         IERC20 asset_,
         address initialRewarder_,
-        address admin_,
-        uint256 vestingPeriod_
-    )
-        StakedOverlayerWrapCore(
-            asset_,
-            initialRewarder_,
-            admin_,
-            vestingPeriod_
-        )
-    {
+        address admin_
+    ) StakedOverlayerWrapCore(asset_, initialRewarder_, admin_) {
         SILO = new OverlayerWrapSilo(address(this), address(asset_));
         cooldownDuration = MAX_COOLDOWN_DURATION;
         withdrawAaveDuringCompound = true;

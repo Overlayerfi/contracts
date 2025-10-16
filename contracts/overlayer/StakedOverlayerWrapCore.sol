@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "../shared/SingleAdminAccessControl.sol";
 import "./interfaces/IStakedOverlayerWrap.sol";
 
@@ -36,8 +35,6 @@ abstract contract StakedOverlayerWrapCore is
     /// @notice The role which prevents an address to transfer, stake, or unstake. The owner of the contract can redirect address staking balance if an address is in full restricting mode.
     bytes32 private constant WHOLE_RESTRICTED_ROLE =
         keccak256("WHOLE_RESTRICTED_ROLE");
-    /// @notice The vesting period of lastDistributionAmount over which it increasingly becomes available to stakers
-    uint256 private _vestingPeriod;
     /// @notice Minimum non-zero shares amount to prevent donation attack
     uint256 private constant MIN_SHARES = 1 ether;
     /// @notice Time delay for blacklisting to be activated
@@ -46,13 +43,6 @@ abstract contract StakedOverlayerWrapCore is
     uint256 public constant REDISTRIBUTION_ACTIVATION_TIME = 15 days;
 
     /* ------------- STATE VARIABLES ------------- */
-
-    /// @notice The amount of the last asset distribution from the controller contract into this
-    /// contract + any unvested remainder at that time
-    uint256 public vestingAmount;
-
-    /// @notice The timestamp of the last asset distribution from the controller contract into this contract
-    uint256 public lastDistributionTimestamp;
 
     /// @notice The timestamp of the last blacklist activation request
     uint256 public blacklistActivationTime;
@@ -114,13 +104,11 @@ abstract contract StakedOverlayerWrapCore is
      * @param asset_ The address of the OverlayerWrap token.
      * @param initialRewarder_ The address of the initial rewarder.
      * @param admin_ The address of the admin role.
-     * @param vestingPeriod_ The rewards vesting period
      */
     constructor(
         IERC20 asset_,
         address initialRewarder_,
-        address admin_,
-        uint256 vestingPeriod_
+        address admin_
     )
         ERC20("Staked OverlayerWrap", "sOverlayerWrap")
         ERC4626(asset_)
@@ -136,8 +124,6 @@ abstract contract StakedOverlayerWrapCore is
 
         _grantRole(REWARDER_ROLE, initialRewarder_);
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
-
-        _vestingPeriod = vestingPeriod_;
     }
 
     /* ------------- EXTERNAL ------------- */
@@ -149,10 +135,8 @@ abstract contract StakedOverlayerWrapCore is
     function transferInRewards(
         uint256 amount_
     ) external nonReentrant onlyRole(REWARDER_ROLE) notZero(amount_) {
-        _updateVestingAmount(amount_);
         // transfer assets from rewarder to this contract
         IERC20(asset()).safeTransferFrom(msg.sender, address(this), amount_);
-
         emit RewardsReceived(amount_);
     }
 
@@ -279,23 +263,8 @@ abstract contract StakedOverlayerWrapCore is
 
     /* ------------- PUBLIC ------------- */
 
-    /**
-     * @notice Returns the amount of OverlayerWrap tokens that are vested in the contract.
-     */
     function totalAssets() public view override returns (uint256) {
-        uint256 bal = IERC20(asset()).balanceOf(address(this));
-        uint256 unvested = getUnvestedAmount();
-        return bal > unvested ? bal - unvested : 0;
-    }
-
-    /**
-     * @notice Returns the amount of OverlayerWrap tokens that are unvested in the contract.
-     */
-    function getUnvestedAmount() public view returns (uint256) {
-        uint256 elapsed = block.timestamp - lastDistributionTimestamp;
-        if (elapsed >= _vestingPeriod) return 0;
-        uint256 remaining = _vestingPeriod - elapsed;
-        return Math.mulDiv(remaining, vestingAmount, _vestingPeriod);
+        return IERC20(asset()).balanceOf(address(this));
     }
 
     /// @dev Necessary because both ERC20 (from ERC20Permit) and ERC4626 declare decimals()
@@ -373,16 +342,6 @@ abstract contract StakedOverlayerWrapCore is
 
         super._withdraw(caller_, receiver_, sharesOwner_, assets_, shares_);
         _checkMinShares();
-    }
-
-    /// @notice Update vesting amount and timestamp for new rewards distribution
-    /// @param newVestingAmount_ Amount of tokens to vest over time
-    /// @dev Reverts if there are still unvested tokens from previous distribution
-    function _updateVestingAmount(uint256 newVestingAmount_) internal {
-        if (getUnvestedAmount() > 0) revert StakedOverlayerWrapStillVesting();
-
-        vestingAmount = newVestingAmount_;
-        lastDistributionTimestamp = block.timestamp;
     }
 
     /**
