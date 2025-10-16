@@ -120,7 +120,7 @@ contract OverlayerWrap is IOverlayerWrapDefs, OverlayerWrapCore {
         if (msg.sender == order_.benefactor) {
             _burn(msg.sender, toBurn);
         } else {
-            burnFrom(order_.benefactor, toBurn);
+            revert OverlayerWrapInvalidBenefactor();
         }
         emit Redeem(
             msg.sender,

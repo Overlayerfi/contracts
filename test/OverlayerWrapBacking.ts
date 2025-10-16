@@ -324,6 +324,41 @@ describe("OverlayerWrap Backing Protocol", function () {
     });
   });
 
+  describe("Burn/Zero Address Handling", function () {
+    it("Should not treat zero-address transfers as burn in supply accounting", async function () {
+      const {
+        usdt,
+        overlayerWrap,
+        overlayerWrapBacking,
+        alice,
+        initialCollateralAmount
+      } = await loadFixture(deployFixture);
+
+      const amount = "10";
+      const mintOrder = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await usdt.getAddress(),
+        collateralAmount: ethers.parseUnits(amount, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount)
+      };
+
+      await overlayerWrap.connect(alice).mint(mintOrder);
+      await overlayerWrap.connect(alice).supplyToBacking(0, 0);
+
+      const suppliedBefore = await overlayerWrapBacking.totalSuppliedUSDT();
+
+      await expect(
+        overlayerWrap
+          .connect(alice)
+          .transfer(ethers.ZeroAddress, ethers.parseEther("1"))
+      ).to.be.eventually.rejected;
+
+      const suppliedAfter = await overlayerWrapBacking.totalSuppliedUSDT();
+      expect(suppliedAfter).to.equal(suppliedBefore);
+    });
+  });
+
   describe("Multi-Asset Operations", function () {
     it("Should handle minting and redemption with multiple collateral types", async function () {
       const {
