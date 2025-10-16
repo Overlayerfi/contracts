@@ -128,6 +128,35 @@ describe("OverlayerWrap", function () {
     });
   });
 
+  describe("Native Token Rescue", function () {
+    it("Should rescue native tokens by admin and emit event", async function () {
+      const { overlayerWrap, admin, alice } = await loadFixture(deployFixture);
+
+      // fund contract with 1 ETH
+      await admin.sendTransaction({ to: await overlayerWrap.getAddress(), value: ethers.parseEther("1") });
+      const before = await admin.provider.getBalance(await overlayerWrap.getAddress());
+      expect(before).to.equal(ethers.parseEther("1"));
+
+      const adminBalBefore = await admin.provider.getBalance(await admin.getAddress());
+      const tx = await (overlayerWrap as any)
+        .connect(admin)
+        .rescueNative(await admin.getAddress(), ethers.parseEther("0.4"));
+      await expect(tx).to.emit(overlayerWrap, "NativeRescued");
+
+      const contractBalAfter = await admin.provider.getBalance(
+        await overlayerWrap.getAddress()
+      );
+      expect(contractBalAfter).to.equal(ethers.parseEther("0.6"));
+
+      // Non-admin cannot call
+      await expect(
+        (overlayerWrap as any)
+          .connect(alice)
+          .rescueNative(await admin.getAddress(), 1)
+      ).to.be.eventually.rejected;
+    });
+  });
+
   describe("Protocol Security Controls", function () {
     it("Should implement emergency protocol pause", async function () {
       const { overlayerWrap, admin, collateral } = await loadFixture(
