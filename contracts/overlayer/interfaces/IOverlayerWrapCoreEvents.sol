@@ -74,4 +74,7 @@ interface IOverlayerWrapCoreEvents {
 
     /// @notice Event emitted when a new maxRedeemPerBlock is proposed
     event ProposedMaxRedeemPerBlock(uint256 newValue, uint256 proposedAt);
+
+    /// @notice Emitted when native tokens are rescued from the contract
+    event NativeRescued(address indexed to, uint256 amount);
 }
