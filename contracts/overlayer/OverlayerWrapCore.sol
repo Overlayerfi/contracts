@@ -183,7 +183,7 @@ abstract contract OverlayerWrapCore is
     function proposeMaxRedeemPerBlock(
         uint256 newMaxRedeemPerBlock_
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newMaxRedeemPerBlock_ == 0) {
+        if (newMaxRedeemPerBlock_ == 0 || newMaxRedeemPerBlock_ < minValmaxRedeemPerBlock) {
             revert OverlayerWrapCoreInvalidMaxRedeemAmount();
         }
         proposedRedeemChangeTime = block.timestamp;
