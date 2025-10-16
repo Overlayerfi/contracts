@@ -32,11 +32,7 @@ abstract contract OverlayerWrapCollateral is SingleAdminAccessControl {
             revert CollateralInvalidZeroAddress();
         if (aCollateral_.decimals == 0) revert CollateralInvalidDecimals();
 
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-
-        if (msg.sender != admin_) {
-            _grantRole(DEFAULT_ADMIN_ROLE, admin_);
-        }
+        _grantRole(DEFAULT_ADMIN_ROLE, admin_);
 
         collateral = collateral_;
         aCollateral = aCollateral_;
