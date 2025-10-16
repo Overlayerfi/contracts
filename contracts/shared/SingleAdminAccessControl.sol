@@ -36,6 +36,7 @@ abstract contract SingleAdminAccessControl is
     function acceptAdmin() external {
         if (msg.sender != _pendingDefaultAdmin) revert NotPendingAdmin();
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        delete _pendingDefaultAdmin;
     }
 
     /// @notice Grant a role
