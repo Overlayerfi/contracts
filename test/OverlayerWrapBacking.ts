@@ -116,8 +116,7 @@ describe("OverlayerWrap Backing Protocol", function () {
     const sOverlayerWrap = await StakedOverlayerWrap.deploy(
       await overlayerWrap.getAddress(),
       admin.address,
-      admin.address,
-      0
+      admin.address
     );
 
     await sOverlayerWrap.connect(admin).setCooldownDuration(0); // 0 days
