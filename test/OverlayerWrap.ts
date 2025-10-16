@@ -133,11 +133,18 @@ describe("OverlayerWrap", function () {
       const { overlayerWrap, admin, alice } = await loadFixture(deployFixture);
 
       // fund contract with 1 ETH
-      await admin.sendTransaction({ to: await overlayerWrap.getAddress(), value: ethers.parseEther("1") });
-      const before = await admin.provider.getBalance(await overlayerWrap.getAddress());
+      await admin.sendTransaction({
+        to: await overlayerWrap.getAddress(),
+        value: ethers.parseEther("1")
+      });
+      const before = await admin.provider.getBalance(
+        await overlayerWrap.getAddress()
+      );
       expect(before).to.equal(ethers.parseEther("1"));
 
-      const adminBalBefore = await admin.provider.getBalance(await admin.getAddress());
+      const adminBalBefore = await admin.provider.getBalance(
+        await admin.getAddress()
+      );
       const tx = await (overlayerWrap as any)
         .connect(admin)
         .rescueNative(await admin.getAddress(), ethers.parseEther("0.4"));
