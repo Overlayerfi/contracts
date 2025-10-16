@@ -118,9 +118,10 @@ abstract contract AaveHandler is
         usdt = usdt_;
         aUsdt = aUsdt_;
 
-        approveAave(type(uint256).max);
-        approveStakingOverlayerWrap(type(uint256).max);
-        approveOverlayerWrap(type(uint256).max);
+        IERC20(usdt).forceApprove(aave, type(uint256).max);
+        IERC20(overlayerWrap).forceApprove(sOverlayerWrap, type(uint256).max);
+        IERC20(usdt).forceApprove(overlayerWrap, type(uint256).max);
+        IERC20(aUsdt).forceApprove(overlayerWrap, type(uint256).max);
     }
 
     //########################################## EXTERNAL FUNCTIONS ##########################################
