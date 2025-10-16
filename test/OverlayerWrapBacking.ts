@@ -1226,6 +1226,34 @@ describe("OverlayerWrap Backing Protocol", function () {
         await ausdt.balanceOf(await overlayerWrap.getAddress())
       ).to.be.greaterThan(0);
     });
+
+    it("Should not change totalSuppliedUSDT on compound", async function () {
+      const { usdt, overlayerWrap, overlayerWrapBacking, admin } =
+        await loadFixture(deployFixture);
+
+      const amount = "100";
+      const order = {
+        benefactor: admin.address,
+        beneficiary: admin.address,
+        collateral: await usdt.getAddress(),
+        collateralAmount: ethers.parseUnits(amount, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(amount)
+      };
+
+      await overlayerWrap.connect(admin).mint(order);
+      await overlayerWrap.connect(admin).supplyToBacking(0, 0);
+
+      const before = await overlayerWrapBacking.totalSuppliedUSDT();
+
+      await time.increase(60 * 60 * 24 * 7);
+      await overlayerWrapBacking.connect(admin).compound(true);
+
+      let after = await overlayerWrapBacking.totalSuppliedUSDT();
+      expect(after).to.equal(before);
+      await overlayerWrap.connect(admin).supplyToBacking(0, 0);
+      after = await overlayerWrapBacking.totalSuppliedUSDT();
+      expect(after).to.not.equal(before);
+    });
   });
 
   describe("Emergency Operations", function () {
