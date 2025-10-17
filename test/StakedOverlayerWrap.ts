@@ -167,14 +167,21 @@ describe("Staked Overlayer Wrap Front", function () {
 
       const contractAddr = await stakedoverlayerWrap.getAddress();
       // fund contract with 1 ETH
-      await admin.sendTransaction({ to: contractAddr, value: ethers.parseEther("1") });
+      await admin.sendTransaction({
+        to: contractAddr,
+        value: ethers.parseEther("1")
+      });
       const before = await admin.provider.getBalance(contractAddr);
       expect(before).to.equal(ethers.parseEther("1"));
 
       // rescue 0.4 ETH to admin
       await (stakedoverlayerWrap as any)
         .connect(admin)
-        .rescue(ethers.ZeroAddress, ethers.parseEther("0.4"), await admin.getAddress());
+        .rescue(
+          ethers.ZeroAddress,
+          ethers.parseEther("0.4"),
+          await admin.getAddress()
+        );
 
       const after = await admin.provider.getBalance(contractAddr);
       expect(after).to.equal(ethers.parseEther("0.6"));

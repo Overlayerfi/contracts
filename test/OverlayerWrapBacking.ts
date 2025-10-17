@@ -1405,9 +1405,7 @@ describe("OverlayerWrap Backing Protocol", function () {
 
       // Admin withdraw (collect yield/emergency funds); should update accounting
       await overlayerWrapBacking.connect(admin).adminWithdraw(0);
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.equal(
-        0
-      );
+      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.equal(0);
 
       // Collateral returned to OverlayerWrap equals expected principal amount
       const owAddr = await overlayerWrap.getAddress();
