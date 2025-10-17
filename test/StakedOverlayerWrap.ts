@@ -13,7 +13,7 @@ describe("Staked Overlayer Wrap Front", function () {
     const [admin, alice, bob] = await ethers.getSigners();
 
     const block = await admin.provider.getBlock("latest");
-    const baseFee = block.baseFeePerGas;
+    const baseFee = block?.baseFeePerGas ?? 1n;
     const defaultTransactionOptions = {
       maxFeePerGas: baseFee * BigInt(10)
     };
@@ -99,7 +99,7 @@ describe("Staked Overlayer Wrap Front", function () {
     const StakedOverlayerWrap = await ethers.getContractFactory(
       "StakedOverlayerWrap"
     );
-    const stakedoverlayerWrap = await StakedOverlayerWrap.deploy(
+    const stakedoverlayerWrap = await (StakedOverlayerWrap as any).deploy(
       await overlayerWrap.getAddress(),
       admin.address,
       admin.address
@@ -156,6 +156,35 @@ describe("Staked Overlayer Wrap Front", function () {
           adminAddress
         )
       ).to.equal(true);
+    });
+  });
+
+  describe("Native Token Rescue", function () {
+    it("Should receive ETH and allow admin to rescue it", async function () {
+      const { stakedoverlayerWrap, admin, alice } = await loadFixture(
+        deployFixture
+      );
+
+      const contractAddr = await stakedoverlayerWrap.getAddress();
+      // fund contract with 1 ETH
+      await admin.sendTransaction({ to: contractAddr, value: ethers.parseEther("1") });
+      const before = await admin.provider.getBalance(contractAddr);
+      expect(before).to.equal(ethers.parseEther("1"));
+
+      // rescue 0.4 ETH to admin
+      await (stakedoverlayerWrap as any)
+        .connect(admin)
+        .rescue(ethers.ZeroAddress, ethers.parseEther("0.4"), await admin.getAddress());
+
+      const after = await admin.provider.getBalance(contractAddr);
+      expect(after).to.equal(ethers.parseEther("0.6"));
+
+      // Non-admin cannot call
+      await expect(
+        (stakedoverlayerWrap as any)
+          .connect(alice)
+          .rescue(ethers.ZeroAddress, 1, await admin.getAddress())
+      ).to.be.eventually.rejected;
     });
   });
 
