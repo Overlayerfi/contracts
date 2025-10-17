@@ -341,6 +341,7 @@ abstract contract OverlayerWrapCore is
                     ? aCollateral.decimals
                     : collateral.decimals
             );
+        // It's wanted that dust amounts of overlayerWrap are not validated
         uint256 scaledCollateralAmount = order_.collateralAmount *
             _pow10(diffDecimals);
         if (scaledCollateralAmount != order_.overlayerWrapAmount) {
@@ -410,7 +411,7 @@ abstract contract OverlayerWrapCore is
 
     function _pow10(uint256 n) internal pure returns (uint256 r) {
         // 10**77 < 2^256; 78 would overflow
-        if (n > 77) revert OverlayerWrapCoreInvalidDecimals();
+        if (n > 77) revert OverlayerWrapCoreOverflow();
         return 10 ** n;
     }
 
