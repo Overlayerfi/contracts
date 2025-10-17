@@ -227,21 +227,34 @@ abstract contract StakedOverlayerWrapCore is
     }
 
     /**
-     * @notice Allows the owner to rescue tokens accidentally sent to the contract.
-     * Note that the owner cannot rescue OverlayerWrap tokens because they functionally sit here
-     * and belong to stakers but can rescue staked OverlayerWrap as they should never actually
-     * sit in this contract and a staker may well transfer them here by accident.
-     * @param token_ The token to be rescued.
-     * @param amount_ The amount of tokens to be rescued.
-     * @param to_ Where to send rescued tokens
+     * @notice Fallback function to receive ether
      */
-    function rescueTokens(
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
+    }
+
+    /**
+     * @notice Rescue assets accidentally sent to the contract (native or ERC20).
+     * @param token_ Address of the token to rescue, or address(0) for native.
+     * @param amount_ Amount to rescue.
+     * @param to_ Recipient address.
+     */
+    function rescue(
         address token_,
         uint256 amount_,
         address to_
     ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (address(token_) == asset())
-            revert StakedOverlayerWrapInvalidToken();
+        if (to_ == address(0)) revert StakedOverlayerWrapInvalidZeroAddress();
+        if (token_ == address(0)) {
+            uint256 bal = address(this).balance;
+            if (amount_ == 0 || amount_ > bal)
+                revert StakedOverlayerWrapInvalidAmount();
+            (bool ok, ) = payable(to_).call{value: amount_}("");
+            if (!ok) revert StakedOverlayerWrapRescueFailed();
+            emit NativeRescued(to_, amount_);
+            return;
+        }
+        if (token_ == asset()) revert StakedOverlayerWrapInvalidToken();
         IERC20(token_).safeTransfer(to_, amount_);
     }
 

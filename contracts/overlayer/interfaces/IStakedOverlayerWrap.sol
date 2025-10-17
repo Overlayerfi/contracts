@@ -6,6 +6,10 @@ pragma solidity ^0.8.20;
 interface IStakedOverlayerWrap {
     /// @notice Event emitted when the rewards are received
     event RewardsReceived(uint256 amount);
+    /// @notice Event emitted when the contract receives ETH
+    event Received(address indexed sender, uint256 amount);
+    /// @notice Event emitted when native tokens are rescued from the contract
+    event NativeRescued(address indexed to, uint256 amount);
     /// @notice Event emitted when the balance from an WHOLE_RESTRICTED_ROLE user are redistributed
     event LockedAmountRedistributed(
         address indexed from,
@@ -49,6 +53,8 @@ interface IStakedOverlayerWrap {
     error StakedOverlayerWrapCannotRedistribute();
     /// @notice Error emitted when blakclist time is not valid
     error StakedOverlayerWrapInvalidTime();
+    /// @notice Error emitted when native asset rescue call fails
+    error StakedOverlayerWrapRescueFailed();
 
     /// @notice Transfers rewards to the staking contract
     /// @param amount Amount of rewards to transfer
@@ -58,5 +64,5 @@ interface IStakedOverlayerWrap {
     /// @param token Address of the token to rescue
     /// @param amount Amount of tokens to rescue
     /// @param to Address to receive the rescued tokens
-    function rescueTokens(address token, uint256 amount, address to) external;
+    function rescue(address token, uint256 amount, address to) external;
 }
