@@ -1336,4 +1336,85 @@ describe("OverlayerWrap Backing Protocol", function () {
       );
     });
   });
+
+  describe("Admin Withdraw Accounting", function () {
+    it("Should preserve accounting after chained mint/redeem, supply and adminWithdraw", async function () {
+      const {
+        usdt,
+        ausdt,
+        overlayerWrap,
+        overlayerWrapBacking,
+        admin,
+        alice,
+        bob,
+        initialCollateralAmount
+      } = await loadFixture(deployFixture);
+
+      // Mint sequence
+      const a1 = "40";
+      const a2 = "25";
+      const orderA1 = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await usdt.getAddress(),
+        collateralAmount: ethers.parseUnits(a1, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(a1)
+      };
+      const orderA2 = {
+        benefactor: bob.address,
+        beneficiary: bob.address,
+        collateral: await usdt.getAddress(),
+        collateralAmount: ethers.parseUnits(a2, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(a2)
+      };
+      await overlayerWrap.connect(alice).mint(orderA1);
+      await overlayerWrap.connect(alice).supplyToBacking(0, 0);
+      await overlayerWrap.connect(bob).mint(orderA2);
+      await overlayerWrap.connect(bob).supplyToBacking(0, 0);
+
+      // Redeem sequence
+      const r1 = "10";
+      const r2 = "5";
+      const redeemA1 = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await usdt.getAddress(),
+        collateralAmount: ethers.parseUnits(r1, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(r1)
+      };
+      const redeemA2 = {
+        benefactor: bob.address,
+        beneficiary: bob.address,
+        collateral: await usdt.getAddress(),
+        collateralAmount: ethers.parseUnits(r2, await usdt.decimals()),
+        overlayerWrapAmount: ethers.parseEther(r2)
+      };
+      await overlayerWrap.connect(alice).redeem(redeemA1);
+      await overlayerWrap.connect(alice).supplyToBacking(0, 0);
+      await overlayerWrap.connect(bob).redeem(redeemA2);
+      await overlayerWrap.connect(bob).supplyToBacking(0, 0);
+
+      // Expected totalSuppliedUSDT = initial + a1 + a2 - r1 - r2
+      const expectedTSU = ethers.parseUnits(
+        (+initialCollateralAmount + +a1 + +a2 - +r1 - +r2).toFixed(2),
+        await usdt.decimals()
+      );
+      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.equal(
+        expectedTSU
+      );
+
+      // Admin withdraw (collect yield/emergency funds); should update accounting
+      await overlayerWrapBacking.connect(admin).adminWithdraw(0);
+      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.equal(
+        0
+      );
+
+      // Collateral returned to OverlayerWrap equals expected principal amount
+      const owAddr = await overlayerWrap.getAddress();
+      const owUsdt = await usdt.balanceOf(owAddr);
+      const owAusdt = await ausdt.balanceOf(owAddr);
+      const owTotalNormalized = owUsdt + owAusdt; // both 6 decimals
+      expect(owTotalNormalized).to.equal(expectedTSU);
+    });
+  });
 });
