@@ -14,6 +14,9 @@ interface IOverlayerWrapCoreDefs is IOverlayerWrapCoreEvents {
     /// @notice Thrown when token decimals are invalid (e.g., zero)
     error OverlayerWrapCoreInvalidDecimals();
 
+    /// @notice Thrown when an arithmetic operation overflows
+    error OverlayerWrapCoreOverflow();
+
     /// @notice Thrown when the provided asset amounts do not match the required parameters
     error OverlayerWrapCoreInvalidAssetAmounts();
 
