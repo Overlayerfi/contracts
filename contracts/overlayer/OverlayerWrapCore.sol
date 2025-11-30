@@ -305,15 +305,20 @@ abstract contract OverlayerWrapCore is
         if (aCollateral_.decimals > decimals()) {
             revert OverlayerWrapCoreInvalidDecimals();
         }
-        if (
-            IERC20Metadata(collateral.addr).decimals() != collateral_.decimals
-        ) {
-            revert OverlayerWrapCoreInvalidDecimals();
-        }
-        if (
-            IERC20Metadata(aCollateral.addr).decimals() != aCollateral.decimals
-        ) {
-            revert OverlayerWrapCoreInvalidDecimals();
+        // collateral and aCollateral addresses are valid only on the hub chain
+        if (hubChainId == block.chainid) {
+            if (
+                IERC20Metadata(collateral.addr).decimals() !=
+                collateral_.decimals
+            ) {
+                revert OverlayerWrapCoreInvalidDecimals();
+            }
+            if (
+                IERC20Metadata(aCollateral.addr).decimals() !=
+                aCollateral.decimals
+            ) {
+                revert OverlayerWrapCoreInvalidDecimals();
+            }
         }
         // Set the max mint/redeem limits per block
         _setMaxMintPerBlock(maxMintPerBlock_);
