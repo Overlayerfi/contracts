@@ -49,8 +49,15 @@ const mockLp = "0x1Ac7E198685e53cCc3599e1656E48Dd7E278EbbE";
 const signerAddr = "0x1b4b7eD919416550457d142E54e7f98583E4B018";
 
 // Pre-deployed OFT Contracts
-const oftOverlayerWrapAddr = "0xEac6CF272E777864C0B9f6491ECb1821f9A822aB";
-const stakedOverlayerWrapAddr = "0xE65D83e2B771D094d37f81831eC2A46Bae3e9109";
+const oftOverlayerWrapAddr = "0x919CbEEce48DE3f3FA1Ec8837d461cB7Dd8F97a6";
+const stakedOverlayerWrapAddr = "0x979B46fDdC877b25B5262c1b8C93E4c20525A9Ca";
+
+/**
+ * Helper function to get current ISO timestamp for logging
+ */
+function getTimestamp(): string {
+  return new Date().toISOString();
+}
 
 /**
  * Deploy all contracts for Sepolia testnet
@@ -61,10 +68,10 @@ const stakedOverlayerWrapAddr = "0xE65D83e2B771D094d37f81831eC2A46Bae3e9109";
 async function main() {
   try {
     const admin = await ethers.getSigner(signerAddr);
-    console.log("[main] Signer address:", admin.address);
+    console.log(`[${getTimestamp()}] Signer address:`, admin.address);
 
     const latestTime: number = Math.floor(new Date().getTime() / 1000);
-    console.log(`[main] Starting pools timestamp: ${latestTime}`);
+    console.log(`[${getTimestamp()}] Starting pools timestamp: ${latestTime}`);
 
     const defaultTransactionOptions = {
       gasLimit: 2000000
@@ -75,10 +82,10 @@ async function main() {
     const sOverlayerWrapAddr = stakedOverlayerWrapAddr;
 
     console.log(
-      `[main] Using deployed OverlayerWrapped: ${oftOverlayerWrapAddr}`
+      `[${getTimestamp()}] Using deployed OverlayerWrapped: ${oftOverlayerWrapAddr}`
     );
     console.log(
-      `[main] Using deployed OverlayerWrapped: ${stakedOverlayerWrapAddr}`
+      `[${getTimestamp()}] Using deployed OverlayerWrapped: ${stakedOverlayerWrapAddr}`
     );
 
     // 2. Deploy airdrop points (also referral contract)
@@ -128,7 +135,7 @@ async function main() {
     );
     let receipt = await tx.wait();
     console.log(
-      "[main] Airdrop::reward minter set to:",
+      `[${getTimestamp()}] Airdrop::reward minter set to:`,
       singleStableStakeAddr,
       "hash =",
       tx.hash
@@ -139,7 +146,7 @@ async function main() {
     );
     receipt = await tx.wait();
     console.log(
-      "[main] Airdrop::reward minter set to:",
+      `[${getTimestamp()}] Airdrop::reward minter set to:`,
       singleStableStakePremiumAddr,
       "hash =",
       tx.hash
@@ -150,7 +157,7 @@ async function main() {
     );
     receipt = await tx.wait();
     console.log(
-      "[main] Airdrop::reward minter set to:",
+      `[${getTimestamp()}] Airdrop::reward minter set to:`,
       curveStableStakeCrvAddr,
       "hash =",
       tx.hash
@@ -183,7 +190,7 @@ async function main() {
     );
     // Mock LP token with predeployed address (represents Collateral-OverlayerWrap LP)
     const endTimeStamp = latestTime + 60 * 60 * 24 * 30 * 12; //12 months
-    console.log(`[main] Ending pools timestamp: ${endTimeStamp}`);
+    console.log(`[${getTimestamp()}] Ending pools timestamp: ${endTimeStamp}`);
     await SingleStableStake_addPool(
       curveStableStakeCrvContract,
       admin,
@@ -305,7 +312,9 @@ async function main() {
     );
     receipt = await tx.wait();
     console.log(
-      `[main] Approved deployer OverlayerWrap to StakedOverlayerWrap hash = ${tx.hash}`
+      `[${getTimestamp()}] Approved deployer OverlayerWrap to StakedOverlayerWrap hash = ${
+        tx.hash
+      }`
     );
     await StakedOverlayerWrap_deposit(sOverlayerWrapAddr, "1", admin.address);
 
@@ -331,7 +340,7 @@ async function main() {
       ovaReferralAddress
     );
   } catch (err) {
-    console.error("[main] Batch deployment failed ->", err);
+    console.error(`[${getTimestamp()}] Batch deployment failed ->`, err);
   }
 }
 
