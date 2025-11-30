@@ -25,22 +25,39 @@ import { getContractAddress } from "@ethersproject/address";
 import {
   USDT_SEPOLIA_ADDRESS,
   AUSDT_SEPOLIA_ADDRESS,
-  AAVE_POOL_V3_SEPOLIA_ADDRESS
+  AAVE_POOL_V3_SEPOLIA_ADDRESS,
+  EURS_SEPOLIA_ADDRESS,
+  AEURS_SEPOLIA_ADDRESS
 } from "../addresses";
+import { SEPOLIA_TOKEN_DECIMALS } from "../constants";
 
+//########################################## CONFIGURATION ##########################################
+
+const COLLATERAL_ADDRESS = EURS_SEPOLIA_ADDRESS;
+const ACOLLATERAL_ADDRESS = AEURS_SEPOLIA_ADDRESS;
+const DECIMALS = SEPOLIA_TOKEN_DECIMALS.EURS;
+
+// Admin & Team Addresses
 const AIRDROP_POOLS_REWARD_TOKEN_ADMIN =
   "0x1b4b7eD919416550457d142E54e7f98583E4B018";
 const AIRDROP_POOLS_ADMIN = "0x1b4b7eD919416550457d142E54e7f98583E4B018";
 const OVA_SEPOLIA_RESERVE_FUND = "0x7bE51020c8c6a9153B3C8688410d201bbbb27fB9";
 const OVA_SEPOLIA_TEAM = "0x4b05A19E5b50498fe94d9F7A7c8362f5ACc457b1";
 
+// Mock LP and Signer
 const mockLp = "0x1Ac7E198685e53cCc3599e1656E48Dd7E278EbbE";
 const signerAddr = "0x1b4b7eD919416550457d142E54e7f98583E4B018";
 
+// Pre-deployed OFT Contracts
 const oftOverlayerWrapAddr = "0xEac6CF272E777864C0B9f6491ECb1821f9A822aB";
 const stakedOverlayerWrapAddr = "0xE65D83e2B771D094d37f81831eC2A46Bae3e9109";
 
-// Curve pools are mocked by using single token pools
+/**
+ * Deploy all contracts for Sepolia testnet
+ *
+ * Collateral Configuration: Update COLLATERAL_ADDRESS and ACOLLATERAL_ADDRESS at the top
+ * to deploy with different collateral tokens (USDT, EURS, USDC, etc.)
+ */
 async function main() {
   try {
     const admin = await ethers.getSigner(signerAddr);
@@ -164,7 +181,7 @@ async function main() {
       1,
       2
     );
-    // Fake USDT-USDT+ LP with predeployed token
+    // Mock LP token with predeployed address (represents Collateral-OverlayerWrap LP)
     const endTimeStamp = latestTime + 60 * 60 * 24 * 30 * 12; //12 months
     console.log(`[main] Ending pools timestamp: ${endTimeStamp}`);
     await SingleStableStake_addPool(
@@ -210,10 +227,10 @@ async function main() {
       overlayerWrapAddr
     );
 
-    // 8. Remove cool down from sUSDO
+    // 8. Remove cool down from Staked OverlayerWrap
     await StakedOverlayerWrap_setCooldownStaking(sOverlayerWrapAddr, 0); // None
 
-    // 9. Grant role in USDO
+    // 9. Grant collateral manager role in OverlayerWrap
     await grantRole(
       overlayerWrapAddr,
       OverlayerWrap_ABI.abi,
@@ -222,37 +239,39 @@ async function main() {
       2
     );
 
-    // 10. Deploy and propose the USDO collateral spender (the backing contract)
-    const USDOBackingNonce = (await admin.getNonce()) + 1;
+    // 10. Deploy and propose the OverlayerWrap collateral spender (the backing contract)
+    const OverlayerWrapBackingNonce = (await admin.getNonce()) + 1;
     const futureAddress = getContractAddress({
       from: admin.address,
-      nonce: USDOBackingNonce
+      nonce: OverlayerWrapBackingNonce
     });
     await OverlayerWrap_proposeNewCollateralSpender(
       overlayerWrapAddr,
       futureAddress
     );
-    const usdobackingAddr = await deploy_OverlayerWrapBacking(
+    const overlayerWrapBackingAddr = await deploy_OverlayerWrapBacking(
       admin.address,
       dispatcherAddress,
       overlayerWrapAddr,
       sOverlayerWrapAddr,
       AAVE_POOL_V3_SEPOLIA_ADDRESS,
-      USDT_SEPOLIA_ADDRESS,
-      AUSDT_SEPOLIA_ADDRESS
+      COLLATERAL_ADDRESS,
+      ACOLLATERAL_ADDRESS
     );
 
-    if (futureAddress !== usdobackingAddr) {
-      throw new Error("The predicted USDOBacking address is not valid");
+    if (futureAddress !== overlayerWrapBackingAddr) {
+      throw new Error(
+        "The predicted OverlayerWrapBacking address is not valid"
+      );
     }
 
-    const usdobackingContract = new ethers.Contract(
-      usdobackingAddr,
+    const overlayerWrapBackingContract = new ethers.Contract(
+      overlayerWrapBackingAddr,
       OverlayerWrapBacking_ABI.abi,
       admin
     );
     tx = await (
-      usdobackingContract.connect(admin) as Contract
+      overlayerWrapBackingContract.connect(admin) as Contract
     ).acceptCollateralSpender(defaultTransactionOptions);
     receipt = await tx.wait();
 
@@ -261,31 +280,33 @@ async function main() {
       sOverlayerWrapAddr,
       SOverlayerWrap_ABI.abi,
       "REWARDER_ROLE",
-      usdobackingAddr,
+      overlayerWrapBackingAddr,
       2
     );
 
-    // 12. Mint and stake initial USDO
+    // 12. Mint and stake initial OverlayerWrap with configured collateral
     const order = {
       benefactor: admin.address,
       beneficiary: admin.address,
-      collateral: USDT_SEPOLIA_ADDRESS,
-      collateralAmount: ethers.parseUnits("1", 6),
+      collateral: COLLATERAL_ADDRESS,
+      collateralAmount: ethers.parseUnits("1", DECIMALS),
       overlayerWrapAmount: ethers.parseEther("1")
     };
     await OverlayerWrap_mint(overlayerWrapAddr, order);
-    const usdoContract = new ethers.Contract(
+    const overlayerWrapContract = new ethers.Contract(
       overlayerWrapAddr,
       OverlayerWrap_ABI.abi,
       admin
     );
-    tx = await (usdoContract.connect(admin) as Contract).approve(
+    tx = await (overlayerWrapContract.connect(admin) as Contract).approve(
       sOverlayerWrapAddr,
       ethers.MaxUint256,
       defaultTransactionOptions
     );
     receipt = await tx.wait();
-    console.log(`[main] Approved deployer USDO to sUSDO hash = ${tx.hash}`);
+    console.log(
+      `[main] Approved deployer OverlayerWrap to StakedOverlayerWrap hash = ${tx.hash}`
+    );
     await StakedOverlayerWrap_deposit(sOverlayerWrapAddr, "1", admin.address);
 
     // 13. Set staking pools inside the referral contract
