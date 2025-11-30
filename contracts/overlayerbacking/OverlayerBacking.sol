@@ -16,10 +16,10 @@ contract OverlayerWrapBacking is AaveHandler, IOverlayerWrapBackingDefs {
 
     //########################################## MODIFIERS ##########################################
 
-    /// @notice Ensures the asset is not a protocol-managed token (USDT/aUSDT)
+    /// @notice Ensures the asset is not a protocol-managed token (collateral/aCollateral)
     /// @param asset_ Address of the token to check
     modifier notProtocolAssets(address asset_) {
-        if (asset_ == usdt || asset_ == aUsdt)
+        if (asset_ == collateral || asset_ == aCollateral)
             revert OverlayerWrapBackingOperationNotAllowed();
         _;
     }
@@ -31,8 +31,8 @@ contract OverlayerWrapBacking is AaveHandler, IOverlayerWrapBackingDefs {
      * @param overlayerWrap_ The address of the OverlayerWrap token contract.
      * @param sOverlayerWrap_ The address of the Staked OverlayerWrap contract.
      * @param aave_ The address of the Aave protocol contract.
-     * @param usdt_ The address of the USDT token contract.
-     * @param aUsdt_ The address of the aUSDT (Aave interest-bearing USDT) token contract.
+     * @param collateral_ The address of the collateral token contract.
+     * @param aCollateral_ The address of the aToken (Aave interest-bearing collateral) token contract.
      * @dev This constructor sets up the contract and passes all parameters to the AaveHandler base contract.
      */
     constructor(
@@ -41,8 +41,8 @@ contract OverlayerWrapBacking is AaveHandler, IOverlayerWrapBackingDefs {
         address overlayerWrap_,
         address sOverlayerWrap_,
         address aave_,
-        address usdt_,
-        address aUsdt_
+        address collateral_,
+        address aCollateral_
     )
         AaveHandler(
             admin_,
@@ -50,8 +50,8 @@ contract OverlayerWrapBacking is AaveHandler, IOverlayerWrapBackingDefs {
             overlayerWrap_,
             sOverlayerWrap_,
             aave_,
-            usdt_,
-            aUsdt_
+            collateral_,
+            aCollateral_
         )
     {}
 

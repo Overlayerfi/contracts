@@ -31,6 +31,9 @@ interface IAaveHandlerDefs {
     /// @notice Error thrown when invalid collateral is provided
     error AaveHandlerInvalidCollateral();
 
+    /// @notice Error thrown when collateral decimals are invalid
+    error AaveHandlerInvalidDecimals();
+
     /// @notice Error thrown when balance is insufficient for operation
     error AaveHandlerInsufficientBalance();
 
