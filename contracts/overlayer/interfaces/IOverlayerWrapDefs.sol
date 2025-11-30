@@ -9,6 +9,7 @@ import "../types/OverlayerWrapCoreTypes.sol";
 interface IOverlayerWrapDefs is IOverlayerWrapEvents {
     /// @notice Parameters required for constructing the Overlayer Wrap contract
     /// @param admin Address of the contract administrator
+    /// @param lzEndpoint LayerZero endpoint address
     /// @param name Token name
     /// @param symbol Token symbol
     /// @param collateral Stablecoin used as collateral
