@@ -306,7 +306,7 @@ abstract contract OverlayerWrapCore is
             revert OverlayerWrapCoreInvalidDecimals();
         }
         // collateral and aCollateral addresses are valid only on the hub chain
-        if (hubChainId == block.chainid) {
+        if (hubChainId_ == block.chainid) {
             if (
                 IERC20Metadata(collateral.addr).decimals() !=
                 collateral_.decimals
