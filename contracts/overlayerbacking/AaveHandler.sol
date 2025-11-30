@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -29,10 +30,8 @@ abstract contract AaveHandler is
 
     ///@notice aave referral code
     uint16 private constant AAVE_REFERRAL_CODE = 0;
-    /// @notice the time interval needed to changed the aave contract
+    /// @notice the time interval needed to changed the aave contract
     uint256 public constant PROPOSAL_TIME_INTERVAL = 10 days;
-    /// @notice decimals offset between overlayerWrap and usdt/ausdt
-    uint256 public constant DECIMALS_DIFF_AMOUNT = 10 ** 12;
 
     //########################################## IMMUTABLE ##########################################
 
@@ -40,10 +39,12 @@ abstract contract AaveHandler is
     address public immutable overlayerWrap;
     ///@notice sOverlayerWrap contract address
     address public immutable sOverlayerWrap;
-    ///@notice usdt contract address
-    address public immutable usdt;
-    ///@notice aUsdt contract address
-    address public immutable aUsdt;
+    ///@notice collateral contract address
+    address public immutable collateral;
+    ///@notice aCollateral contract address (Aave interest-bearing token)
+    address public immutable aCollateral;
+    /// @notice decimals offset between overlayerWrap and collateral/aCollateral
+    uint256 public immutable DECIMALS_DIFF_AMOUNT;
 
     //########################################## PUBLIC STORAGE ##########################################
 
@@ -51,8 +52,8 @@ abstract contract AaveHandler is
     address public aave;
     /// @notice Address of the protocol's reward distribution contract
     address public ovaRewardsDispatcher;
-    /// @notice Total amount of usdt supplied to Aave protocol
-    uint256 public totalSuppliedUSDT;
+    /// @notice Total amount of collateral supplied to Aave protocol
+    uint256 public totalSuppliedCollateral;
     /// @notice Proposed new Aave pool contract address
     address public proposedAave;
     /// @notice Timestamp of last Aave contract proposal
@@ -87,8 +88,8 @@ abstract contract AaveHandler is
      * @param overlayerWrap_ Address of the OverlayerWrap contract
      * @param sOverlayerWrap_ Address of the Staked OverlayerWrap contract
      * @param aave_ Address of the Aave Pool contract
-     * @param usdt_ Address of the USDT token contract
-     * @param aUsdt_ Address of the aUSDT (Aave interest-bearing USDT) token contract
+     * @param collateral_ Address of the collateral token contract
+     * @param aCollateral_ Address of the aToken (Aave interest-bearing collateral) token contract
      */
     constructor(
         address admin_,
@@ -96,8 +97,8 @@ abstract contract AaveHandler is
         address overlayerWrap_,
         address sOverlayerWrap_,
         address aave_,
-        address usdt_,
-        address aUsdt_
+        address collateral_,
+        address aCollateral_
     ) Ownable(admin_) {
         if (admin_ == address(0)) revert AaveHandlerZeroAddressException();
         if (rewardsDispatcher_ == address(0))
@@ -107,52 +108,69 @@ abstract contract AaveHandler is
         if (sOverlayerWrap_ == address(0))
             revert AaveHandlerZeroAddressException();
         if (aave_ == address(0)) revert AaveHandlerZeroAddressException();
-        if (usdt_ == address(0)) revert AaveHandlerZeroAddressException();
-        if (aUsdt_ == address(0)) revert AaveHandlerZeroAddressException();
+        if (collateral_ == address(0)) revert AaveHandlerZeroAddressException();
+        if (aCollateral_ == address(0))
+            revert AaveHandlerZeroAddressException();
         if (overlayerWrap_ == sOverlayerWrap_)
             revert AaveHandlerSameAddressException();
         ovaRewardsDispatcher = rewardsDispatcher_;
         overlayerWrap = overlayerWrap_;
         sOverlayerWrap = sOverlayerWrap_;
         aave = aave_;
-        usdt = usdt_;
-        aUsdt = aUsdt_;
+        collateral = collateral_;
+        aCollateral = aCollateral_;
 
-        IERC20(usdt).forceApprove(aave, type(uint256).max);
+        // Calculate decimals difference between overlayerWrap and collateral
+        uint8 overlayerWrapDecimals = IERC20Metadata(overlayerWrap_).decimals();
+        uint8 collateralDecimals = IERC20Metadata(collateral_).decimals();
+        if (overlayerWrapDecimals < collateralDecimals) {
+            revert AaveHandlerInvalidDecimals();
+        }
+        DECIMALS_DIFF_AMOUNT =
+            10 ** (overlayerWrapDecimals - collateralDecimals);
+
+        IERC20(collateral).forceApprove(aave, type(uint256).max);
         IERC20(overlayerWrap).forceApprove(sOverlayerWrap, type(uint256).max);
-        IERC20(usdt).forceApprove(overlayerWrap, type(uint256).max);
-        IERC20(aUsdt).forceApprove(overlayerWrap, type(uint256).max);
+        IERC20(collateral).forceApprove(overlayerWrap, type(uint256).max);
+        IERC20(aCollateral).forceApprove(overlayerWrap, type(uint256).max);
     }
 
     //########################################## EXTERNAL FUNCTIONS ##########################################
 
     /// @notice Withraw funds from aave and return all the collateral to overlayerWrap. This will forward collateral in aToken mode.
-    /// @param amount_ The amount AUSDT to withraw. Zero for max
+    /// @param amount_ The amount of aCollateral to withraw. Zero for max
     function adminWithdraw(uint256 amount_) external onlyOwner nonReentrant {
-        uint256 aUsdtWant = amount_ == 0 ? totalSuppliedUSDT : amount_;
+        uint256 aCollateralWant = amount_ == 0
+            ? totalSuppliedCollateral
+            : amount_;
 
-        if (aUsdtWant > totalSuppliedUSDT) {
+        if (aCollateralWant > totalSuppliedCollateral) {
             revert AaveHandlerAaveWithrawFailed();
         }
 
         // Return collateral to protocol token
-        IERC20(aUsdt).safeTransfer(overlayerWrap, aUsdtWant);
+        IERC20(aCollateral).safeTransfer(overlayerWrap, aCollateralWant);
 
         // Send any leftover to dispatcher
-        uint256 surplusAUsdt = IERC20(aUsdt).balanceOf(address(this));
-        if (surplusAUsdt > 0) {
-            IERC20(aUsdt).safeTransfer(ovaRewardsDispatcher, surplusAUsdt);
+        uint256 surplusACollateral = IERC20(aCollateral).balanceOf(
+            address(this)
+        );
+        if (surplusACollateral > 0) {
+            IERC20(aCollateral).safeTransfer(
+                ovaRewardsDispatcher,
+                surplusACollateral
+            );
         }
 
-        updateSuppliedAmounts(aUsdtWant);
+        updateSuppliedAmounts(aCollateralWant);
     }
 
     /// @notice Compound funds from-to aave protocol
-    /// @param withdrawAave_ Withdraw usdt from aave
+    /// @param withdrawAave_ Withdraw collateral from aave
     function compound(bool withdrawAave_) external nonReentrant {
-        uint256 aUsdtBal = IERC20(aUsdt).balanceOf(address(this));
-        if (aUsdtBal <= totalSuppliedUSDT) return;
-        uint256 diff = aUsdtBal - totalSuppliedUSDT;
+        uint256 aCollateralBal = IERC20(aCollateral).balanceOf(address(this));
+        if (aCollateralBal <= totalSuppliedCollateral) return;
+        uint256 diff = aCollateralBal - totalSuppliedCollateral;
         uint256 scaledDiff = diff.mulDiv(DECIMALS_DIFF_AMOUNT, 1);
 
         if (withdrawAave_) {
@@ -164,7 +182,7 @@ abstract contract AaveHandler is
             .Order({
                 benefactor: address(this),
                 beneficiary: address(this),
-                collateral: withdrawAave_ ? usdt : aUsdt,
+                collateral: withdrawAave_ ? collateral : aCollateral,
                 collateralAmount: diff,
                 overlayerWrapAmount: scaledDiff
             });
@@ -184,29 +202,29 @@ abstract contract AaveHandler is
     }
 
     /// @notice Supply assets to Aave protocol
-    /// @param amountUsdt_ Amount of usdt or aUsdt to supply
-    /// @param collateral_ Address of the collateral token (usdt or aUsdt)
-    /// @dev Only callable by OverlayerWrap contract and the minimum amount must be gte 1e12
+    /// @param amountCollateral_ Amount of collateral or aCollateral to supply
+    /// @param collateralToken_ Address of the collateral token (collateral or aCollateral)
+    /// @dev Only callable by OverlayerWrap contract
     function supply(
-        uint256 amountUsdt_,
-        address collateral_
+        uint256 amountCollateral_,
+        address collateralToken_
     ) external onlyProtocol nonReentrant {
-        if (amountUsdt_ > 0) {
-            if (collateral_ == aUsdt) {
-                IERC20(aUsdt).safeTransferFrom(
+        if (amountCollateral_ > 0) {
+            if (collateralToken_ == aCollateral) {
+                IERC20(aCollateral).safeTransferFrom(
                     msg.sender,
                     address(this),
-                    amountUsdt_
+                    amountCollateral_
                 );
-            } else if (collateral_ == usdt) {
-                IERC20(usdt).safeTransferFrom(
+            } else if (collateralToken_ == collateral) {
+                IERC20(collateral).safeTransferFrom(
                     msg.sender,
                     address(this),
-                    amountUsdt_
+                    amountCollateral_
                 );
                 IPool(aave).supply(
-                    usdt,
-                    amountUsdt_,
+                    collateral,
+                    amountCollateral_,
                     address(this),
                     AAVE_REFERRAL_CODE
                 );
@@ -220,11 +238,12 @@ abstract contract AaveHandler is
         uint256 owTotalSupp = IOverlayerWrap(overlayerWrap).totalSupply();
         if (owTotalSupp < DECIMALS_DIFF_AMOUNT)
             revert AaveHandlerOverlayerWrapTotalSupplyTooLow();
-        // Total supply cannot be less than total supplied usdt as ow token is not burnable
+        // Total supply cannot be less than total supplied collateral as ow token is not burnable
         uint256 normalizedSupply = owTotalSupp / DECIMALS_DIFF_AMOUNT;
-        uint256 differenceUsdt = normalizedSupply - totalSuppliedUSDT;
-        uint256 minIncrease = Math.min(amountUsdt_, differenceUsdt);
-        totalSuppliedUSDT += minIncrease;
+        uint256 differenceCollateral = normalizedSupply -
+            totalSuppliedCollateral;
+        uint256 minIncrease = Math.min(amountCollateral_, differenceCollateral);
+        totalSuppliedCollateral += minIncrease;
 
         emit AaveSupply(minIncrease);
     }
@@ -262,9 +281,9 @@ abstract contract AaveHandler is
         aave = proposedAave;
         // Remove allowance of old spender
         if (oldAave != address(0)) {
-            IERC20(usdt).forceApprove(oldAave, 0);
+            IERC20(collateral).forceApprove(oldAave, 0);
         }
-        IERC20(usdt).forceApprove(aave, type(uint256).max);
+        IERC20(collateral).forceApprove(aave, type(uint256).max);
 
         emit AaveNewAave(aave);
     }
@@ -299,7 +318,7 @@ abstract contract AaveHandler is
     ///@notice Approve aave spending
     ///@param amount_ The amount to allow aave as spender
     function approveAave(uint256 amount_) public onlyOwner nonReentrant {
-        IERC20(usdt).forceApprove(aave, amount_);
+        IERC20(collateral).forceApprove(aave, amount_);
     }
 
     ///@notice Approve Staked overlayerWrap spending
@@ -315,21 +334,21 @@ abstract contract AaveHandler is
     function approveOverlayerWrap(
         uint256 amount_
     ) public onlyOwner nonReentrant {
-        IERC20(usdt).forceApprove(overlayerWrap, amount_);
-        IERC20(aUsdt).forceApprove(overlayerWrap, amount_);
+        IERC20(collateral).forceApprove(overlayerWrap, amount_);
+        IERC20(aCollateral).forceApprove(overlayerWrap, amount_);
     }
 
     /// @notice Withraw funds from aave protocol
-    /// @param amountUsdt_ The amount to withdraw intended as usdt or their aToken version
-    /// @param collateral_ The collateral to withdraw
+    /// @param amountCollateral_ The amount to withdraw intended as collateral or their aToken version
+    /// @param collateralToken_ The collateral to withdraw
     function withdraw(
-        uint256 amountUsdt_,
-        address collateral_
+        uint256 amountCollateral_,
+        address collateralToken_
     ) public onlyProtocol nonReentrant {
-        if (collateral_ == usdt) {
-            _withdrawInternal(amountUsdt_, msg.sender);
-        } else if (collateral_ == aUsdt) {
-            _withdrawInternalBypassAave(amountUsdt_, msg.sender);
+        if (collateralToken_ == collateral) {
+            _withdrawInternal(amountCollateral_, msg.sender);
+        } else if (collateralToken_ == aCollateral) {
+            _withdrawInternalBypassAave(amountCollateral_, msg.sender);
         } else {
             revert AaveHandlerInvalidCollateral();
         }
@@ -343,67 +362,74 @@ abstract contract AaveHandler is
 
     //########################################## INTERNAL FUNCTIONS ##########################################
 
-    /// @notice Update the supplied usdt counter
-    /// @param usdtTaken_ The amount of usdt removed from the backing supply
-    function updateSuppliedAmounts(uint256 usdtTaken_) internal {
-        if (usdtTaken_ > totalSuppliedUSDT) {
-            totalSuppliedUSDT = 0;
+    /// @notice Update the supplied collateral counter
+    /// @param collateralTaken_ The amount of collateral removed from the backing supply
+    function updateSuppliedAmounts(uint256 collateralTaken_) internal {
+        if (collateralTaken_ > totalSuppliedCollateral) {
+            totalSuppliedCollateral = 0;
         } else {
             unchecked {
-                totalSuppliedUSDT -= usdtTaken_;
+                totalSuppliedCollateral -= collateralTaken_;
             }
         }
     }
 
     ///@notice Withraw funds taking aTokens directly
-    ///@param amountUsdt_ The amount to withdraw intended as aUsdt
+    ///@param amountCollateral_ The amount to withdraw intended as aCollateral
     ///@param recipient_ The collateral recipient
     function _withdrawInternalBypassAave(
-        uint256 amountUsdt_,
+        uint256 amountCollateral_,
         address recipient_
     ) internal {
-        uint256 aUsdtBal = IERC20(aUsdt).balanceOf(address(this));
-        if (aUsdtBal < amountUsdt_) {
+        uint256 aCollateralBal = IERC20(aCollateral).balanceOf(address(this));
+        if (aCollateralBal < amountCollateral_) {
             revert AaveHandlerInsufficientABalance();
         }
-        IERC20(aUsdt).safeTransfer(recipient_, amountUsdt_);
+        IERC20(aCollateral).safeTransfer(recipient_, amountCollateral_);
 
-        updateSuppliedAmounts(amountUsdt_);
+        updateSuppliedAmounts(amountCollateral_);
     }
 
     ///@notice Withraw funds from aave and update supply counters
-    ///@param amountUsdt_ The amount to withdraw intended as usdt
+    ///@param amountCollateral_ The amount to withdraw intended as collateral
     ///@param recipient_ The collateral recipient
     function _withdrawInternal(
-        uint256 amountUsdt_,
+        uint256 amountCollateral_,
         address recipient_
     ) internal {
-        uint256 usdtReceived = _withdrawInternalAave(amountUsdt_, recipient_);
+        uint256 collateralReceived = _withdrawInternalAave(
+            amountCollateral_,
+            recipient_
+        );
 
-        updateSuppliedAmounts(usdtReceived);
+        updateSuppliedAmounts(collateralReceived);
     }
 
     ///@notice Withraw funds from aave
-    ///@param amountUsdt_ The amount to withdraw intended as usdt
+    ///@param amountCollateral_ The amount to withdraw intended as collateral
     ///@param recipient_ The collateral recipient
-    ///@return Amount of usdt received
+    ///@return Amount of collateral received
     function _withdrawInternalAave(
-        uint256 amountUsdt_,
+        uint256 amountCollateral_,
         address recipient_
     ) internal returns (uint256) {
-        if (IERC20(aUsdt).balanceOf(address(this)) < amountUsdt_)
+        if (IERC20(aCollateral).balanceOf(address(this)) < amountCollateral_)
             revert AaveHandlerInsufficientBalance();
-        uint256 usdtReceived = 0;
-        if (amountUsdt_ > 0) {
-            usdtReceived = IPool(aave).withdraw(usdt, amountUsdt_, recipient_);
+        uint256 collateralReceived = 0;
+        if (amountCollateral_ > 0) {
+            collateralReceived = IPool(aave).withdraw(
+                collateral,
+                amountCollateral_,
+                recipient_
+            );
         }
 
-        if (amountUsdt_ != usdtReceived) {
+        if (amountCollateral_ != collateralReceived) {
             revert AaveHandlerAaveWithrawFailed();
         }
 
-        emit AaveWithdraw(usdtReceived);
+        emit AaveWithdraw(collateralReceived);
 
-        return (usdtReceived);
+        return (collateralReceived);
     }
 }

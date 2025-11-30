@@ -723,8 +723,8 @@ export async function deploy_OverlayerWrapBacking(
   overlayerWrap: string,
   soverlayerWrap: string,
   aave: string,
-  usdt: string,
-  ausdt: string
+  collateral: string,
+  aCollateral: string
 ): Promise<string> {
   const [deployer] = await ethers.getSigners();
 
@@ -742,8 +742,8 @@ export async function deploy_OverlayerWrapBacking(
     overlayerWrap,
     soverlayerWrap,
     aave,
-    usdt,
-    ausdt,
+    collateral,
+    aCollateral,
     {
       gasLimit: 10000000
     }

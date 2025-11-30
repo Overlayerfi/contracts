@@ -317,7 +317,7 @@ describe("OverlayerWrap Backing Protocol", function () {
       ).to.be.greaterThanOrEqual(
         ethers.parseUnits(totalCollateral, await ausdt.decimals())
       );
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(totalCollateral, await usdt.decimals())
       );
     });
@@ -345,7 +345,8 @@ describe("OverlayerWrap Backing Protocol", function () {
       await overlayerWrap.connect(alice).mint(mintOrder);
       await overlayerWrap.connect(alice).supplyToBacking(0, 0);
 
-      const suppliedBefore = await overlayerWrapBacking.totalSuppliedUSDT();
+      const suppliedBefore =
+        await overlayerWrapBacking.totalSuppliedCollateral();
 
       await expect(
         overlayerWrap
@@ -353,7 +354,8 @@ describe("OverlayerWrap Backing Protocol", function () {
           .transfer(ethers.ZeroAddress, ethers.parseEther("1"))
       ).to.be.eventually.rejected;
 
-      const suppliedAfter = await overlayerWrapBacking.totalSuppliedUSDT();
+      const suppliedAfter =
+        await overlayerWrapBacking.totalSuppliedCollateral();
       expect(suppliedAfter).to.equal(suppliedBefore);
     });
   });
@@ -428,7 +430,7 @@ describe("OverlayerWrap Backing Protocol", function () {
       await overlayerWrap.connect(alice).supplyToBacking(0, 0);
       await time.increase(60 * 60 * 24 * 30);
 
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(
           (+amount + +amount + +initialCollateralAmount).toFixed(6),
           await usdt.decimals()
@@ -448,7 +450,7 @@ describe("OverlayerWrap Backing Protocol", function () {
         await ausdt.balanceOf(await overlayerWrap.getAddress())
       ).to.be.equal(0);
 
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(
           (+amount * 4 + +initialCollateralAmount).toFixed(6),
           await usdt.decimals()
@@ -502,7 +504,7 @@ describe("OverlayerWrap Backing Protocol", function () {
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(
         ethers.parseEther((+amount * 4).toFixed(2))
       );
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(
           (+amount * 4 + +initialCollateralAmount).toFixed(6),
           await usdt.decimals()
@@ -602,7 +604,7 @@ describe("OverlayerWrap Backing Protocol", function () {
       await overlayerWrap.connect(alice).supplyToBacking(0, 0);
       await time.increase(60 * 60 * 24 * 30);
 
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(
           (+amount + +initialCollateralAmount).toFixed(6),
           await ausdt.decimals()
@@ -617,7 +619,7 @@ describe("OverlayerWrap Backing Protocol", function () {
       );
       await overlayerWrap.connect(alice).redeem(orderUsdt);
       expect(await overlayerWrap.balanceOf(alice.address)).to.be.equal(0);
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(initialCollateralAmount, await usdt.decimals())
       );
       expect(
@@ -691,7 +693,7 @@ describe("OverlayerWrap Backing Protocol", function () {
         ethers.parseUnits(amount, await ausdt.decimals())
       );
       // Given back all
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).be.equal(
         ethers.parseUnits(initialCollateralAmount, await ausdt.decimals())
       );
     });
@@ -721,7 +723,7 @@ describe("OverlayerWrap Backing Protocol", function () {
         );
       // The donation above should only forward assets to the backing contract without modifing the supplied stable coins trakcer
       await overlayerWrap.connect(bob).supplyToBacking(0, 0);
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(initialCollateralAmount, await usdt.decimals())
       );
     });
@@ -776,7 +778,7 @@ describe("OverlayerWrap Backing Protocol", function () {
           await ausdt.decimals()
         )
       );
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(
           (+amount + +initialCollateralAmount).toFixed(2),
           await usdt.decimals()
@@ -807,7 +809,7 @@ describe("OverlayerWrap Backing Protocol", function () {
         await usdt.balanceOf(await overlayerWrap.getAddress())
       ).to.be.equal(0);
       // Donation should not influence the supplied usdt and usdt accounting
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(initialCollateralAmount, await usdt.decimals())
       );
       //################################################################################################################################################
@@ -863,7 +865,7 @@ describe("OverlayerWrap Backing Protocol", function () {
           await ausdt.decimals()
         )
       );
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(
           (+amount + +initialCollateralAmount).toFixed(2),
           await usdt.decimals()
@@ -888,7 +890,7 @@ describe("OverlayerWrap Backing Protocol", function () {
       expect(
         await usdt.balanceOf(await overlayerWrap.getAddress())
       ).to.be.equal(0);
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(
           (+amount - +redeemAmount + +initialCollateralAmount).toFixed(2),
           await usdt.decimals()
@@ -926,7 +928,7 @@ describe("OverlayerWrap Backing Protocol", function () {
       expect(
         await usdt.balanceOf(await overlayerWrap.getAddress())
       ).to.be.equal(0);
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(initialCollateralAmount, await usdt.decimals())
       );
       //################################################################################################################################################
@@ -975,7 +977,7 @@ describe("OverlayerWrap Backing Protocol", function () {
           await ausdt.decimals()
         )
       );
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(
           (+amount + +initialCollateralAmount).toFixed(2),
           await usdt.decimals()
@@ -1000,7 +1002,7 @@ describe("OverlayerWrap Backing Protocol", function () {
       expect(
         await usdt.balanceOf(await overlayerWrap.getAddress())
       ).to.be.equal(0);
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(
           (+amount - +redeemAmount + +initialCollateralAmount).toFixed(1),
           await usdt.decimals()
@@ -1045,7 +1047,7 @@ describe("OverlayerWrap Backing Protocol", function () {
       expect(
         await usdt.balanceOf(await overlayerWrap.getAddress())
       ).to.be.equal(0);
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(initialCollateralAmount, await usdt.decimals())
       );
       expect(await ausdt.balanceOf(alice.address)).to.be.greaterThanOrEqual(
@@ -1227,7 +1229,7 @@ describe("OverlayerWrap Backing Protocol", function () {
       ).to.be.greaterThan(0);
     });
 
-    it("Should not change totalSuppliedUSDT on compound", async function () {
+    it("Should not change totalSuppliedCollateral on compound", async function () {
       const { usdt, overlayerWrap, overlayerWrapBacking, admin } =
         await loadFixture(deployFixture);
 
@@ -1243,15 +1245,15 @@ describe("OverlayerWrap Backing Protocol", function () {
       await overlayerWrap.connect(admin).mint(order);
       await overlayerWrap.connect(admin).supplyToBacking(0, 0);
 
-      const before = await overlayerWrapBacking.totalSuppliedUSDT();
+      const before = await overlayerWrapBacking.totalSuppliedCollateral();
 
       await time.increase(60 * 60 * 24 * 7);
       await overlayerWrapBacking.connect(admin).compound(true);
 
-      let after = await overlayerWrapBacking.totalSuppliedUSDT();
+      let after = await overlayerWrapBacking.totalSuppliedCollateral();
       expect(after).to.equal(before);
       await overlayerWrap.connect(admin).supplyToBacking(0, 0);
-      after = await overlayerWrapBacking.totalSuppliedUSDT();
+      after = await overlayerWrapBacking.totalSuppliedCollateral();
       expect(after).to.not.equal(before);
     });
   });
@@ -1297,7 +1299,7 @@ describe("OverlayerWrap Backing Protocol", function () {
           await ausdt.decimals()
         )
       );
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.be.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(
           (+amount + +initialCollateralAmount).toFixed(1),
           await usdt.decimals()
@@ -1394,18 +1396,18 @@ describe("OverlayerWrap Backing Protocol", function () {
       await overlayerWrap.connect(bob).redeem(redeemA2);
       await overlayerWrap.connect(bob).supplyToBacking(0, 0);
 
-      // Expected totalSuppliedUSDT = initial + a1 + a2 - r1 - r2
+      // Expected totalSuppliedCollateral = initial + a1 + a2 - r1 - r2
       const expectedTSU = ethers.parseUnits(
         (+initialCollateralAmount + +a1 + +a2 - +r1 - +r2).toFixed(2),
         await usdt.decimals()
       );
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.equal(
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.equal(
         expectedTSU
       );
 
       // Admin withdraw (collect yield/emergency funds); should update accounting
       await overlayerWrapBacking.connect(admin).adminWithdraw(0);
-      expect(await overlayerWrapBacking.totalSuppliedUSDT()).to.equal(0);
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.equal(0);
 
       // Collateral returned to OverlayerWrap equals expected principal amount
       const owAddr = await overlayerWrap.getAddress();
