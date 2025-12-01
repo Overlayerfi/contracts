@@ -1,12 +1,12 @@
 import { ethers } from "hardhat";
 import { Contract } from "ethers";
 import overlayerWrapAbi from "../../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
-import { USDT_SEPOLIA_ADDRESS } from "../addresses";
+import { EURS_SEPOLIA_ADDRESS, USDT_SEPOLIA_ADDRESS } from "../addresses";
 
-const overlayerWrapAddr = "0xEac6CF272E777864C0B9f6491ECb1821f9A822aB";
+const overlayerWrapAddr = "0x919CbEEce48DE3f3FA1Ec8837d461cB7Dd8F97a6";
 const amount = "10";
-const collateralDecimals = 6;
-const collateralAddr = USDT_SEPOLIA_ADDRESS;
+const collateralDecimals = 2;
+const collateralAddr = EURS_SEPOLIA_ADDRESS;
 
 export async function mint(): Promise<void> {
   const [admin] = await ethers.getSigners();
