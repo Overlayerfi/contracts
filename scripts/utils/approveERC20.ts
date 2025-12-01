@@ -9,9 +9,9 @@ function getTimestamp(): string {
 
 /**
  * Generic ERC20 approval script
- * 
+ *
  * Approves a spender to spend tokens on behalf of the signer
- * 
+ *
  * Usage:
  * - Update TOKEN_ADDRESS, SPENDER_ADDRESS, and AMOUNT below
  * - Run: npx hardhat run scripts/utils/approveERC20.ts --network sepolia
@@ -38,12 +38,12 @@ const SIGNER_ADDRESS = ""; // Empty = use first signer from hardhat config
 async function main() {
   try {
     console.log(`[${getTimestamp()}] Starting ERC20 approval...`);
-    
+
     // Get signer
-    const signer = SIGNER_ADDRESS 
+    const signer = SIGNER_ADDRESS
       ? await ethers.getSigner(SIGNER_ADDRESS)
       : (await ethers.getSigners())[0];
-    
+
     console.log(`[${getTimestamp()}] Signer address:`, signer.address);
     console.log(`[${getTimestamp()}] Token address:`, TOKEN_ADDRESS);
     console.log(`[${getTimestamp()}] Spender address:`, SPENDER_ADDRESS);
@@ -66,15 +66,19 @@ async function main() {
     console.log(`[${getTimestamp()}] Token decimals:`, decimals);
 
     // Check current allowance
-    const currentAllowance = await token.allowance(signer.address, SPENDER_ADDRESS);
+    const currentAllowance = await token.allowance(
+      signer.address,
+      SPENDER_ADDRESS
+    );
     console.log(
       `[${getTimestamp()}] Current allowance:`,
       ethers.formatUnits(currentAllowance, decimals)
     );
 
-    const amountDisplay = AMOUNT === ethers.MaxUint256 
-      ? "Unlimited (MaxUint256)" 
-      : ethers.formatUnits(AMOUNT, decimals);
+    const amountDisplay =
+      AMOUNT === ethers.MaxUint256
+        ? "Unlimited (MaxUint256)"
+        : ethers.formatUnits(AMOUNT, decimals);
     console.log(`[${getTimestamp()}] Approving amount:`, amountDisplay);
 
     console.log(`[${getTimestamp()}] Sending approval transaction...`);
@@ -86,19 +90,19 @@ async function main() {
     console.log(`[${getTimestamp()}] Waiting for confirmation...`);
 
     const receipt = await tx.wait();
-    
+
     console.log(`[${getTimestamp()}] Transaction confirmed!`);
     console.log(`[${getTimestamp()}] Block number:`, receipt.blockNumber);
     console.log(`[${getTimestamp()}] Gas used:`, receipt.gasUsed.toString());
 
     const newAllowance = await token.allowance(signer.address, SPENDER_ADDRESS);
-    const newAllowanceDisplay = newAllowance === ethers.MaxUint256
-      ? "Unlimited (MaxUint256)"
-      : ethers.formatUnits(newAllowance, decimals);
+    const newAllowanceDisplay =
+      newAllowance === ethers.MaxUint256
+        ? "Unlimited (MaxUint256)"
+        : ethers.formatUnits(newAllowance, decimals);
     console.log(`[${getTimestamp()}] New allowance:`, newAllowanceDisplay);
 
     console.log(`[${getTimestamp()}] Approval successful!`);
-
   } catch (error: any) {
     console.error(`[${getTimestamp()}] Approval failed:`, error.message);
     if (error.reason) {
@@ -115,4 +119,3 @@ main()
     console.error(`[${getTimestamp()}] Unhandled error:`, error);
     process.exit(1);
   });
-
