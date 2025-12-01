@@ -704,13 +704,16 @@ export async function StakedOverlayerWrap_deposit(
     "[StakedOverlayerWrap_deposit] Depositing OverlayerWrap into staking account with singer:",
     admin.address
   );
-  await (contract.connect(admin) as Contract).deposit(
+  const tx = await (contract.connect(admin) as Contract).deposit(
     ethers.parseEther(amount),
     recipient,
     {
       gasLimit: 2000000
     }
   );
+  await tx.wait();
+  const hash = tx.hash;
+  console.log("[StakedOverlayerWrap_deposit] Transaction executed at", hash);
   console.log(
     "[StakedOverlayerWrap_deposit] OverlayerWrap staked, sOverlayerWrap balance:",
     ethers.formatEther(await contract.balanceOf(admin.address))
