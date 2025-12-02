@@ -1,11 +1,11 @@
 
 # Overlayer smart contracts
 
-[![Overlayer social card](./assets/sc.png)](https://docs.ova.finance/)
+[![Overlayer social card](./assets/sc.png)](https://docs.overlayer.fi/)
 
 [![Actions Status](https://github.com/Ovafi/contracts/workflows/CI/badge.svg)](https://github.com/Ovafi/contracts/actions)
 
-The stable coin [Overlayer](https://docs.ova.finance/).
+The stable coin [Overlayer](https://docs.overlayer.fi/).
 
 
 ## Overview
