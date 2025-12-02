@@ -10,4 +10,4 @@ scripts/balanceChecker.ts
 .openzeppelin
 contracts/cowswap/*
 contracts/pancake/*
-docs
+docs*

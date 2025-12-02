@@ -44,7 +44,7 @@ const config: HardhatUserConfig = {
   },
   docgen: {
     output: 'docs',
-    exclude: ['mock_ERC20', 'pancake', 'uniswap', 'curve', 'backing']
+    exclude: ['ambassador','curve', 'faucet', 'liquidity', 'mock_ERC20', 'overlayerbacking', 'sepolialottery', 'shared', 'pancake', 'uniswap', 'curve', 'test', 'whitelist']
   },
   etherscan: {
     apiKey: {
