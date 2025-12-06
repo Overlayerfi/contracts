@@ -11,3 +11,4 @@ scripts/balanceChecker.ts
 contracts/cowswap/*
 contracts/pancake/*
 docs*
+!docs
