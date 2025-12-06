@@ -44,7 +44,27 @@ const config: HardhatUserConfig = {
   },
   docgen: {
     output: 'docs',
-    exclude: ['ambassador','curve', 'faucet', 'liquidity', 'mock_ERC20', 'overlayerbacking', 'sepolialottery', 'shared', 'pancake', 'uniswap', 'curve', 'test', 'whitelist']
+    exclude: [
+      'ambassador',
+      'curve', 
+      'faucet', 
+      'liquidity', 
+      'mock_ERC20', 
+      'overlayerbacking', 
+      'sepolialottery', 
+      'shared', 
+      'pancake', 
+      'uniswap', 
+      'test', 
+      'whitelist',
+      'overlayer/rOVA.sol',
+      'overlayer/rOVAV2.sol',
+      'overlayer/OVA.sol',
+      'overlayer/OvaReferral.sol',
+      'overlayer/OverlayerWrapFactory.sol',
+      'overlayer/interfaces/IOvaReferral.sol'
+    ],
+    pages: 'files'
   },
   etherscan: {
     apiKey: {
