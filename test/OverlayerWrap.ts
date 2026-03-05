@@ -403,6 +403,54 @@ describe("OverlayerWrap", function () {
       await overlayerWrap.connect(gatekeeper).enableAccount(bobAddress);
       expect(await overlayerWrap.hasRole(role, bobAddress)).to.be.equal(false);
     });
+
+    it("Should prevent blacklisted account from self-renouncing BLACKLISTED_ROLE", async function () {
+      const { overlayerWrap, gatekeeper, bob } = await loadFixture(
+        deployFixture
+      );
+      const bobAddress = await bob.getAddress();
+      await overlayerWrap.grantRole(
+        ethers.keccak256(ethers.toUtf8Bytes("CONTROLLER_ROLE")),
+        gatekeeper.address
+      );
+
+      const lastTime = await time.latest();
+      await overlayerWrap.connect(gatekeeper).setBlackListTime(lastTime + 1);
+      await time.increase(3600 * 24 * 15 + 1);
+
+      await overlayerWrap.connect(gatekeeper).disableAccount(bobAddress);
+      const role = ethers.keccak256(ethers.toUtf8Bytes("BLACKLISTED_ROLE"));
+      expect(await overlayerWrap.hasRole(role, bobAddress)).to.be.equal(true);
+
+      await expect(
+        overlayerWrap.connect(bob).renounceRole(role, bobAddress)
+      ).to.be.revertedWithCustomError(
+        overlayerWrap,
+        "OverlayerWrapCannotRenounceBlacklist"
+      );
+
+      expect(await overlayerWrap.hasRole(role, bobAddress)).to.be.equal(true);
+    });
+
+    it("Should allow renouncing non-blacklisted roles", async function () {
+      const { overlayerWrap, admin, alice } = await loadFixture(deployFixture);
+      const aliceAddress = await alice.getAddress();
+      const gatekeeperRole = ethers.keccak256(
+        ethers.toUtf8Bytes("GATEKEEPER_ROLE")
+      );
+
+      await overlayerWrap.grantRole(gatekeeperRole, aliceAddress);
+      expect(
+        await overlayerWrap.hasRole(gatekeeperRole, aliceAddress)
+      ).to.equal(true);
+
+      await overlayerWrap
+        .connect(alice)
+        .renounceRole(gatekeeperRole, aliceAddress);
+      expect(
+        await overlayerWrap.hasRole(gatekeeperRole, aliceAddress)
+      ).to.equal(false);
+    });
   });
 
   describe("Transaction Limits", function () {
