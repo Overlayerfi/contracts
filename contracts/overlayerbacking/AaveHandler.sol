@@ -235,10 +235,11 @@ abstract contract AaveHandler is
 
         // Do not count donations to overlayerWrap: compute how much we have to increase our supply counters.
         // We cannot exceed the overlayerWrap supply.
-        uint256 owTotalSupp = IOverlayerWrap(overlayerWrap).totalSupply();
+        // Add totalBridgedOut to compensate for OFT cross-chain burns that reduce local totalSupply.
+        uint256 owTotalSupp = IOverlayerWrap(overlayerWrap).totalSupply() +
+            IOverlayerWrap(overlayerWrap).totalBridgedOut();
         if (owTotalSupp < DECIMALS_DIFF_AMOUNT)
             revert AaveHandlerOverlayerWrapTotalSupplyTooLow();
-        // Total supply cannot be less than total supplied collateral as ow token is not burnable
         uint256 normalizedSupply = owTotalSupp / DECIMALS_DIFF_AMOUNT;
         uint256 differenceCollateral = normalizedSupply -
             totalSuppliedCollateral;
