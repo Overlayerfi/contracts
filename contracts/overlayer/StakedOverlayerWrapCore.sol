@@ -302,6 +302,30 @@ abstract contract StakedOverlayerWrapCore is
         revert StakedOverlayerWrapOperationNotAllowed();
     }
 
+    /// @notice Prevents direct grant of blacklist roles; use addToBlacklist() instead
+    /// @param role_ The role to grant
+    /// @param account_ The account to grant the role to
+    function grantRole(
+        bytes32 role_,
+        address account_
+    ) public virtual override {
+        if (role_ == STAKE_RESTRICTED_ROLE || role_ == WHOLE_RESTRICTED_ROLE)
+            revert StakedOverlayerWrapCannotDirectlyAssignBlacklist();
+        super.grantRole(role_, account_);
+    }
+
+    /// @notice Prevents direct revoke of blacklist roles; use removeFromBlacklist() instead
+    /// @param role_ The role to revoke
+    /// @param account_ The account to revoke the role from
+    function revokeRole(
+        bytes32 role_,
+        address account_
+    ) public virtual override {
+        if (role_ == STAKE_RESTRICTED_ROLE || role_ == WHOLE_RESTRICTED_ROLE)
+            revert StakedOverlayerWrapCannotDirectlyAssignBlacklist();
+        super.revokeRole(role_, account_);
+    }
+
     /* ------------- INTERNAL ------------- */
 
     /// @notice Ensures a small non-zero amount of shares does not remain, exposing to donation attack
