@@ -31,7 +31,7 @@ describe("OverlayerWrap", function () {
       defaultTransactionOptions
     );
 
-    const OverlayerWrap = await ethers.getContractFactory("OverlayerWrap");
+    const OverlayerWrap = await ethers.getContractFactory("OverlayerWrapMock");
     const overlayerWrap = await OverlayerWrap.deploy(
       {
         admin: await admin.getAddress(),
@@ -1192,6 +1192,150 @@ describe("OverlayerWrap", function () {
       expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
         ethers.parseEther(mintAmount)
       );
+    });
+  });
+
+  describe("Cross-Chain Bridge Accounting", function () {
+    it("Should track totalBridgedOut on cross-chain debit", async function () {
+      const { collateral, overlayerWrap, alice } = await loadFixture(
+        deployFixture
+      );
+
+      const mintAmount = ethers.parseUnits("20", await collateral.decimals());
+      const mintAmountOW = ethers.parseEther("20");
+      const order = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: mintAmount,
+        overlayerWrapAmount: mintAmountOW
+      };
+      await overlayerWrap.connect(alice).mint(order);
+
+      expect(await overlayerWrap.totalBridgedOut()).to.equal(0);
+
+      const burnAmount = ethers.parseEther("10");
+      await overlayerWrap.testDebit(alice.address, burnAmount, burnAmount, 0);
+
+      expect(await overlayerWrap.totalBridgedOut()).to.equal(burnAmount);
+
+      // Effective supply (totalSupply + totalBridgedOut) still equals supply before debit
+      const totalSupply = await overlayerWrap.totalSupply();
+      const totalBridgedOut = await overlayerWrap.totalBridgedOut();
+      expect(totalSupply + totalBridgedOut).to.equal(mintAmountOW);
+    });
+
+    it("Should maintain effective supply invariant across multiple debits", async function () {
+      const { collateral, overlayerWrap, alice } = await loadFixture(
+        deployFixture
+      );
+
+      const mintAmountOW = ethers.parseEther("40");
+      const order = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: ethers.parseUnits("40", await collateral.decimals()),
+        overlayerWrapAmount: mintAmountOW
+      };
+      await overlayerWrap.connect(alice).mint(order);
+
+      await overlayerWrap.testDebit(
+        alice.address,
+        ethers.parseEther("10"),
+        ethers.parseEther("10"),
+        0
+      );
+      await overlayerWrap.testDebit(
+        alice.address,
+        ethers.parseEther("20"),
+        ethers.parseEther("20"),
+        0
+      );
+
+      expect(await overlayerWrap.totalBridgedOut()).to.equal(
+        ethers.parseEther("30")
+      );
+      expect(await overlayerWrap.totalSupply()).to.equal(
+        ethers.parseEther("10")
+      );
+      expect(
+        (await overlayerWrap.totalSupply()) +
+          (await overlayerWrap.totalBridgedOut())
+      ).to.equal(mintAmountOW);
+    });
+
+    it("Should handle debit-then-credit round-trip correctly", async function () {
+      const { collateral, overlayerWrap, alice } = await loadFixture(
+        deployFixture
+      );
+
+      const mintAmountOW = ethers.parseEther("30");
+      const order = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: ethers.parseUnits("30", await collateral.decimals()),
+        overlayerWrapAmount: mintAmountOW
+      };
+      await overlayerWrap.connect(alice).mint(order);
+
+      const bridgeAmount = ethers.parseEther("15");
+
+      await overlayerWrap.testDebit(
+        alice.address,
+        bridgeAmount,
+        bridgeAmount,
+        0
+      );
+      expect(await overlayerWrap.totalBridgedOut()).to.equal(bridgeAmount);
+      expect(await overlayerWrap.totalSupply()).to.equal(
+        ethers.parseEther("15")
+      );
+
+      await overlayerWrap.testCredit(alice.address, bridgeAmount, 0);
+      expect(await overlayerWrap.totalBridgedOut()).to.equal(0);
+      expect(await overlayerWrap.totalSupply()).to.equal(mintAmountOW);
+
+      expect(
+        (await overlayerWrap.totalSupply()) +
+          (await overlayerWrap.totalBridgedOut())
+      ).to.equal(mintAmountOW);
+    });
+
+    it("Should handle full-supply debit edge case", async function () {
+      const { collateral, overlayerWrap, alice } = await loadFixture(
+        deployFixture
+      );
+
+      const mintAmountOW = ethers.parseEther("25");
+      const order = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await collateral.getAddress(),
+        collateralAmount: ethers.parseUnits("25", await collateral.decimals()),
+        overlayerWrapAmount: mintAmountOW
+      };
+      await overlayerWrap.connect(alice).mint(order);
+
+      await overlayerWrap.testDebit(
+        alice.address,
+        mintAmountOW,
+        mintAmountOW,
+        0
+      );
+
+      expect(await overlayerWrap.totalSupply()).to.equal(0);
+      expect(await overlayerWrap.totalBridgedOut()).to.equal(mintAmountOW);
+
+      expect(
+        (await overlayerWrap.totalSupply()) +
+          (await overlayerWrap.totalBridgedOut())
+      ).to.equal(mintAmountOW);
+
+      await overlayerWrap.testCredit(alice.address, mintAmountOW, 0);
+      expect(await overlayerWrap.totalSupply()).to.equal(mintAmountOW);
+      expect(await overlayerWrap.totalBridgedOut()).to.equal(0);
     });
   });
 });

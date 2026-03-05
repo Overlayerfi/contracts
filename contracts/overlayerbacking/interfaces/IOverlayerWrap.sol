@@ -12,4 +12,6 @@ interface IOverlayerWrap is IERC20 {
     /// @notice Mint new tokens according to the provided order
     /// @param order Struct containing minting parameters
     function mint(OverlayerWrapCoreTypes.Order calldata order) external;
+    /// @notice Cumulative amount of tokens debited via OFT cross-chain transfers (not yet credited back)
+    function totalBridgedOut() external view returns (uint256);
 }

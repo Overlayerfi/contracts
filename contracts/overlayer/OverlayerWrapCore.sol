@@ -59,6 +59,8 @@ abstract contract OverlayerWrapCore is
     uint256 public proposedMaxRedeemPerBlock;
     /// @notice Hub chain id
     uint256 public hubChainId;
+    /// @notice Cumulative amount of tokens debited via OFT cross-chain transfers (not yet credited back)
+    uint256 public totalBridgedOut;
 
     /* --------------- MODIFIERS --------------- */
 
@@ -502,6 +504,52 @@ abstract contract OverlayerWrapCore is
         uint256 oldMaxMintPerBlock = maxMintPerBlock;
         maxMintPerBlock = maxMintPerBlock_;
         emit MaxMintPerBlockChanged(oldMaxMintPerBlock, maxMintPerBlock);
+    }
+
+    /// @notice Tracks tokens leaving the hub chain so AaveHandler accounting remains correct
+    /// @dev OFT burns tokens on the source chain during cross-chain sends; this override
+    ///      records the burned amount so that totalSupply() + totalBridgedOut reflects the
+    ///      effective supply for collateral-backing calculations.
+    /// @param from_ The address to debit tokens from
+    /// @param amountLD_ The amount to send in local decimals
+    /// @param minAmountLD_ The minimum amount to send in local decimals
+    /// @param dstEid_ The destination endpoint ID
+    /// @return amountSentLD The amount sent in local decimals
+    /// @return amountReceivedLD The amount received in local decimals on the destination
+    function _debit(
+        address from_,
+        uint256 amountLD_,
+        uint256 minAmountLD_,
+        uint32 dstEid_
+    )
+        internal
+        virtual
+        override
+        returns (uint256 amountSentLD, uint256 amountReceivedLD)
+    {
+        (amountSentLD, amountReceivedLD) = super._debit(
+            from_,
+            amountLD_,
+            minAmountLD_,
+            dstEid_
+        );
+        totalBridgedOut += amountSentLD;
+    }
+
+    /// @notice Tracks tokens returning to the hub chain from cross-chain transfers
+    /// @dev Mints tokens on the destination chain; this override decrements totalBridgedOut
+    ///      to keep the effective supply invariant consistent.
+    /// @param to_ The address to credit tokens to
+    /// @param amountLD_ The amount to credit in local decimals
+    /// @param srcEid_ The source endpoint ID
+    /// @return amountReceivedLD The amount received in local decimals
+    function _credit(
+        address to_,
+        uint256 amountLD_,
+        uint32 srcEid_
+    ) internal virtual override returns (uint256 amountReceivedLD) {
+        amountReceivedLD = super._credit(to_, amountLD_, srcEid_);
+        totalBridgedOut -= amountReceivedLD;
     }
 
     /// @notice Sets the max redeemPerBlock limit
