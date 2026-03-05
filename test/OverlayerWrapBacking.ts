@@ -119,8 +119,6 @@ describe("OverlayerWrap Backing Protocol", function () {
       admin.address
     );
 
-    await sOverlayerWrap.connect(admin).setCooldownDuration(0); // 0 days
-
     await overlayerWrap
       .connect(admin)
       .grantRole(
