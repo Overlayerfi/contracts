@@ -150,6 +150,16 @@ contract OverlayerWrap is IOverlayerWrapDefs, OverlayerWrapCore {
         emit EnableAccount(account_);
     }
 
+    /// @notice Overrides renounceRole to prevent self-removal of BLACKLISTED_ROLE
+    /// @dev All other roles can still be renounced via the inherited behavior
+    /// @param role_ The role to renounce
+    /// @param account_ The account renouncing the role (must be msg.sender per AccessControl)
+    function renounceRole(bytes32 role_, address account_) public override {
+        if (role_ == BLACKLISTED_ROLE)
+            revert OverlayerWrapCannotRenounceBlacklist();
+        super.renounceRole(role_, account_);
+    }
+
     /**
      * @dev Transfers a `value` amount of tokens from `from` to `to`, or alternatively mints (or burns) if `from`
      * (or `to`) is the zero address. All customizations to transfers, mints, and burns should be done by overriding
