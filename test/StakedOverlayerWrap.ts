@@ -105,8 +105,6 @@ describe("Staked Overlayer Wrap Front", function () {
       admin.address
     );
 
-    await stakedoverlayerWrap.connect(admin).setCooldownDuration(172800); // 2 days
-
     const order = {
       benefactor: admin.address,
       beneficiary: admin.address,
@@ -475,108 +473,10 @@ describe("Staked Overlayer Wrap Front", function () {
     });
   });
 
-  describe("Cooldown Mechanism", function () {
-    it("Should initiate share cooldown period", async function () {
-      const { stakedoverlayerWrap, alice } = await loadFixture(deployFixture);
-      await expect(
-        await stakedoverlayerWrap
-          .connect(alice)
-          .deposit(ethers.parseEther("10"), alice.address)
-      ).to.emit(stakedoverlayerWrap, "Deposit");
-      await stakedoverlayerWrap
-        .connect(alice)
-        .cooldownShares(ethers.parseEther("5"));
-      expect(await stakedoverlayerWrap.balanceOf(alice.address)).to.equal(
-        ethers.parseEther("5")
-      );
-      expect(
-        (await stakedoverlayerWrap.cooldowns(alice.address)).underlyingAmount
-      ).to.equal(ethers.parseEther("5"));
-      const now = await time.latest();
-      expect(
-        (await stakedoverlayerWrap.cooldowns(alice.address)).cooldownEnd
-      ).to.equal(now + 172800);
-    });
-
-    it("Should enforce cooldown period restrictions", async function () {
-      const { stakedoverlayerWrap, alice } = await loadFixture(deployFixture);
-      await expect(
-        await stakedoverlayerWrap
-          .connect(alice)
-          .deposit(ethers.parseEther("10"), alice.address)
-      ).to.emit(stakedoverlayerWrap, "Deposit");
-      await stakedoverlayerWrap
-        .connect(alice)
-        .cooldownShares(ethers.parseEther("5"));
-      const now = await time.latest();
-      expect(
-        (await stakedoverlayerWrap.cooldowns(alice.address)).cooldownEnd
-      ).to.equal(now + 172800);
-      await expect(stakedoverlayerWrap.connect(alice).unstake(alice.address)).to
-        .be.eventually.rejected;
-      await time.increase(172759);
-      await expect(stakedoverlayerWrap.connect(alice).unstake(alice.address)).to
-        .be.eventually.rejected;
-    });
-
-    it("Should process unstaking after cooldown completion", async function () {
-      const { stakedoverlayerWrap, admin, overlayerWrap, alice, bob } =
-        await loadFixture(deployFixture);
-      await stakedoverlayerWrap
-        .connect(alice)
-        .deposit(ethers.parseEther("10"), alice.address);
-      await stakedoverlayerWrap
-        .connect(bob)
-        .deposit(ethers.parseEther("5"), bob.address);
-      await overlayerWrap
-        .connect(admin)
-        .transfer(
-          await stakedoverlayerWrap.getAddress(),
-          ethers.parseEther("15")
-        );
-      await stakedoverlayerWrap
-        .connect(alice)
-        .cooldownShares(ethers.parseEther("10"));
-      await stakedoverlayerWrap
-        .connect(bob)
-        .cooldownShares(ethers.parseEther("5"));
-      await time.increase(182759);
-      const beforeAliceBal = ethers.formatEther(
-        await overlayerWrap.balanceOf(alice)
-      );
-      const beforeBobBal = ethers.formatEther(
-        await overlayerWrap.balanceOf(bob)
-      );
-      await stakedoverlayerWrap.connect(alice).unstake(alice.address);
-      await stakedoverlayerWrap.connect(bob).unstake(bob.address);
-      const afterAliceBal = ethers.formatEther(
-        await overlayerWrap.balanceOf(alice)
-      );
-      const afterBobBal = ethers.formatEther(
-        await overlayerWrap.balanceOf(bob)
-      );
-      expect(
-        Number.parseFloat(afterAliceBal) - Number.parseFloat(beforeAliceBal)
-      ).to.be.greaterThan(19.0);
-      expect(
-        Number.parseFloat(afterAliceBal) - Number.parseFloat(beforeAliceBal)
-      ).to.be.lessThan(20.1);
-      expect(
-        Number.parseFloat(afterBobBal) - Number.parseFloat(beforeBobBal)
-      ).to.be.greaterThan(9.0);
-      expect(
-        Number.parseFloat(afterBobBal) - Number.parseFloat(beforeBobBal)
-      ).to.be.lessThan(10.1);
-    });
-  });
-
   describe("ERC4626 Compliance", function () {
-    it("Should handle immediate unstaking when cooldown disabled", async function () {
+    it("Should handle standard ERC4626 withdraw and redeem", async function () {
       const { stakedoverlayerWrap, admin, overlayerWrap, alice, bob } =
         await loadFixture(deployFixture);
-
-      //disable cool down
-      await stakedoverlayerWrap.connect(admin).setCooldownDuration(0);
 
       await stakedoverlayerWrap
         .connect(alice)
