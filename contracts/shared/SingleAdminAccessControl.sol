@@ -47,7 +47,7 @@ abstract contract SingleAdminAccessControl is
     function grantRole(
         bytes32 role_,
         address account_
-    ) public override onlyRole(DEFAULT_ADMIN_ROLE) notAdmin(role_) {
+    ) public virtual override onlyRole(DEFAULT_ADMIN_ROLE) notAdmin(role_) {
         _grantRole(role_, account_);
     }
 
@@ -59,7 +59,7 @@ abstract contract SingleAdminAccessControl is
     function revokeRole(
         bytes32 role_,
         address account_
-    ) public override onlyRole(DEFAULT_ADMIN_ROLE) notAdmin(role_) {
+    ) public virtual override onlyRole(DEFAULT_ADMIN_ROLE) notAdmin(role_) {
         _revokeRole(role_, account_);
     }
 

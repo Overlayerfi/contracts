@@ -160,6 +160,24 @@ contract OverlayerWrap is IOverlayerWrapDefs, OverlayerWrapCore {
         super.renounceRole(role_, account_);
     }
 
+    /// @notice Prevents direct grant of BLACKLISTED_ROLE; use disableAccount() instead
+    /// @param role_ The role to grant
+    /// @param account_ The account to grant the role to
+    function grantRole(bytes32 role_, address account_) public override {
+        if (role_ == BLACKLISTED_ROLE)
+            revert OverlayerWrapCannotDirectlyAssignBlacklist();
+        super.grantRole(role_, account_);
+    }
+
+    /// @notice Prevents direct revoke of BLACKLISTED_ROLE; use enableAccount() instead
+    /// @param role_ The role to revoke
+    /// @param account_ The account to revoke the role from
+    function revokeRole(bytes32 role_, address account_) public override {
+        if (role_ == BLACKLISTED_ROLE)
+            revert OverlayerWrapCannotDirectlyAssignBlacklist();
+        super.revokeRole(role_, account_);
+    }
+
     /**
      * @dev Transfers a `value` amount of tokens from `from` to `to`, or alternatively mints (or burns) if `from`
      * (or `to`) is the zero address. All customizations to transfers, mints, and burns should be done by overriding

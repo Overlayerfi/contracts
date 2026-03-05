@@ -55,6 +55,8 @@ interface IStakedOverlayerWrap {
     error StakedOverlayerWrapInvalidTime();
     /// @notice Error emitted when native asset rescue call fails
     error StakedOverlayerWrapRescueFailed();
+    /// @notice Cannot directly grant or revoke blacklist roles via grantRole/revokeRole
+    error StakedOverlayerWrapCannotDirectlyAssignBlacklist();
 
     /// @notice Transfers rewards to the staking contract
     /// @param amount Amount of rewards to transfer
