@@ -67,7 +67,7 @@ contract OverlayerWrap is IOverlayerWrapDefs, OverlayerWrapCore {
     }
 
     /// @notice Mint tokens
-    /// @dev Can be paused by the admin
+    /// @dev Can be disabled by the gatekeeper via disableMint()
     /// @param order_ A struct containing the mint order
     function mint(
         OverlayerWrapCoreTypes.Order calldata order_
@@ -105,8 +105,8 @@ contract OverlayerWrap is IOverlayerWrapDefs, OverlayerWrapCore {
     }
 
     /// @notice Redeem collateral
-    /// @dev Can not be paused
-    /// @param order_ A struct containing the mint order
+    /// @dev Cannot be disabled or paused
+    /// @param order_ A struct containing the redeem order
     function redeem(
         OverlayerWrapCoreTypes.Order calldata order_
     )
