@@ -139,6 +139,7 @@ abstract contract OverlayerWrapCore is
         bool status_
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         maxRedeemWhitelist[user_] = status_;
+        emit MaxRedeemWhitelistUpdated(user_, status_);
     }
 
     /// @notice Rescue native tokens (ETH) accidentally sent to this contract

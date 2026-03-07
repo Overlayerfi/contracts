@@ -33,6 +33,13 @@ interface IStakedOverlayerWrap {
         uint256 current
     );
 
+    /// @notice Emitted when ERC20 tokens are rescued from the contract
+    event TokenRescued(
+        address indexed token,
+        address indexed to,
+        uint256 amount
+    );
+
     /// @notice Error emitted shares or assets equal zero.
     error StakedOverlayerWrapInvalidAmount();
     /// @notice Error emitted when owner attempts to rescue OverlayerWrap tokens.

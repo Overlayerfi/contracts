@@ -101,7 +101,9 @@ contract OverlayerWrap is IOverlayerWrapDefs, OverlayerWrapCore {
         if (time_ > 0 && time_ < block.timestamp) {
             revert OverlayerWrapBlacklistTimeNotValid();
         }
+        uint256 previous = blacklistActivationTime;
         blacklistActivationTime = time_;
+        emit BlackListTimeUpdated(previous, time_);
     }
 
     /// @notice Redeem collateral

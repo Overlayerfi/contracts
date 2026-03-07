@@ -77,4 +77,7 @@ interface IOverlayerWrapCoreEvents {
 
     /// @notice Emitted when native tokens are rescued from the contract
     event NativeRescued(address indexed to, uint256 amount);
+
+    /// @notice Emitted when a user's maxRedeemPerBlock whitelist status changes
+    event MaxRedeemWhitelistUpdated(address indexed user, bool status);
 }
