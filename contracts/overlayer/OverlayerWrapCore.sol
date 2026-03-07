@@ -217,6 +217,15 @@ abstract contract OverlayerWrapCore is
         _setMaxRedeemPerBlock(newValue);
     }
 
+    /// @notice Cancel a pending maxRedeemPerBlock proposal
+    function cancelProposedMaxRedeemPerBlock()
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        proposedRedeemChangeTime = 0;
+        proposedMaxRedeemPerBlock = 0;
+    }
+
     /// @notice Disables minting by setting maxMintPerBlock to zero
     function disableMint() external onlyRole(GATEKEEPER_ROLE) {
         _setMaxMintPerBlock(0);
