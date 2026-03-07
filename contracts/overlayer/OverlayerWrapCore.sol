@@ -232,14 +232,6 @@ abstract contract OverlayerWrapCore is
         _setMaxMintPerBlock(0);
     }
 
-    /// @notice Removes the collateral manager role from an account, this can ONLY be executed by the gatekeeper role
-    /// @param collateralManager_ The address to remove the COLLATERAL_MANAGER_ROLE role from
-    function removeCollateralManagerRole(
-        address collateralManager_
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _revokeRole(COLLATERAL_MANAGER_ROLE, collateralManager_);
-    }
-
     /// @notice Pause the contract
     /// @dev This call is used only to lock the supplyToBacking public call
     function pause() external nonReentrant onlyRole(GATEKEEPER_ROLE) {
