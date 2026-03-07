@@ -581,6 +581,30 @@ describe("OverlayerWrap", function () {
       await overlayerWrap.connect(admin).executeMaxRedeemPerBlockChange();
       expect(await overlayerWrap.maxRedeemPerBlock()).to.equal(1n);
     });
+
+    it("Should cancel a pending maxRedeemPerBlock proposal", async function () {
+      const { overlayerWrap, admin } = await loadFixture(deployFixture);
+
+      const proposed = ethers.parseEther("5000");
+      await overlayerWrap.connect(admin).proposeMaxRedeemPerBlock(proposed);
+      expect(await overlayerWrap.proposedMaxRedeemPerBlock()).to.equal(
+        proposed
+      );
+
+      await overlayerWrap.connect(admin).cancelProposedMaxRedeemPerBlock();
+      expect(await overlayerWrap.proposedMaxRedeemPerBlock()).to.equal(0);
+      expect(await overlayerWrap.proposedRedeemChangeTime()).to.equal(0);
+
+      // maxRedeemPerBlock unchanged
+      expect(await overlayerWrap.maxRedeemPerBlock()).to.equal(
+        ethers.MaxUint256
+      );
+
+      // executing after cancel should revert (no active proposal)
+      await expect(
+        overlayerWrap.connect(admin).executeMaxRedeemPerBlockChange()
+      ).to.be.reverted;
+    });
   });
 
   describe("Token Minting Operations", function () {
