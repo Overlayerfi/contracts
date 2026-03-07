@@ -49,4 +49,6 @@ interface IOverlayerWrapDefs is IOverlayerWrapEvents {
     event DisableAccount(address account);
     /// @notice A reverted blacklist event
     event EnableAccount(address account);
+    /// @notice Emitted when the blacklist activation time is updated
+    event BlackListTimeUpdated(uint256 previous, uint256 current);
 }

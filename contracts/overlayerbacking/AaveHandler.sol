@@ -163,6 +163,7 @@ abstract contract AaveHandler is
         }
 
         updateSuppliedAmounts(aCollateralWant);
+        emit AaveAdminWithdraw(aCollateralWant);
     }
 
     /// @notice Compound funds from-to aave protocol
@@ -256,6 +257,7 @@ abstract contract AaveHandler is
         if (aave_ == address(0)) revert AaveHandlerZeroAddressException();
         proposedAave = aave_;
         aaveProposalTime = block.timestamp;
+        emit AaveProposedNewAave(aave_, block.timestamp);
     }
 
     ///@notice Propose a new protocol dispatcher contract
@@ -268,6 +270,10 @@ abstract contract AaveHandler is
             revert AaveHandlerOperationNotAllowed();
         proposedOvaDispatcherAllocation = proposedOvaDispatcherAllocation_;
         ovaDispatcherAllocationProposalTime = block.timestamp;
+        emit AaveProposedNewOvaDispatcherAllocation(
+            proposedOvaDispatcherAllocation_,
+            block.timestamp
+        );
     }
 
     ///@notice Accept the proposed aave contract
@@ -320,6 +326,7 @@ abstract contract AaveHandler is
     ///@param amount_ The amount to allow aave as spender
     function approveAave(uint256 amount_) public onlyOwner nonReentrant {
         IERC20(collateral).forceApprove(aave, amount_);
+        emit AaveApprovalUpdated(aave, amount_);
     }
 
     ///@notice Approve Staked overlayerWrap spending
@@ -328,6 +335,7 @@ abstract contract AaveHandler is
         uint256 amount_
     ) public onlyOwner nonReentrant {
         IERC20(overlayerWrap).forceApprove(sOverlayerWrap, amount_);
+        emit AaveStakingApprovalUpdated(sOverlayerWrap, amount_);
     }
 
     ///@notice Approve overlayerWrap spending
@@ -337,6 +345,7 @@ abstract contract AaveHandler is
     ) public onlyOwner nonReentrant {
         IERC20(collateral).forceApprove(overlayerWrap, amount_);
         IERC20(aCollateral).forceApprove(overlayerWrap, amount_);
+        emit AaveOverlayerWrapApprovalUpdated(amount_);
     }
 
     /// @notice Withraw funds from aave protocol

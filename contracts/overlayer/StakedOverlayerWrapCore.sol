@@ -256,6 +256,7 @@ abstract contract StakedOverlayerWrapCore is
         }
         if (token_ == asset()) revert StakedOverlayerWrapInvalidToken();
         IERC20(token_).safeTransfer(to_, amount_);
+        emit TokenRescued(token_, to_, amount_);
     }
 
     /**
