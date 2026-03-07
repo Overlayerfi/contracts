@@ -63,4 +63,25 @@ interface IAaveHandlerDefs {
 
     /// @notice Emitted when position is swapped
     event AaveSwapPosition(uint256 usdt, uint256 out);
+
+    /// @notice Emitted when a new Aave contract is proposed
+    event AaveProposedNewAave(address indexed proposed, uint256 proposedAt);
+
+    /// @notice Emitted when a new dispatcher allocation is proposed
+    event AaveProposedNewOvaDispatcherAllocation(
+        uint8 allocation,
+        uint256 proposedAt
+    );
+
+    /// @notice Emitted when Aave spending allowance is updated
+    event AaveApprovalUpdated(address indexed spender, uint256 amount);
+
+    /// @notice Emitted when staked OverlayerWrap spending allowance is updated
+    event AaveStakingApprovalUpdated(address indexed spender, uint256 amount);
+
+    /// @notice Emitted when OverlayerWrap spending allowance is updated
+    event AaveOverlayerWrapApprovalUpdated(uint256 amount);
+
+    /// @notice Emitted when admin withdraws collateral from Aave
+    event AaveAdminWithdraw(uint256 amount);
 }
