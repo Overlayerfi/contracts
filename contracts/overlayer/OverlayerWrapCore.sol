@@ -72,17 +72,6 @@ abstract contract OverlayerWrapCore is
         _;
     }
 
-    /// @notice Ensure that the already redeemed OverlayerWrap in the actual block plus the amount to be redeemed is below the maxRedeemPerBlock
-    /// @param redeemAmount_ The OverlayerWrap amount to be redeemed
-    modifier belowMaxRedeemPerBlock(uint256 redeemAmount_) {
-        if (
-            redeemedPerBlock[block.number] + redeemAmount_ >
-            maxRedeemPerBlock &&
-            !maxRedeemWhitelist[msg.sender]
-        ) revert OverlayerWrapCoreMaxRedeemPerBlockExceeded();
-        _;
-    }
-
     /// @notice Restricts the execution of a function to only be callable by the `hubChain` address.
     /// @param chainId_ The current chain id
     modifier onlyHubChain(uint256 chainId_) {
