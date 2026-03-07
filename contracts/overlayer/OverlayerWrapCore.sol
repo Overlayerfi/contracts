@@ -33,7 +33,7 @@ abstract contract OverlayerWrapCore is
 
     /* --------------- CONSTANTS --------------- */
 
-    /// @notice Role enabling to disable mint and redeem
+    /// @notice Role enabling to disable mint and to pause supplyToBacking
     bytes32 private constant GATEKEEPER_ROLE = keccak256("GATEKEEPER_ROLE");
 
     /* --------------- STATE VARIABLES --------------- */
@@ -217,7 +217,7 @@ abstract contract OverlayerWrapCore is
         _setMaxRedeemPerBlock(newValue);
     }
 
-    /// @notice Disables the mint and redeem
+    /// @notice Disables minting by setting maxMintPerBlock to zero
     function disableMint() external onlyRole(GATEKEEPER_ROLE) {
         _setMaxMintPerBlock(0);
     }
