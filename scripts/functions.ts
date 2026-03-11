@@ -291,6 +291,45 @@ export async function StakedOverlayerWrap_setCooldownStaking(
   console.log("[StakedOverlayerWrap_setCooldownStaking] Operation passed");
 }
 
+export async function StakedOverlayerWrap_proposeOverlayerWrapBacking(
+  addr: string,
+  backing: string
+): Promise<void> {
+  const [deployer] = await ethers.getSigners();
+
+  console.log(
+    "[StakedOverlayerWrap_proposeOverlayerWrapBacking] Proposing backing:",
+    backing
+  );
+
+  const contract = new ethers.Contract(addr, SOverlayerWrap_ABI.abi, deployer);
+  await (contract.connect(deployer) as Contract).proposeOverlayerWrapBacking(
+    backing,
+    { gasLimit: 2000000 }
+  );
+
+  console.log("[StakedOverlayerWrap_proposeOverlayerWrapBacking] Proposal set");
+}
+
+export async function StakedOverlayerWrap_executeOverlayerWrapBackingChange(
+  addr: string
+): Promise<void> {
+  const [deployer] = await ethers.getSigners();
+
+  console.log(
+    "[StakedOverlayerWrap_executeOverlayerWrapBackingChange] Executing backing change"
+  );
+
+  const contract = new ethers.Contract(addr, SOverlayerWrap_ABI.abi, deployer);
+  await (
+    contract.connect(deployer) as Contract
+  ).executeOverlayerWrapBackingChange({ gasLimit: 2000000 });
+
+  console.log(
+    "[StakedOverlayerWrap_executeOverlayerWrapBackingChange] Backing updated"
+  );
+}
+
 export async function deploy_AirdropPoolCurveStableStake(
   admin: string
 ): Promise<string> {
