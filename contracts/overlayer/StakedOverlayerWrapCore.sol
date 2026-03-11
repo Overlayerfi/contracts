@@ -41,6 +41,8 @@ abstract contract StakedOverlayerWrapCore is
     uint256 public constant BLACKLIST_ACTIVATION_TIME = 15 days;
     /// @notice Time delay for asset redistribution to be activated
     uint256 public constant REDISTRIBUTION_ACTIVATION_TIME = 15 days;
+    /// @notice Time delay before overlayerWrap backing change can be executed
+    uint256 public constant BACKING_CHANGE_DELAY = 15 days;
 
     /* ------------- STATE VARIABLES ------------- */
 
@@ -52,6 +54,10 @@ abstract contract StakedOverlayerWrapCore is
 
     /// @notice OverlayerWrap backing contract
     address public overlayerWrapBacking;
+    /// @notice Proposed overlayerWrap backing contract
+    address public proposedOverlayerWrapBacking;
+    /// @notice Timestamp at which overlayerWrap backing change was proposed
+    uint256 public proposedOverlayerWrapBackingTime;
 
     /* ------------- MODIFIERS ------------- */
 
@@ -215,15 +221,58 @@ abstract contract StakedOverlayerWrapCore is
     }
 
     /**
-     * @notice Sets the overlayerWrap backing contract
-     * @dev Zero address not disable
-     * @param backing_ The overlayerWrap backing contract
+     * @notice Proposes a new overlayerWrap backing contract, starts the timelock delay
+     * @dev Zero address not allowed. When current backing is address(0) (initial setup), execute can be called immediately.
+     * @param backing_ The proposed overlayerWrap backing contract
      */
-    function setOverlayerWrapBacking(
+    function proposeOverlayerWrapBacking(
         address backing_
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        overlayerWrapBacking = backing_;
-        emit OverlayerWrapBackingSet(backing_);
+        if (backing_ == address(0))
+            revert StakedOverlayerWrapInvalidZeroAddress();
+        proposedOverlayerWrapBacking = backing_;
+        proposedOverlayerWrapBackingTime = block.timestamp;
+        emit ProposedOverlayerWrapBacking(backing_, block.timestamp);
+    }
+
+    /**
+     * @notice Executes the previously proposed backing change after BACKING_CHANGE_DELAY
+     * @dev When overlayerWrapBacking is address(0) (initial setup), delay is skipped
+     */
+    function executeOverlayerWrapBackingChange()
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        if (proposedOverlayerWrapBacking == address(0)) {
+            revert StakedOverlayerWrapInvalidZeroAddress();
+        }
+        if (overlayerWrapBacking != address(0)) {
+            if (
+                block.timestamp <
+                proposedOverlayerWrapBackingTime + BACKING_CHANGE_DELAY
+            ) {
+                revert StakedOverlayerWrapBackingChangeDelayNotRespected();
+            }
+        }
+
+        address newBacking = proposedOverlayerWrapBacking;
+
+        proposedOverlayerWrapBacking = address(0);
+        proposedOverlayerWrapBackingTime = 0;
+
+        overlayerWrapBacking = newBacking;
+        emit OverlayerWrapBackingSet(newBacking);
+    }
+
+    /**
+     * @notice Cancels a pending overlayerWrap backing proposal
+     */
+    function cancelProposedOverlayerWrapBacking()
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        proposedOverlayerWrapBacking = address(0);
+        proposedOverlayerWrapBackingTime = 0;
     }
 
     /**
