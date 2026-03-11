@@ -35,7 +35,7 @@ contract StakedOverlayerWrap is StakedOverlayerWrapCore {
         uint256 shares_,
         address receiver_
     ) public virtual override returns (uint256) {
-        _tryCompound();
+        _compound();
         return super.mint(shares_, receiver_);
     }
 
@@ -46,7 +46,7 @@ contract StakedOverlayerWrap is StakedOverlayerWrapCore {
         uint256 assets_,
         address receiver_
     ) public virtual override returns (uint256) {
-        _tryCompound();
+        _compound();
         return super.deposit(assets_, receiver_);
     }
 
@@ -58,7 +58,7 @@ contract StakedOverlayerWrap is StakedOverlayerWrapCore {
         address receiver_,
         address owner_
     ) public virtual override returns (uint256) {
-        _tryCompound();
+        _compound();
         return super.withdraw(assets_, receiver_, owner_);
     }
 
@@ -70,19 +70,16 @@ contract StakedOverlayerWrap is StakedOverlayerWrapCore {
         address receiver_,
         address owner_
     ) public virtual override returns (uint256) {
-        _tryCompound();
+        _compound();
         return super.redeem(shares_, receiver_, owner_);
     }
 
-    /// @notice Attempts to compound yield; silently continues if it fails
-    ///         (e.g. accumulated yield exceeds maxMintPerBlock)
-    function _tryCompound() internal {
+    /// @notice Compounds yield from the overlayerWrap backing contract, reverting on failures
+    function _compound() internal {
         if (overlayerWrapBacking != address(0)) {
-            try
-                IOverlayerWrapBacking(overlayerWrapBacking).compound(
-                    withdrawAaveDuringCompound
-                )
-            {} catch {}
+            IOverlayerWrapBacking(overlayerWrapBacking).compound(
+                withdrawAaveDuringCompound
+            );
         }
     }
 
