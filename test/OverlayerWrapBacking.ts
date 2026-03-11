@@ -150,7 +150,8 @@ describe("OverlayerWrap Backing Protocol", function () {
 
     await sOverlayerWrap
       .connect(admin)
-      .setOverlayerWrapBacking(await overlayerWrapBacking.getAddress());
+      .proposeOverlayerWrapBacking(await overlayerWrapBacking.getAddress());
+    await sOverlayerWrap.connect(admin).executeOverlayerWrapBackingChange();
 
     // Grant rewarder role
     await sOverlayerWrap
@@ -222,6 +223,91 @@ describe("OverlayerWrap Backing Protocol", function () {
         deployFixture
       );
       expect(await overlayerWrap.getSpender()).to.equal(
+        await overlayerWrapBacking.getAddress()
+      );
+    });
+  });
+
+  describe("StakedOverlayerWrap Backing Timelock", function () {
+    it("Should allow immediate execute when backing is initially zero", async function () {
+      const { sOverlayerWrap, overlayerWrapBacking, admin } = await loadFixture(
+        deployFixture
+      );
+      expect(await sOverlayerWrap.overlayerWrapBacking()).to.equal(
+        await overlayerWrapBacking.getAddress()
+      );
+    });
+
+    it("Should enforce timelock when changing existing backing", async function () {
+      const { sOverlayerWrap, overlayerWrapBacking, admin, alice } =
+        await loadFixture(deployFixture);
+      await sOverlayerWrap
+        .connect(admin)
+        .proposeOverlayerWrapBacking(alice.address);
+      await expect(
+        sOverlayerWrap.connect(admin).executeOverlayerWrapBackingChange()
+      ).to.be.revertedWithCustomError(
+        sOverlayerWrap,
+        "StakedOverlayerWrapBackingChangeDelayNotRespected"
+      );
+    });
+
+    it("Should reject execute before BACKING_CHANGE_DELAY (15 days)", async function () {
+      const { sOverlayerWrap, admin, alice } = await loadFixture(deployFixture);
+      await sOverlayerWrap
+        .connect(admin)
+        .proposeOverlayerWrapBacking(alice.address);
+      // Advance 14 days - still within timelock, must revert
+      await time.increase(14 * 24 * 60 * 60);
+      await expect(
+        sOverlayerWrap.connect(admin).executeOverlayerWrapBackingChange()
+      ).to.be.revertedWithCustomError(
+        sOverlayerWrap,
+        "StakedOverlayerWrapBackingChangeDelayNotRespected"
+      );
+    });
+
+    it("Should accept execute exactly after BACKING_CHANGE_DELAY (15 days)", async function () {
+      const { sOverlayerWrap, overlayerWrapBacking, admin, alice } =
+        await loadFixture(deployFixture);
+      const BACKING_CHANGE_DELAY = 15 * 24 * 60 * 60;
+      await sOverlayerWrap
+        .connect(admin)
+        .proposeOverlayerWrapBacking(alice.address);
+      await time.increase(BACKING_CHANGE_DELAY);
+      await sOverlayerWrap.connect(admin).executeOverlayerWrapBackingChange();
+      expect(await sOverlayerWrap.overlayerWrapBacking()).to.equal(
+        alice.address
+      );
+    });
+
+    it("Should execute backing change after delay", async function () {
+      const { sOverlayerWrap, overlayerWrapBacking, admin, alice } =
+        await loadFixture(deployFixture);
+      await sOverlayerWrap
+        .connect(admin)
+        .proposeOverlayerWrapBacking(alice.address);
+      await time.increase(16 * 24 * 60 * 60);
+      await sOverlayerWrap.connect(admin).executeOverlayerWrapBackingChange();
+      expect(await sOverlayerWrap.overlayerWrapBacking()).to.equal(
+        alice.address
+      );
+    });
+
+    it("Should cancel pending backing proposal", async function () {
+      const { sOverlayerWrap, overlayerWrapBacking, admin, alice } =
+        await loadFixture(deployFixture);
+      await sOverlayerWrap
+        .connect(admin)
+        .proposeOverlayerWrapBacking(alice.address);
+      expect(await sOverlayerWrap.proposedOverlayerWrapBacking()).to.equal(
+        alice.address
+      );
+      await sOverlayerWrap.connect(admin).cancelProposedOverlayerWrapBacking();
+      expect(await sOverlayerWrap.proposedOverlayerWrapBacking()).to.equal(
+        ethers.ZeroAddress
+      );
+      expect(await sOverlayerWrap.overlayerWrapBacking()).to.equal(
         await overlayerWrapBacking.getAddress()
       );
     });

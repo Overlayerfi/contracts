@@ -22,6 +22,11 @@ interface IStakedOverlayerWrap {
     event BlacklistTimeSet(uint256 time);
     /// @notice Event emitted when the overlayerWrap backing contract is set
     event OverlayerWrapBackingSet(address indexed backing);
+    /// @notice Event emitted when a new overlayerWrap backing is proposed
+    event ProposedOverlayerWrapBacking(
+        address indexed backing,
+        uint256 proposedAt
+    );
     /// @notice Event emitted when the blacklist timestamp is updated
     event OvaStakedOverlayerWrapBlackListTimeUpdated(
         uint256 previous,
@@ -62,6 +67,8 @@ interface IStakedOverlayerWrap {
     error StakedOverlayerWrapInvalidTime();
     /// @notice Error emitted when native asset rescue call fails
     error StakedOverlayerWrapRescueFailed();
+    /// @notice Error emitted when backing change timelock delay has not elapsed
+    error StakedOverlayerWrapBackingChangeDelayNotRespected();
     /// @notice Cannot directly grant or revoke blacklist roles via grantRole/revokeRole
     error StakedOverlayerWrapCannotDirectlyAssignBlacklist();
 
