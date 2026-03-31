@@ -213,6 +213,47 @@ describe("Staked Overlayer Wrap Front", function () {
     });
   });
 
+  describe("OverlayerWrap blacklist vs ERC4626 redeem", function () {
+    it("reverts redeem when share owner is blacklisted on OverlayerWrap", async function () {
+      const { stakedoverlayerWrap, overlayerWrap, admin, alice, bob } =
+        await loadFixture(deployFixture);
+
+      await stakedoverlayerWrap
+        .connect(alice)
+        .deposit(ethers.parseEther("10"), alice.address);
+
+      const controllerRole = ethers.keccak256(
+        ethers.toUtf8Bytes("CONTROLLER_ROLE")
+      );
+      await overlayerWrap.grantRole(controllerRole, admin.address);
+
+      const lastTime = await time.latest();
+      await overlayerWrap.connect(admin).setBlackListTime(lastTime + 1);
+      await time.increase(3600 * 24 * 15 + 1);
+
+      await overlayerWrap.connect(admin).disableAccount(alice.address);
+
+      await expect(
+        overlayerWrap.connect(alice).transfer(bob.address, 1n)
+      ).to.be.revertedWithCustomError(
+        overlayerWrap,
+        "OverlayerWrapAccountDisabled"
+      );
+
+      const shares = await stakedoverlayerWrap.balanceOf(alice.address);
+      expect(shares).to.be.gt(0n);
+
+      await expect(
+        stakedoverlayerWrap
+          .connect(alice)
+          .redeem(shares, bob.address, alice.address)
+      ).to.be.revertedWithCustomError(
+        stakedoverlayerWrap,
+        "StakedOverlayerWrapOperationNotAllowed"
+      );
+    });
+  });
+
   describe("Access Control Management", function () {
     it("Should configure blacklist activation time", async function () {
       const { stakedoverlayerWrap, admin } = await loadFixture(deployFixture);
