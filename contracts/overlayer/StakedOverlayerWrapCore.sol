@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 /* solhint-disable private-vars-leading-underscore */
 
+import "@openzeppelin/contracts/access/IAccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -35,6 +36,9 @@ abstract contract StakedOverlayerWrapCore is
     /// @notice The role which prevents an address to transfer, stake, or unstake. The owner of the contract can redirect address staking balance if an address is in full restricting mode.
     bytes32 private constant WHOLE_RESTRICTED_ROLE =
         keccak256("WHOLE_RESTRICTED_ROLE");
+    /// @notice Must match {OverlayerWrap} BLACKLISTED_ROLE for unstake compliance
+    bytes32 private constant OW_BLACKLISTED_ROLE =
+        keccak256("BLACKLISTED_ROLE");
     /// @notice Minimum non-zero shares amount to prevent donation attack
     uint256 private constant MIN_SHARES = 1 ether;
     /// @notice Time delay for blacklisting to be activated
@@ -433,6 +437,12 @@ abstract contract StakedOverlayerWrapCore is
             hasRole(WHOLE_RESTRICTED_ROLE, caller_) ||
             hasRole(WHOLE_RESTRICTED_ROLE, receiver_) ||
             hasRole(WHOLE_RESTRICTED_ROLE, sharesOwner_)
+        ) {
+            revert StakedOverlayerWrapOperationNotAllowed();
+        }
+        address assetAddress = asset();
+        if (
+            IAccessControl(assetAddress).hasRole(OW_BLACKLISTED_ROLE, sharesOwner_)
         ) {
             revert StakedOverlayerWrapOperationNotAllowed();
         }
