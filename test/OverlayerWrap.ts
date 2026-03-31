@@ -7,7 +7,8 @@ import { LZ_ENDPOINT_ETH_MAINNET_V2 } from "../scripts/addresses";
 import { HARDHAT_CHAIN_ID } from "../scripts/constants";
 
 describe("OverlayerWrap", function () {
-  async function deployFixture() {
+  /** Hub chain id stored on the token; use HARDHAT_CHAIN_ID for hub local tests, another id for satellite PoC. */
+  async function deployFixtureWithHubChain(configuredHubChainId: bigint) {
     const [admin, gatekeeper, alice, bob] = await ethers.getSigners();
 
     const block = await admin.provider.getBlock("latest");
@@ -49,7 +50,7 @@ describe("OverlayerWrap", function () {
         maxMintPerBlock: ethers.MaxUint256,
         maxRedeemPerBlock: ethers.MaxUint256,
         minValmaxRedeemPerBlock: 1n,
-        hubChainId: HARDHAT_CHAIN_ID
+        hubChainId: configuredHubChainId
       },
       defaultTransactionOptions
     );
@@ -118,6 +119,10 @@ describe("OverlayerWrap", function () {
       bob,
       userAmount
     };
+  }
+
+  async function deployFixture() {
+    return deployFixtureWithHubChain(BigInt(HARDHAT_CHAIN_ID));
   }
 
   describe("Contract Initialization", function () {
@@ -1360,6 +1365,79 @@ describe("OverlayerWrap", function () {
       await overlayerWrap.testCredit(alice.address, mintAmountOW, 0);
       expect(await overlayerWrap.totalSupply()).to.equal(mintAmountOW);
       expect(await overlayerWrap.totalBridgedOut()).to.equal(0);
+    });
+
+    /**
+     * Satellite deployment (local chain id != hubChainId): totalBridgedOut is hub-only and must
+     * stay zero here; _credit must still mint (inbound OFT) without touching totalBridgedOut.
+     */
+    describe("Satellite chain (non-hub) OFT / totalBridgedOut", function () {
+      const FOREIGN_HUB_CHAIN_ID = 1n;
+
+      async function deploySatelliteFixture() {
+        return deployFixtureWithHubChain(FOREIGN_HUB_CHAIN_ID);
+      }
+
+      it("allows _credit when totalBridgedOut is zero (no hub accounting on satellite)", async function () {
+        const { overlayerWrap, alice } = await loadFixture(
+          deploySatelliteFixture
+        );
+
+        expect(await overlayerWrap.hubChainId()).to.equal(FOREIGN_HUB_CHAIN_ID);
+        expect(await overlayerWrap.totalBridgedOut()).to.equal(0n);
+
+        const amount = ethers.parseEther("1");
+        await overlayerWrap.testCredit(alice.address, amount, 0);
+
+        expect(await overlayerWrap.totalBridgedOut()).to.equal(0n);
+        expect(await overlayerWrap.balanceOf(alice.address)).to.equal(amount);
+      });
+
+      it("rejects mint on satellite but inbound _credit still works", async function () {
+        const { overlayerWrap, alice, collateral } = await loadFixture(
+          deploySatelliteFixture
+        );
+
+        const mintAmount = ethers.parseUnits("10", await collateral.decimals());
+        const mintAmountOW = ethers.parseEther("10");
+        const order = {
+          benefactor: alice.address,
+          beneficiary: alice.address,
+          collateral: await collateral.getAddress(),
+          collateralAmount: mintAmount,
+          overlayerWrapAmount: mintAmountOW
+        };
+
+        await expect(
+          overlayerWrap.connect(alice).mint(order)
+        ).to.be.revertedWithCustomError(
+          overlayerWrap,
+          "OverlayerWrapCoreNotHubChainId"
+        );
+
+        expect(await overlayerWrap.totalBridgedOut()).to.equal(0n);
+        const creditAmt = ethers.parseEther("1");
+        await overlayerWrap.testCredit(alice.address, creditAmt, 0);
+        expect(await overlayerWrap.totalBridgedOut()).to.equal(0n);
+        expect(await overlayerWrap.balanceOf(alice.address)).to.equal(
+          creditAmt
+        );
+      });
+
+      it("does not increment totalBridgedOut on satellite _debit after _credit-funded balance", async function () {
+        const { overlayerWrap, alice } = await loadFixture(
+          deploySatelliteFixture
+        );
+
+        const amount = ethers.parseEther("5");
+        await overlayerWrap.testCredit(alice.address, amount, 0);
+        expect(await overlayerWrap.totalBridgedOut()).to.equal(0n);
+
+        await overlayerWrap.testDebit(alice.address, amount, amount, 0);
+
+        expect(await overlayerWrap.balanceOf(alice.address)).to.equal(0n);
+        expect(await overlayerWrap.totalBridgedOut()).to.equal(0n);
+      });
     });
   });
 });

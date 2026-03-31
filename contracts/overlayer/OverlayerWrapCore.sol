@@ -498,9 +498,9 @@ abstract contract OverlayerWrapCore is
     }
 
     /// @notice Tracks tokens leaving the hub chain so AaveHandler accounting remains correct
-    /// @dev OFT burns tokens on the source chain during cross-chain sends; this override
-    ///      records the burned amount so that totalSupply() + totalBridgedOut reflects the
-    ///      effective supply for collateral-backing calculations.
+    /// @dev OFT burns on the source chain during sends. On the hub only, increments
+    ///      totalBridgedOut so totalSupply() + totalBridgedOut reflects effective supply for
+    ///      backing. Satellite debits do not update this counter.
     /// @param from_ The address to debit tokens from
     /// @param amountLD_ The amount to send in local decimals
     /// @param minAmountLD_ The minimum amount to send in local decimals
@@ -524,12 +524,14 @@ abstract contract OverlayerWrapCore is
             minAmountLD_,
             dstEid_
         );
-        totalBridgedOut += amountSentLD;
+        if (block.chainid == hubChainId) {
+            totalBridgedOut += amountSentLD;
+        }
     }
 
     /// @notice Tracks tokens returning to the hub chain from cross-chain transfers
-    /// @dev Mints tokens on the destination chain; this override decrements totalBridgedOut
-    ///      to keep the effective supply invariant consistent.
+    /// @dev On the hub only, decrements totalBridgedOut so totalSupply() + totalBridgedOut matches
+    ///      collateral accounting (AaveHandler). On satellite chains, totalBridgedOut is unused.
     /// @param to_ The address to credit tokens to
     /// @param amountLD_ The amount to credit in local decimals
     /// @param srcEid_ The source endpoint ID
@@ -540,7 +542,9 @@ abstract contract OverlayerWrapCore is
         uint32 srcEid_
     ) internal virtual override returns (uint256 amountReceivedLD) {
         amountReceivedLD = super._credit(to_, amountLD_, srcEid_);
-        totalBridgedOut -= amountReceivedLD;
+        if (block.chainid == hubChainId) {
+            totalBridgedOut -= amountReceivedLD;
+        }
     }
 
     /// @notice Sets the max redeemPerBlock limit
