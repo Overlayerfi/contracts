@@ -1398,7 +1398,7 @@ describe("OverlayerWrap Backing Protocol", function () {
       let ausdtBal = await ausdt.balanceOf(
         await overlayerWrapBacking.getAddress()
       );
-      await overlayerWrapBacking.connect(admin).adminWithdraw(0);
+      await overlayerWrapBacking.connect(admin).adminWithdraw();
 
       const atLeastUsdtAdmin =
         0.99 *
@@ -1490,7 +1490,7 @@ describe("OverlayerWrap Backing Protocol", function () {
       );
 
       // Admin withdraw (collect yield/emergency funds); should update accounting
-      await overlayerWrapBacking.connect(admin).adminWithdraw(0);
+      await overlayerWrapBacking.connect(admin).adminWithdraw();
       expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.equal(0);
 
       // Collateral returned to OverlayerWrap equals expected principal amount

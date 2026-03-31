@@ -137,21 +137,14 @@ abstract contract AaveHandler is
 
     //########################################## EXTERNAL FUNCTIONS ##########################################
 
-    /// @notice Withraw funds from aave and return all the collateral to overlayerWrap. This will forward collateral in aToken mode.
-    /// @param amount_ The amount of aCollateral to withraw. Zero for max
-    function adminWithdraw(uint256 amount_) external onlyOwner nonReentrant {
-        uint256 aCollateralWant = amount_ == 0
-            ? totalSuppliedCollateral
-            : amount_;
-
-        if (aCollateralWant > totalSuppliedCollateral) {
-            revert AaveHandlerAaveWithrawFailed();
-        }
+    /// @notice Withdraw all tracked collateral from Aave to overlayerWrap in aToken form. Yield surplus goes to the dispatcher.
+    function adminWithdraw() external onlyOwner nonReentrant {
+        uint256 aCollateralWant = totalSuppliedCollateral;
 
         // Return collateral to protocol token
         IERC20(aCollateral).safeTransfer(overlayerWrap, aCollateralWant);
 
-        // Send any leftover to dispatcher
+        // Surplus is yield only: full withdraw leaves no principal on this contract.
         uint256 surplusACollateral = IERC20(aCollateral).balanceOf(
             address(this)
         );
