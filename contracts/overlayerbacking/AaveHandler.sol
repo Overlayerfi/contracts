@@ -235,8 +235,12 @@ abstract contract AaveHandler is
         if (owTotalSupp < DECIMALS_DIFF_AMOUNT)
             revert AaveHandlerOverlayerWrapTotalSupplyTooLow();
         uint256 normalizedSupply = owTotalSupp / DECIMALS_DIFF_AMOUNT;
-        uint256 differenceCollateral = normalizedSupply -
-            totalSuppliedCollateral;
+        // Local-only redemptions can burn OW without withdraw(), so this counter may
+        // exceed normalized supply; for example if donations are made to OW.
+        uint256 differenceCollateral = normalizedSupply >
+            totalSuppliedCollateral
+            ? normalizedSupply - totalSuppliedCollateral
+            : 0;
         uint256 minIncrease = Math.min(amountCollateral_, differenceCollateral);
         totalSuppliedCollateral += minIncrease;
 

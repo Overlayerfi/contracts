@@ -405,6 +405,68 @@ describe("OverlayerWrap Backing Protocol", function () {
         ethers.parseUnits(totalCollateral, await usdt.decimals())
       );
     });
+
+    it("allows supplyToBacking when normalized supply is below totalSuppliedCollateral", async function () {
+      const {
+        usdt,
+        overlayerWrap,
+        overlayerWrapBacking,
+        alice,
+        admin
+      } = await loadFixture(deployFixture);
+
+      const mintAmount = "100";
+      const donateAmount = "10";
+      const redeemAmount = "10";
+
+      const mintOrder = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await usdt.getAddress(),
+        collateralAmount: ethers.parseUnits(
+          mintAmount,
+          await usdt.decimals()
+        ),
+        overlayerWrapAmount: ethers.parseEther(mintAmount)
+      };
+      await overlayerWrap.connect(alice).mint(mintOrder);
+      await overlayerWrap.connect(alice).supplyToBacking(0, 0);
+
+      const wrapAddr = await overlayerWrap.getAddress();
+      await (usdt.connect(admin) as Contract).transfer(
+        wrapAddr,
+        ethers.parseUnits(donateAmount, await usdt.decimals())
+      );
+
+      const redeemOrder = {
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await usdt.getAddress(),
+        collateralAmount: ethers.parseUnits(
+          redeemAmount,
+          await usdt.decimals()
+        ),
+        overlayerWrapAmount: ethers.parseEther(redeemAmount)
+      };
+      await overlayerWrap.connect(alice).redeem(redeemOrder);
+
+      const diff = await overlayerWrapBacking.DECIMALS_DIFF_AMOUNT();
+      const owTotal =
+        (await overlayerWrap.totalSupply()) +
+        (await overlayerWrap.totalBridgedOut());
+      const normalizedSupply = owTotal / diff;
+      const totalSuppliedBefore =
+        await overlayerWrapBacking.totalSuppliedCollateral();
+      expect(normalizedSupply).to.be.lessThan(totalSuppliedBefore);
+
+      expect(await overlayerWrap.connect(alice).supplyToBacking(0, 0)).to.emit(
+        overlayerWrap,
+        "SuppliedToBacking"
+      );
+      expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.equal(
+        totalSuppliedBefore
+      );
+    });
   });
 
   describe("Burn/Zero Address Handling", function () {
