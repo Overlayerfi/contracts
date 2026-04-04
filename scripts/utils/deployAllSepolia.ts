@@ -27,15 +27,18 @@ import {
   AUSDT_SEPOLIA_ADDRESS,
   AAVE_POOL_V3_SEPOLIA_ADDRESS,
   EURS_SEPOLIA_ADDRESS,
-  AEURS_SEPOLIA_ADDRESS
+  AEURS_SEPOLIA_ADDRESS,
+  USDC_SEPOLIA_ADDRESS,
+  AUSDC_SEPOLIA_ADDRESS
 } from "../addresses";
 import { SEPOLIA_TOKEN_DECIMALS } from "../constants";
+import { USDT_ABI } from "../abi/USDT_abi";
 
 //########################################## CONFIGURATION ##########################################
 
-const COLLATERAL_ADDRESS = EURS_SEPOLIA_ADDRESS;
-const ACOLLATERAL_ADDRESS = AEURS_SEPOLIA_ADDRESS;
-const DECIMALS = SEPOLIA_TOKEN_DECIMALS.EURS;
+const COLLATERAL_ADDRESS = USDC_SEPOLIA_ADDRESS;
+const ACOLLATERAL_ADDRESS = AUSDC_SEPOLIA_ADDRESS;
+const DECIMALS = SEPOLIA_TOKEN_DECIMALS.USDC;
 
 // Admin & Team Addresses
 const AIRDROP_POOLS_REWARD_TOKEN_ADMIN =
@@ -49,8 +52,8 @@ const mockLp = "0x1Ac7E198685e53cCc3599e1656E48Dd7E278EbbE";
 const signerAddr = "0x1b4b7eD919416550457d142E54e7f98583E4B018";
 
 // Pre-deployed OFT Contracts
-const oftOverlayerWrapAddr = "0x919CbEEce48DE3f3FA1Ec8837d461cB7Dd8F97a6";
-const stakedOverlayerWrapAddr = "0x979B46fDdC877b25B5262c1b8C93E4c20525A9Ca";
+const oftOverlayerWrapAddr = "0x9Ea94deD198e296D744FD3bcC5A62259fD8313F5";
+const stakedOverlayerWrapAddr = "0x872427c089570357297E452e056bC4648343fE95";
 
 /**
  * Helper function to get current ISO timestamp for logging
@@ -70,8 +73,8 @@ async function main() {
     const admin = await ethers.getSigner(signerAddr);
     console.log(`[${getTimestamp()}] Signer address:`, admin.address);
 
-    const latestTime: number = Math.floor(new Date().getTime() / 1000);
-    console.log(`[${getTimestamp()}] Starting pools timestamp: ${latestTime}`);
+    // const latestTime: number = Math.floor(new Date().getTime() / 1000);
+    // console.log(`[${getTimestamp()}] Starting pools timestamp: ${latestTime}`);
 
     const defaultTransactionOptions = {
       gasLimit: 2000000
@@ -88,142 +91,145 @@ async function main() {
       `[${getTimestamp()}] Using deployed OverlayerWrapped: ${stakedOverlayerWrapAddr}`
     );
 
+    let tx = null;
+    let receipt = null;
+
     // 2. Deploy airdrop points (also referral contract)
-    const ovaReferralAddress = await deploy_AirdropReward(
-      AIRDROP_POOLS_REWARD_TOKEN_ADMIN,
-      2
-    );
-    const ovaReferralContract = new ethers.Contract(
-      ovaReferralAddress,
-      OVA_REFERRAL_ABI.abi,
-      admin.provider
-    );
+    // const ovaReferralAddress = await deploy_AirdropReward(
+    //   AIRDROP_POOLS_REWARD_TOKEN_ADMIN,
+    //   2
+    // );
+    // const ovaReferralContract = new ethers.Contract(
+    //   ovaReferralAddress,
+    //   OVA_REFERRAL_ABI.abi,
+    //   admin.provider
+    // );
 
     // 4. Deploy airdrop pools: Single stable stake and curve stable stake (faked with single stable stake)
-    const singleStableStakeAddr = await deploy_AirdropSingleStableStake(
-      AIRDROP_POOLS_ADMIN,
-      2
-    );
-    const singleStableStakePremiumAddr = await deploy_AirdropSingleStableStake(
-      AIRDROP_POOLS_ADMIN,
-      2
-    );
-    const curveStableStakeCrvAddr = await deploy_AirdropSingleStableStake(
-      AIRDROP_POOLS_ADMIN,
-      2
-    );
-    const singleStableStakeContract = new ethers.Contract(
-      singleStableStakeAddr,
-      SINGLE_STABLE_STAKE_ABI.abi,
-      admin.provider
-    );
-    const singleStableStakePremiumContract = new ethers.Contract(
-      singleStableStakePremiumAddr,
-      SINGLE_STABLE_STAKE_ABI.abi,
-      admin.provider
-    );
-    const curveStableStakeCrvContract = new ethers.Contract(
-      curveStableStakeCrvAddr,
-      SINGLE_STABLE_STAKE_ABI.abi,
-      admin.provider
-    );
+    // const singleStableStakeAddr = await deploy_AirdropSingleStableStake(
+    //   AIRDROP_POOLS_ADMIN,
+    //   2
+    // );
+    // const singleStableStakePremiumAddr = await deploy_AirdropSingleStableStake(
+    //   AIRDROP_POOLS_ADMIN,
+    //   2
+    // );
+    // const curveStableStakeCrvAddr = await deploy_AirdropSingleStableStake(
+    //   AIRDROP_POOLS_ADMIN,
+    //   2
+    // );
+    // const singleStableStakeContract = new ethers.Contract(
+    //   singleStableStakeAddr,
+    //   SINGLE_STABLE_STAKE_ABI.abi,
+    //   admin.provider
+    // );
+    // const singleStableStakePremiumContract = new ethers.Contract(
+    //   singleStableStakePremiumAddr,
+    //   SINGLE_STABLE_STAKE_ABI.abi,
+    //   admin.provider
+    // );
+    // const curveStableStakeCrvContract = new ethers.Contract(
+    //   curveStableStakeCrvAddr,
+    //   SINGLE_STABLE_STAKE_ABI.abi,
+    //   admin.provider
+    // );
 
     // 5. Set airdrop reward minters
-    let tx = await (ovaReferralContract.connect(admin) as Contract).setMinter(
-      singleStableStakeAddr,
-      defaultTransactionOptions
-    );
-    let receipt = await tx.wait();
-    console.log(
-      `[${getTimestamp()}] Airdrop::reward minter set to:`,
-      singleStableStakeAddr,
-      "hash =",
-      tx.hash
-    );
-    tx = await (ovaReferralContract.connect(admin) as Contract).setMinter(
-      singleStableStakePremiumAddr,
-      defaultTransactionOptions
-    );
-    receipt = await tx.wait();
-    console.log(
-      `[${getTimestamp()}] Airdrop::reward minter set to:`,
-      singleStableStakePremiumAddr,
-      "hash =",
-      tx.hash
-    );
-    tx = await (ovaReferralContract.connect(admin) as Contract).setMinter(
-      curveStableStakeCrvAddr,
-      defaultTransactionOptions
-    );
-    receipt = await tx.wait();
-    console.log(
-      `[${getTimestamp()}] Airdrop::reward minter set to:`,
-      curveStableStakeCrvAddr,
-      "hash =",
-      tx.hash
-    );
+    // tx = await (ovaReferralContract.connect(admin) as Contract).setMinter(
+    //   singleStableStakeAddr,
+    //   defaultTransactionOptions
+    // );
+    // let receipt = await tx.wait();
+    // console.log(
+    //   `[${getTimestamp()}] Airdrop::reward minter set to:`,
+    //   singleStableStakeAddr,
+    //   "hash =",
+    //   tx.hash
+    // );
+    // tx = await (ovaReferralContract.connect(admin) as Contract).setMinter(
+    //   singleStableStakePremiumAddr,
+    //   defaultTransactionOptions
+    // );
+    // receipt = await tx.wait();
+    // console.log(
+    //   `[${getTimestamp()}] Airdrop::reward minter set to:`,
+    //   singleStableStakePremiumAddr,
+    //   "hash =",
+    //   tx.hash
+    // );
+    // tx = await (ovaReferralContract.connect(admin) as Contract).setMinter(
+    //   curveStableStakeCrvAddr,
+    //   defaultTransactionOptions
+    // );
+    // receipt = await tx.wait();
+    // console.log(
+    //   `[${getTimestamp()}] Airdrop::reward minter set to:`,
+    //   curveStableStakeCrvAddr,
+    //   "hash =",
+    //   tx.hash
+    // );
 
     // 6. Set reward assets and pools inside Liquidity pools
-    await SingleStableStake_setRewardForStakedAssets(
-      curveStableStakeCrvContract,
-      admin,
-      ovaReferralAddress,
-      200,
-      1,
-      2
-    );
-    await SingleStableStake_setRewardForStakedAssets(
-      singleStableStakeContract,
-      admin,
-      ovaReferralAddress,
-      500,
-      1,
-      2
-    );
-    await SingleStableStake_setRewardForStakedAssets(
-      singleStableStakePremiumContract,
-      admin,
-      ovaReferralAddress,
-      1000,
-      1,
-      2
-    );
+    // await SingleStableStake_setRewardForStakedAssets(
+    //   curveStableStakeCrvContract,
+    //   admin,
+    //   ovaReferralAddress,
+    //   200,
+    //   1,
+    //   2
+    // );
+    // await SingleStableStake_setRewardForStakedAssets(
+    //   singleStableStakeContract,
+    //   admin,
+    //   ovaReferralAddress,
+    //   500,
+    //   1,
+    //   2
+    // );
+    // await SingleStableStake_setRewardForStakedAssets(
+    //   singleStableStakePremiumContract,
+    //   admin,
+    //   ovaReferralAddress,
+    //   1000,
+    //   1,
+    //   2
+    // );
     // Mock LP token with predeployed address (represents Collateral-OverlayerWrap LP)
-    const endTimeStamp = latestTime + 60 * 60 * 24 * 30 * 12; //12 months
-    console.log(`[${getTimestamp()}] Ending pools timestamp: ${endTimeStamp}`);
-    await SingleStableStake_addPool(
-      curveStableStakeCrvContract,
-      admin,
-      mockLp,
-      ovaReferralAddress,
-      1,
-      endTimeStamp,
-      false,
-      true,
-      2
-    );
-    await SingleStableStake_addPool(
-      singleStableStakeContract,
-      admin,
-      overlayerWrapAddr,
-      ovaReferralAddress,
-      1,
-      endTimeStamp,
-      false,
-      true,
-      2
-    );
-    await SingleStableStake_addPool(
-      singleStableStakePremiumContract,
-      admin,
-      overlayerWrapAddr,
-      ovaReferralAddress,
-      1,
-      endTimeStamp,
-      true,
-      true,
-      2
-    );
+    // const endTimeStamp = latestTime + 60 * 60 * 24 * 30 * 12; //12 months
+    // console.log(`[${getTimestamp()}] Ending pools timestamp: ${endTimeStamp}`);
+    // await SingleStableStake_addPool(
+    //   curveStableStakeCrvContract,
+    //   admin,
+    //   mockLp,
+    //   ovaReferralAddress,
+    //   1,
+    //   endTimeStamp,
+    //   false,
+    //   true,
+    //   2
+    // );
+    // await SingleStableStake_addPool(
+    //   singleStableStakeContract,
+    //   admin,
+    //   overlayerWrapAddr,
+    //   ovaReferralAddress,
+    //   1,
+    //   endTimeStamp,
+    //   false,
+    //   true,
+    //   2
+    // );
+    // await SingleStableStake_addPool(
+    //   singleStableStakePremiumContract,
+    //   admin,
+    //   overlayerWrapAddr,
+    //   ovaReferralAddress,
+    //   1,
+    //   endTimeStamp,
+    //   true,
+    //   true,
+    //   2
+    // );
 
     // 7. Deploy ova dispatcher
     const dispatcherAddress = await deploy_Dispatcher(
@@ -234,8 +240,8 @@ async function main() {
       overlayerWrapAddr
     );
 
-    // 8. Remove cool down from Staked OverlayerWrap
-    await StakedOverlayerWrap_setCooldownStaking(sOverlayerWrapAddr, 0); // None
+    // 8. Remove cool down from Staked OverlayerWrap (deprecated)
+    // await StakedOverlayerWrap_setCooldownStaking(sOverlayerWrapAddr, 0); // None
 
     // 9. Grant collateral manager role in OverlayerWrap
     await grantRole(
@@ -292,6 +298,22 @@ async function main() {
     );
 
     // 12. Mint and stake initial OverlayerWrap with configured collateral
+    const collateralContract = new ethers.Contract(
+      COLLATERAL_ADDRESS,
+      USDT_ABI,
+      admin
+    );
+    tx = await (collateralContract.connect(admin) as Contract).approve(
+      overlayerWrapAddr,
+      ethers.MaxUint256,
+      defaultTransactionOptions
+    );
+    console.log(
+      `[${getTimestamp()}] Approved collateral to OverlayerWrap hash = ${
+        tx.hash
+      }`
+    );
+
     const order = {
       benefactor: admin.address,
       beneficiary: admin.address,
@@ -319,26 +341,26 @@ async function main() {
     await StakedOverlayerWrap_deposit(sOverlayerWrapAddr, "1", admin.address);
 
     // 13. Set staking pools inside the referral contract
-    await AirdropReward_setStakingPools(ovaReferralAddress, [
-      curveStableStakeCrvAddr,
-      singleStableStakePremiumAddr,
-      singleStableStakeAddr
-    ]);
+    // await AirdropReward_setStakingPools(ovaReferralAddress, [
+    //   curveStableStakeCrvAddr,
+    //   singleStableStakePremiumAddr,
+    //   singleStableStakeAddr
+    // ]);
 
     // 14. Add points trackers
-    await AirdropReward_addTrackers(ovaReferralAddress, [
-      curveStableStakeCrvAddr,
-      singleStableStakePremiumAddr,
-      singleStableStakeAddr
-    ]);
+    // await AirdropReward_addTrackers(ovaReferralAddress, [
+    //   curveStableStakeCrvAddr,
+    //   singleStableStakePremiumAddr,
+    //   singleStableStakeAddr
+    // ]);
 
     // 15. Update referral contract address
-    await Liquidity_updateReferral(curveStableStakeCrvAddr, ovaReferralAddress);
-    await Liquidity_updateReferral(singleStableStakeAddr, ovaReferralAddress);
-    await Liquidity_updateReferral(
-      singleStableStakePremiumAddr,
-      ovaReferralAddress
-    );
+    // await Liquidity_updateReferral(curveStableStakeCrvAddr, ovaReferralAddress);
+    // await Liquidity_updateReferral(singleStableStakeAddr, ovaReferralAddress);
+    // await Liquidity_updateReferral(
+    //   singleStableStakePremiumAddr,
+    //   ovaReferralAddress
+    // );
   } catch (err) {
     console.error(`[${getTimestamp()}] Batch deployment failed ->`, err);
   }
