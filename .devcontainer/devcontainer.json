@@ -1,16 +1,18 @@
 //devcontainer.json
 {
   "name": "Developer container",
-  // input Docker file
-  "dockerFile": "../Dockerfile",
-
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "remoteUser": "node",
+  "postCreateCommand": "npm ci --legacy-peer-deps",
   "customizations": {
     "vscode": {
       "settings": {
         "terminal.integrated.defaultProfile.linux": "bash"
       },
-
-      // vs code extensions
       "extensions": [
         "nomicfoundation.hardhat-solidity",
         "ms-vscode.vscode-typescript-next",

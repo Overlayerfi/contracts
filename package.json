@@ -4,7 +4,7 @@
   "description": "Overlayer smart contracts",
   "scripts": {
     "unit": "npx hardhat test",
-    "configure": "git submodule update --init --recursive && npm install --force",
+    "configure": "git submodule update --init --recursive && bash setup.sh",
     "compile": "npx hardhat compile",
     "docgen": "npx hardhat docgen",
     "fix-docs": "./scripts/fix-docs.sh",
