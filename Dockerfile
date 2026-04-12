@@ -1,14 +1,15 @@
-FROM ubuntu:latest 
-RUN apt update && \
-    apt-get install software-properties-common -y && \
-    add-apt-repository ppa:deadsnakes/ppa -y && \
-    apt update && \
-    apt install git -y && \
-    apt install vim -y && \
-    apt install curl -y && \
-    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
-    echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
-    apt update && \
-    apt install yarn -y && \
-    apt install npm build-essential -y && \
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash && export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && nvm install v20.12.2
+FROM node:24-bookworm
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# git: submodules; openssh-client: SSH git remotes; build-essential/python3: native npm addons (node-gyp)
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    git \
+    openssh-client \
+    ca-certificates \
+    build-essential \
+    python3 \
+  && rm -rf /var/lib/apt/lists/*
+
+USER node

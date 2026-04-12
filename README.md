@@ -52,7 +52,7 @@ Compounding involves claiming the earned rewards and re-staking them to maximize
 ### Install
 
 ```
-npm i --force
+bash setup.sh
 ```
 
 ### Compile
