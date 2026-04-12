@@ -1,4 +1,5 @@
 import { ethers } from "hardhat";
+import { Contract, Signer } from "ethers";
 import { LZ_ENDPOINT_ETH_MAINNET_V2, USDT_ADDRESS } from "./addresses";
 import STAKED_USDX_ABI from "../artifacts/contracts/overlayer/StakedOverlayerWrap.sol/StakedOverlayerWrap.json";
 import rOVA_ABI from "../artifacts/contracts/overlayer/rOVA.sol/rOVA.json";
@@ -543,16 +544,19 @@ export async function deploy_Dispatcher(
   safetyModule: string,
   buyBack: string,
   usdo: string,
-  baseGasFeeMult?: number
+  signer?: Signer
 ): Promise<string> {
-  const [deployer] = await ethers.getSigners();
+  const deployer = signer ?? (await ethers.getSigners())[0];
 
   console.log(
     "[deploy_Dispatcher] Deploying Ova dispatcher contract with signer:",
     deployer.address
   );
 
-  const ContractSource = await ethers.getContractFactory("OvaDispatcher");
+  const ContractSource = await ethers.getContractFactory(
+    "OvaDispatcher",
+    deployer
+  );
   const deployedContract = await ContractSource.deploy(
     admin,
     team,
@@ -674,24 +678,29 @@ export async function Liquidity_addPool(
   console.log("[Liquidity_addPool] Pools added");
 }
 
+/**
+ * @param baseGasFeeMult — Multiplier applied to the base gas limit (2_000_000) for this tx.
+ * @param signer — If set, this account sends the transaction; otherwise the first Hardhat signer.
+ */
 export async function grantRole(
   addr: string,
   abi: any,
   role: string,
   to: string,
-  baseGasFeeMult?: number
+  baseGasFeeMult: number,
+  signer?: Signer
 ) {
-  const [admin] = await ethers.getSigners();
+  const admin = signer ?? (await ethers.getSigners())[0];
 
   const defaultTransactionOptions = {
-    gasLimit: 2000000
+    gasLimit: 2000000 * baseGasFeeMult
   };
   const contract = new ethers.Contract(addr, abi, admin);
   console.log(
     "[grantRole] Granting role:",
     role,
     "with address:",
-    admin.address
+    await admin.getAddress()
   );
   const tx = await (contract.connect(admin) as Contract).grantRole(
     ethers.keccak256(ethers.toUtf8Bytes(role)),
@@ -705,9 +714,10 @@ export async function grantRole(
 
 export async function OverlayerWrap_proposeNewCollateralSpender(
   addr: string,
-  spender: string
+  spender: string,
+  signer?: Signer
 ) {
-  const [admin] = await ethers.getSigners();
+  const admin = signer ?? (await ethers.getSigners())[0];
   const contract = new ethers.Contract(addr, OverlayerWrap_ABI.abi, admin);
   console.log(
     "[OverlayerWrap_proposeNewCollateralSpender] Proposing new collateral spender:",
@@ -719,25 +729,31 @@ export async function OverlayerWrap_proposeNewCollateralSpender(
   console.log("[OverlayerWrap_proposeNewCollateralSpender] Spender proposed");
 }
 
-export async function OverlayerWrap_mint(addr: string, order: any) {
-  const [admin] = await ethers.getSigners();
+export async function OverlayerWrap_mint(
+  addr: string,
+  order: any,
+  signer?: Signer
+) {
+  const admin = signer ?? (await ethers.getSigners())[0];
   const contract = new ethers.Contract(addr, OverlayerWrap_ABI.abi, admin);
   console.log(
     "[OverlayerWrap_mint] Minting OverlayerWrap with account:",
     admin.address
   );
-  await (contract.connect(admin) as Contract).mint(order, {
+  const tx = await (contract.connect(admin) as Contract).mint(order, {
     gasLimit: 2000000
   });
-  console.log("[OverlayerWrap_mint] OverlayerWrap minted");
+  await tx.wait();
+  console.log("[OverlayerWrap_mint] OverlayerWrap minted, tx:", tx.hash);
 }
 
 export async function StakedOverlayerWrap_deposit(
   addr: string,
   amount: string,
-  recipient: string
+  recipient: string,
+  signer?: Signer
 ) {
-  const [admin] = await ethers.getSigners();
+  const admin = signer ?? (await ethers.getSigners())[0];
   const contract = new ethers.Contract(addr, SOverlayerWrap_ABI.abi, admin);
   console.log(
     "[StakedOverlayerWrap_deposit] Depositing OverlayerWrap into staking account with singer:",
@@ -755,7 +771,7 @@ export async function StakedOverlayerWrap_deposit(
   console.log("[StakedOverlayerWrap_deposit] Transaction executed at", hash);
   console.log(
     "[StakedOverlayerWrap_deposit] OverlayerWrap staked, sOverlayerWrap balance:",
-    ethers.formatEther(await contract.balanceOf(admin.address))
+    ethers.formatEther(await contract.balanceOf(await admin.getAddress()))
   );
 }
 
@@ -766,9 +782,10 @@ export async function deploy_OverlayerWrapBacking(
   soverlayerWrap: string,
   aave: string,
   collateral: string,
-  aCollateral: string
+  aCollateral: string,
+  signer?: Signer
 ): Promise<string> {
-  const [deployer] = await ethers.getSigners();
+  const deployer = signer ?? (await ethers.getSigners())[0];
 
   console.log(
     "[deploy_OverlayerWrapBacking] Deploying contract with signer:",
@@ -776,7 +793,8 @@ export async function deploy_OverlayerWrapBacking(
   );
 
   const OverlayerWrapBacking = await ethers.getContractFactory(
-    "OverlayerWrapBacking"
+    "OverlayerWrapBacking",
+    deployer
   );
   const overlayerWrapbacking = await OverlayerWrapBacking.deploy(
     admin,
