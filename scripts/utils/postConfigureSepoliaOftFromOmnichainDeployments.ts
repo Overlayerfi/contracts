@@ -133,17 +133,24 @@ export async function runSepoliaOftProductPostConfigure(
   shared: SepoliaSharedDeploymentConfig = DEFAULT_SEPOLIA_SHARED
 ): Promise<SepoliaProductDeploymentResult> {
   const admin = await ethers.getSigner(shared.signerAddr);
-  console.log(`${LOG} [${ts()}] [${product.productLabel}] Signer:`, admin.address);
+  console.log(
+    `${LOG} [${ts()}] [${product.productLabel}] Signer:`,
+    admin.address
+  );
 
   const defaultTransactionOptions = { gasLimit: 2000000 };
   const overlayerWrapAddr = product.oftOverlayerWrapAddr;
   const sOverlayerWrapAddr = product.stakedOverlayerWrapAddr;
 
   console.log(
-    `${LOG} [${ts()}] [${product.productLabel}] OverlayerWrap (OFT): ${overlayerWrapAddr}`
+    `${LOG} [${ts()}] [${
+      product.productLabel
+    }] OverlayerWrap (OFT): ${overlayerWrapAddr}`
   );
   console.log(
-    `${LOG} [${ts()}] [${product.productLabel}] StakedOverlayerWrap (vault): ${sOverlayerWrapAddr}`
+    `${LOG} [${ts()}] [${
+      product.productLabel
+    }] StakedOverlayerWrap (vault): ${sOverlayerWrapAddr}`
   );
 
   await assertSignerIsDefaultAdminOnOverlayer(
@@ -226,7 +233,9 @@ export async function runSepoliaOftProductPostConfigure(
     defaultTransactionOptions
   );
   console.log(
-    `${LOG} [${ts()}] [${product.productLabel}] Approved collateral to OverlayerWrap hash = ${tx.hash}`
+    `${LOG} [${ts()}] [${
+      product.productLabel
+    }] Approved collateral to OverlayerWrap hash = ${tx.hash}`
   );
 
   const order = {
@@ -250,7 +259,9 @@ export async function runSepoliaOftProductPostConfigure(
   );
   await tx.wait();
   console.log(
-    `${LOG} [${ts()}] [${product.productLabel}] Approved OverlayerWrap to StakedOverlayerWrap hash = ${tx.hash}`
+    `${LOG} [${ts()}] [${
+      product.productLabel
+    }] Approved OverlayerWrap to StakedOverlayerWrap hash = ${tx.hash}`
   );
 
   await StakedOverlayerWrap_deposit(
@@ -285,8 +296,14 @@ const COLLATERAL_BY_DECIMALS_KEY: Record<
   keyof typeof SEPOLIA_TOKEN_DECIMALS,
   { collateral: string; aCollateral: string }
 > = {
-  USDT: { collateral: USDT_SEPOLIA_ADDRESS, aCollateral: AUSDT_SEPOLIA_ADDRESS },
-  USDC: { collateral: USDC_SEPOLIA_ADDRESS, aCollateral: AUSDC_SEPOLIA_ADDRESS },
+  USDT: {
+    collateral: USDT_SEPOLIA_ADDRESS,
+    aCollateral: AUSDT_SEPOLIA_ADDRESS
+  },
+  USDC: {
+    collateral: USDC_SEPOLIA_ADDRESS,
+    aCollateral: AUSDC_SEPOLIA_ADDRESS
+  },
   EURS: { collateral: EURS_SEPOLIA_ADDRESS, aCollateral: AEURS_SEPOLIA_ADDRESS }
 };
 
@@ -354,9 +371,10 @@ function loadProductMap(): Record<string, ProductMapEntry> {
   const base = { ...DEFAULT_OVERLAYER_TO_PRODUCT };
   const extraPath = process.env.SEPOLIA_OMNICHAIN_PRODUCT_MAP;
   if (extraPath && fs.existsSync(extraPath)) {
-    const extra = JSON.parse(
-      fs.readFileSync(extraPath, "utf8")
-    ) as Record<string, ProductMapEntry>;
+    const extra = JSON.parse(fs.readFileSync(extraPath, "utf8")) as Record<
+      string,
+      ProductMapEntry
+    >;
     Object.assign(base, extra);
   }
   return base;
@@ -446,7 +464,9 @@ async function main() {
     for (const [addr, prods] of addrToProducts) {
       if (prods.length > 1) {
         throw new Error(
-          `${LOG} Same OverlayerWrap address ${addr} is listed for multiple products: ${prods.join(", ")}. Fix omnichain deployment JSONs (each Overlayer*.json should have a unique \`address\`).`
+          `${LOG} Same OverlayerWrap address ${addr} is listed for multiple products: ${prods.join(
+            ", "
+          )}. Fix omnichain deployment JSONs (each Overlayer*.json should have a unique \`address\`).`
         );
       }
     }
