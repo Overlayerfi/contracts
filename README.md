@@ -1,12 +1,7 @@
 
-# Overlayer smart contracts
+# Overlayer Smart Contracts
 
-[![Overlayer social card](./assets/sc.png)](https://docs.overlayer.fi/)
-
-[![Actions Status](https://github.com/Ovafi/contracts/workflows/CI/badge.svg)](https://github.com/Ovafi/contracts/actions)
-
-The stable coin [Overlayer](https://docs.overlayer.fi/).
-
+[Overlayer](https://docs.overlayer.fi/) smart contracts implement non-rebasing overlaid assets and a separate optional staking representation for protocol-allocated yield. The base overlaid asset does not automatically accrue yield by being held. Yield participation, where available, is variable, risk-bearing and opt-in through staking. No return, liquidity, redemption timing or regulatory classification is guaranteed.
 
 ## Overview
 
@@ -24,22 +19,21 @@ Unwrapping is the reverse of wrapping. Users can redeem their underlying by burn
 
 ### Stake
 
-Staking transforms the Overlayed asset into an interest-bearing asset, the sToken. Users deposit their Overlayed token into the staking contract and receive sTokens in return, which accrue interest.
+Staking transforms the Overlayed asset into the sToken. Users deposit their Overlayed token into the staking contract and receive sTokens in return.
 
 ![Stake flow](./assets/ova_stake.png)
 
 ### Unstake
 
-Unstaking allows users to redeem their sTokens to get back the Overlayed asset, including any interest that has been accrued.
+Unstaking allows users to redeem their sTokens to get back the Overlayed asset.
 
 ![Unstake flow](./assets/ova_unstake.png)
 
 ### Compound
 
-Compounding involves claiming the earned rewards and re-staking them to maximize returns. The Overlayer protocol may offer a compounding feature that automatically claims rewards and adds them to the staked position, thus increasing the user's share and future earnings.
+Compounding involves claiming the earned rewards and re-staking them. The Overlayer protocol may offer a compounding feature that automatically claims rewards and adds them to the staked position, thus increasing the user's share.
 
 ![Compound flow](./assets/ova_yield.png)
-
 
 ## Development Setup
 
