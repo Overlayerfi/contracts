@@ -453,7 +453,9 @@ abstract contract StakedOverlayerWrapCore is
 
     /**
      * @notice Override of ERC20 transfer logic to handle restricted accounts
-     * @dev Prevents transfers involving accounts with WHOLE_RESTRICTED_ROLE
+     * @dev Prevents transfers involving accounts with WHOLE_RESTRICTED_ROLE and
+     *      blocks transfers involving addresses that
+     *      have BLACKLISTED_ROLE on OverlayerWrap (`asset()`).
      * @param from_ Source address
      * @param to_ Destination address
      * @param value_ Amount to transfer
@@ -468,6 +470,14 @@ abstract contract StakedOverlayerWrapCore is
         }
         if (hasRole(WHOLE_RESTRICTED_ROLE, to_)) {
             revert StakedOverlayerWrapOperationNotAllowed();
+        }
+        if (from_ != address(0) && to_ != address(0)) {
+            address assetAddress = asset();
+            if (
+                IAccessControl(assetAddress).hasRole(OW_BLACKLISTED_ROLE, from_)
+            ) {
+                revert StakedOverlayerWrapOperationNotAllowed();
+            }
         }
         super._update(from_, to_, value_);
     }

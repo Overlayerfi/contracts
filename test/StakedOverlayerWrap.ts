@@ -252,6 +252,106 @@ describe("Staked Overlayer Wrap Front", function () {
         "StakedOverlayerWrapOperationNotAllowed"
       );
     });
+
+    it("reverts sOW transfer when sender is OW-blacklisted but not sOW whole-restricted", async function () {
+      const { stakedoverlayerWrap, overlayerWrap, admin, alice, bob } =
+        await loadFixture(deployFixture);
+
+      await stakedoverlayerWrap
+        .connect(alice)
+        .deposit(ethers.parseEther("10"), alice.address);
+
+      const owController = ethers.keccak256(
+        ethers.toUtf8Bytes("CONTROLLER_ROLE")
+      );
+      await overlayerWrap.grantRole(owController, admin.address);
+
+      const t = await time.latest();
+      await overlayerWrap.connect(admin).setBlackListTime(t + 1);
+      await time.increase(3600 * 24 * 15 + 1);
+      await overlayerWrap.connect(admin).disableAccount(alice.address);
+
+      const shares = await stakedoverlayerWrap.balanceOf(alice.address);
+      expect(shares).to.be.gt(0n);
+
+      await expect(
+        stakedoverlayerWrap.connect(alice).transfer(bob.address, shares)
+      ).to.be.revertedWithCustomError(
+        stakedoverlayerWrap,
+        "StakedOverlayerWrapOperationNotAllowed"
+      );
+    });
+
+    it("reverts sOW transferFrom when from is OW-blacklisted (bypass accomplice)", async function () {
+      const { stakedoverlayerWrap, overlayerWrap, admin, alice, bob } =
+        await loadFixture(deployFixture);
+
+      await stakedoverlayerWrap
+        .connect(alice)
+        .deposit(ethers.parseEther("10"), alice.address);
+
+      const owController = ethers.keccak256(
+        ethers.toUtf8Bytes("CONTROLLER_ROLE")
+      );
+      await overlayerWrap.grantRole(owController, admin.address);
+
+      const t = await time.latest();
+      await overlayerWrap.connect(admin).setBlackListTime(t + 1);
+      await time.increase(3600 * 24 * 15 + 1);
+      await overlayerWrap.connect(admin).disableAccount(alice.address);
+
+      const shares = await stakedoverlayerWrap.balanceOf(alice.address);
+      await stakedoverlayerWrap.connect(alice).approve(bob.address, shares);
+
+      await expect(
+        stakedoverlayerWrap
+          .connect(bob)
+          .transferFrom(alice.address, bob.address, shares)
+      ).to.be.revertedWithCustomError(
+        stakedoverlayerWrap,
+        "StakedOverlayerWrapOperationNotAllowed"
+      );
+    });
+
+    it("still allows redistributeLockedAmount burn when user is OW-blacklisted and sOW whole-restricted", async function () {
+      const { stakedoverlayerWrap, overlayerWrap, admin, alice, bob } =
+        await loadFixture(deployFixture);
+
+      await stakedoverlayerWrap
+        .connect(alice)
+        .deposit(ethers.parseEther("10"), alice.address);
+
+      const owController = ethers.keccak256(
+        ethers.toUtf8Bytes("CONTROLLER_ROLE")
+      );
+      await overlayerWrap.grantRole(owController, admin.address);
+      let t = await time.latest();
+      await overlayerWrap.connect(admin).setBlackListTime(t + 1);
+      await time.increase(3600 * 24 * 15 + 1);
+      await overlayerWrap.connect(admin).disableAccount(alice.address);
+
+      await stakedoverlayerWrap.grantRole(owController, admin.address);
+      t = await time.latest();
+      await stakedoverlayerWrap.connect(admin).setBlackListTime(t + 1);
+      await time.increase(3600 * 24 * 15 + 1);
+      await stakedoverlayerWrap
+        .connect(admin)
+        .addToBlacklist(alice.address, true);
+
+      await stakedoverlayerWrap.connect(admin).setBlackListTime(0);
+      t = await time.latest();
+      await stakedoverlayerWrap.connect(admin).setRedistributionTime(t + 1);
+      await time.increase(3600 * 24 * 15 + 1);
+
+      await stakedoverlayerWrap
+        .connect(admin)
+        .redistributeLockedAmount(alice.address, bob.address);
+
+      expect(await stakedoverlayerWrap.balanceOf(bob.address)).to.equal(
+        ethers.parseEther("10")
+      );
+      expect(await stakedoverlayerWrap.balanceOf(alice.address)).to.equal(0n);
+    });
   });
 
   describe("Access Control Management", function () {
