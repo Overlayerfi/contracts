@@ -454,7 +454,7 @@ abstract contract StakedOverlayerWrapCore is
     /**
      * @notice Override of ERC20 transfer logic to handle restricted accounts
      * @dev Prevents transfers involving accounts with WHOLE_RESTRICTED_ROLE and
-     *      blocks any balance decrease (transfer) for addresses that
+     *      blocks transfers involving addresses that
      *      have BLACKLISTED_ROLE on OverlayerWrap (`asset()`).
      * @param from_ Source address
      * @param to_ Destination address
