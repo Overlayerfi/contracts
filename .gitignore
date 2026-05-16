@@ -12,3 +12,5 @@ contracts/cowswap/*
 contracts/pancake/*
 docs*
 !docs
+.qwen
+x-ray
