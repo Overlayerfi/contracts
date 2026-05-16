@@ -4,6 +4,7 @@
   "description": "Overlayer smart contracts",
   "scripts": {
     "unit": "npx hardhat test",
+    "check-publish-age": "node check-dependency-publish-age.mjs",
     "configure": "git submodule update --init --recursive && bash setup.sh",
     "compile": "npx hardhat compile",
     "docgen": "npx hardhat docgen",
@@ -29,7 +30,9 @@
     "prettier": "^2.8.8",
     "prettier-plugin-solidity": "^1.3.1",
     "solhint": "^3.4.1",
-    "solidity-docgen": "^0.6.0-beta.36"
+    "solidity-docgen": "^0.6.0-beta.36",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.4.5"
   },
   "dependencies": {
     "@aave/core-v3": "^1.19.3",
