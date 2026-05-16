@@ -407,13 +407,8 @@ describe("OverlayerWrap Backing Protocol", function () {
     });
 
     it("allows supplyToBacking when normalized supply is below totalSuppliedCollateral", async function () {
-      const {
-        usdt,
-        overlayerWrap,
-        overlayerWrapBacking,
-        alice,
-        admin
-      } = await loadFixture(deployFixture);
+      const { usdt, overlayerWrap, overlayerWrapBacking, alice, admin } =
+        await loadFixture(deployFixture);
 
       const mintAmount = "100";
       const donateAmount = "10";
@@ -423,10 +418,7 @@ describe("OverlayerWrap Backing Protocol", function () {
         benefactor: alice.address,
         beneficiary: alice.address,
         collateral: await usdt.getAddress(),
-        collateralAmount: ethers.parseUnits(
-          mintAmount,
-          await usdt.decimals()
-        ),
+        collateralAmount: ethers.parseUnits(mintAmount, await usdt.decimals()),
         overlayerWrapAmount: ethers.parseEther(mintAmount)
       };
       await overlayerWrap.connect(alice).mint(mintOrder);

@@ -3,4 +3,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-npm ci --legacy-peer-deps
+node check-dependency-publish-age.mjs
+
+npm ci --force

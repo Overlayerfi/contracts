@@ -442,7 +442,10 @@ abstract contract StakedOverlayerWrapCore is
         }
         address assetAddress = asset();
         if (
-            IAccessControl(assetAddress).hasRole(OW_BLACKLISTED_ROLE, sharesOwner_)
+            IAccessControl(assetAddress).hasRole(
+                OW_BLACKLISTED_ROLE,
+                sharesOwner_
+            )
         ) {
             revert StakedOverlayerWrapOperationNotAllowed();
         }
