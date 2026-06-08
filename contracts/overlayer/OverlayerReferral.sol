@@ -149,6 +149,9 @@ contract OverlayerReferral is
     /// @param code_ The tracker address
     /// @param holder_ The code owner
     function addCode(string memory code_, address holder_) external onlyOwner {
+        if (bytes(code_).length == 0) {
+            revert OverlayerReferralCodeNotValid();
+        }
         if (holder_ == address(0)) {
             revert OverlayerReferralZeroAddress();
         }
@@ -171,6 +174,9 @@ contract OverlayerReferral is
     /// @notice Add a new referral code for the caller
     /// @param code_ The tracker address
     function addCodeSelf(string memory code_) external {
+        if (bytes(code_).length == 0) {
+            revert OverlayerReferralCodeNotValid();
+        }
         address holder = msg.sender;
         if (holder == address(0)) {
             revert OverlayerReferralZeroAddress();

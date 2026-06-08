@@ -110,6 +110,28 @@ describe("Overlayer Referral System", function () {
 
       expect((await overlayerReferral.allCodes())[0]).to.be.equal("CODE");
     });
+
+    it("Should reject empty referral codes", async function () {
+      const { overlayerReferral, admin, alice, bob } = await loadFixture(
+        deployFixture
+      );
+
+      await expect(
+        overlayerReferral
+          .connect(admin)
+          .addCode("", await alice.getAddress())
+      ).to.be.revertedWithCustomError(
+        overlayerReferral,
+        "OverlayerReferralCodeNotValid"
+      );
+
+      await expect(
+        overlayerReferral.connect(bob).addCodeSelf("")
+      ).to.be.revertedWithCustomError(
+        overlayerReferral,
+        "OverlayerReferralCodeNotValid"
+      );
+    });
   });
 
   describe("Referral Processing", function () {
