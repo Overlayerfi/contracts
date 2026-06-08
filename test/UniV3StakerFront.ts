@@ -21,7 +21,7 @@
 //   unstake
 // } from "../scripts/uniswap_staker/proxy";
 // import ProxyAbi from "../artifacts/contracts/uniswap/UniswapV3StakerFront.sol/UniswapV3StakerFront.json";
-// import ReferralAbi from "../artifacts/contracts/token/OvaReferral.sol/OvaReferral.json";
+// import ReferralAbi from "../artifacts/contracts/overlayer/OverlayerReferral.sol/OverlayerReferral.json";
 // import { mintPosition } from "../scripts/uniswap_liquidity/proxy";
 // import { deployV3Staker } from "../scripts/uniswap_staker/staker";
 

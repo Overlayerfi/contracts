@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../../overlayer/interfaces/IOvaReferral.sol";
+import "../../overlayer/interfaces/IOverlayerReferral.sol";
 
 interface ILiquidityDefs {
     /**
@@ -57,7 +57,7 @@ interface ILiquidityDefs {
 
     event NewSelfReferralBonus(uint16 bonus);
 
-    event NewReferral(IOvaReferral referral);
+    event NewReferral(IOverlayerReferral referral);
 
     event BonusPayed(address indexed recipient, uint256 amount);
 
