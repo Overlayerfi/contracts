@@ -71,7 +71,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     /**
      * @notice Referral contract.
      */
-    IOvaReferral public referral;
+    IOverlayerReferral public referral;
 
     /**
      * @notice Contract constructor.
@@ -125,7 +125,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
      * @notice Update the referral contract.
      * @param referral_ the referral contract.
      */
-    function updateReferral(IOvaReferral referral_) external onlyOwner {
+    function updateReferral(IOverlayerReferral referral_) external onlyOwner {
         referral = referral_;
         emit NewReferral(referral_);
     }

@@ -87,14 +87,14 @@ describe("CurveStableStake", function () {
     );
     await liquidity.waitForDeployment();
 
-    const TokenRewardOne = await ethers.getContractFactory("OvaReferral");
-    const tokenRewardOneOvaReferral = await TokenRewardOne.deploy(
+    const TokenRewardOne = await ethers.getContractFactory("OverlayerReferral");
+    const tokenRewardOneOverlayerReferral = await TokenRewardOne.deploy(
       owner.address,
       defaultTransactionOptions
     );
-    await tokenRewardOneOvaReferral.waitForDeployment();
-    await tokenRewardOneOvaReferral.setMinter(liquidity.getAddress());
-    await tokenRewardOneOvaReferral.setStakingPools([
+    await tokenRewardOneOverlayerReferral.waitForDeployment();
+    await tokenRewardOneOverlayerReferral.setMinter(liquidity.getAddress());
+    await tokenRewardOneOverlayerReferral.setStakingPools([
       await liquidity.getAddress()
     ]);
 
@@ -107,7 +107,7 @@ describe("CurveStableStake", function () {
     return {
       liquidity,
       stakedAsset,
-      tokenRewardOneOvaReferral,
+      tokenRewardOneOverlayerReferral,
       latestTime,
       owner,
       notOwner,
@@ -158,16 +158,16 @@ describe("CurveStableStake", function () {
 
   describe("Pool Management", function () {
     it("Should successfully add a new staking pool", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral } =
+      const { liquidity, stakedAsset, tokenRewardOneOverlayerReferral } =
         await loadFixture(deployFixture);
       await liquidity.setRewardForStakedAssets(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         1
       );
       await liquidity.addWithNumCoinsAndPool(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         3,
         CURVE_DAI_USDC_USDT_POOL,
@@ -179,16 +179,16 @@ describe("CurveStableStake", function () {
     });
 
     it("Should maintain correct allocation points across multiple pools", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral } =
+      const { liquidity, stakedAsset, tokenRewardOneOverlayerReferral } =
         await loadFixture(deployFixture);
       await liquidity.setRewardForStakedAssets(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         1
       );
       await liquidity.addWithNumCoinsAndPool(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         3,
         CURVE_DAI_USDC_USDT_POOL,
@@ -199,7 +199,7 @@ describe("CurveStableStake", function () {
       expect(await liquidity.poolLength()).to.equal(1);
       await liquidity.setRewardForStakedAssets(stakedAsset.getAddress(), 1, 1);
       await liquidity.addWithNumCoinsAndPool(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         stakedAsset.getAddress(),
         10,
         3,
@@ -211,7 +211,7 @@ describe("CurveStableStake", function () {
       expect(await liquidity.poolLength()).to.equal(2);
       expect(
         await liquidity.totalAllocPointsPerReward(
-          tokenRewardOneOvaReferral.getAddress()
+          tokenRewardOneOverlayerReferral.getAddress()
         )
       ).to.be.equal(1);
       expect(
@@ -220,10 +220,14 @@ describe("CurveStableStake", function () {
     });
 
     it("Should restrict pool addition to owner only", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, notOwner } =
-        await loadFixture(deployFixture);
+      const {
+        liquidity,
+        stakedAsset,
+        tokenRewardOneOverlayerReferral,
+        notOwner
+      } = await loadFixture(deployFixture);
       await liquidity.setRewardForStakedAssets(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         1
       );
@@ -232,7 +236,7 @@ describe("CurveStableStake", function () {
           .connect(notOwner)
           .add(
             stakedAsset.getAddress(),
-            tokenRewardOneOvaReferral.getAddress(),
+            tokenRewardOneOverlayerReferral.getAddress(),
             1,
             false
           )
@@ -282,7 +286,7 @@ describe("CurveStableStake", function () {
         owner,
         liquidity,
         stakedAsset,
-        tokenRewardOneOvaReferral,
+        tokenRewardOneOverlayerReferral,
         alice,
         bob
       } = await loadFixture(deployFixture);
@@ -304,13 +308,13 @@ describe("CurveStableStake", function () {
       ).to.equal(10);
 
       await liquidity.setRewardForStakedAssets(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         1
       );
       await liquidity.addWithNumCoinsAndPool(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         3,
         CURVE_DAI_USDC_USDT_POOL,
@@ -330,26 +334,31 @@ describe("CurveStableStake", function () {
     });
 
     it("Should calculate rewards correctly until end timestamp", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
-        await loadFixture(deployFixture);
+      const {
+        liquidity,
+        stakedAsset,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        bob
+      } = await loadFixture(deployFixture);
 
       const amount = ethers.parseEther("1");
       await stakedAsset.transfer(alice.getAddress(), amount);
       await stakedAsset.connect(alice).approve(liquidity.getAddress(), amount);
 
       await liquidity.setReward(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         ethers.parseEther("1")
       );
       await liquidity.setRewardForStakedAssets(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         1
       );
       const latestTime: number = await time.latest();
       await liquidity.addWithNumCoinsAndPool(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         3,
         CURVE_DAI_USDC_USDT_POOL,
@@ -374,7 +383,7 @@ describe("CurveStableStake", function () {
       );
 
       const rewardsBal = ethers.formatEther(
-        await tokenRewardOneOvaReferral.balanceOf(alice.address)
+        await tokenRewardOneOverlayerReferral.balanceOf(alice.address)
       );
       expect(+rewardsBal).to.be.greaterThan(expected * 0.99);
       expect(+rewardsBal).to.be.lessThan(expected * 1.01);
@@ -385,7 +394,7 @@ describe("CurveStableStake", function () {
         owner,
         liquidity,
         stakedAsset,
-        tokenRewardOneOvaReferral,
+        tokenRewardOneOverlayerReferral,
         alice
       } = await loadFixture(deployFixture);
 
@@ -397,13 +406,13 @@ describe("CurveStableStake", function () {
         .approve(liquidity.getAddress(), ethers.MaxUint256);
 
       await liquidity.setRewardForStakedAssets(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         1
       );
       await liquidity.addWithNumCoinsAndPool(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         3,
         CURVE_DAI_USDC_USDT_POOL,
@@ -432,7 +441,9 @@ describe("CurveStableStake", function () {
 
       await liquidity.connect(alice).withdraw(0, ethers.parseEther("1"));
       let rewardBalance = ethers.formatEther(
-        await tokenRewardOneOvaReferral.balanceOf(await alice.getAddress())
+        await tokenRewardOneOverlayerReferral.balanceOf(
+          await alice.getAddress()
+        )
       );
 
       expect(+rewardBalance).to.be.greaterThanOrEqual(+expected * 0.95);
@@ -460,7 +471,9 @@ describe("CurveStableStake", function () {
 
       await liquidity.connect(alice).withdraw(0, ethers.parseEther("9"));
       rewardBalance = ethers.formatEther(
-        await tokenRewardOneOvaReferral.balanceOf(await alice.getAddress())
+        await tokenRewardOneOverlayerReferral.balanceOf(
+          await alice.getAddress()
+        )
       );
 
       expect(+rewardBalance).to.be.greaterThanOrEqual(+expected * 0.95);
@@ -469,11 +482,13 @@ describe("CurveStableStake", function () {
       await time.increase(60 * 60 * 24); // 1 day
 
       // clear reward balaance
-      await tokenRewardOneOvaReferral
+      await tokenRewardOneOverlayerReferral
         .connect(alice)
         .transfer(
           await owner.getAddress(),
-          await tokenRewardOneOvaReferral.balanceOf(await alice.getAddress())
+          await tokenRewardOneOverlayerReferral.balanceOf(
+            await alice.getAddress()
+          )
         );
 
       await liquidity.connect(alice).deposit(0, ethers.parseEther("10"));
@@ -494,7 +509,9 @@ describe("CurveStableStake", function () {
 
       // harvest on deposit
       rewardBalance = ethers.formatEther(
-        await tokenRewardOneOvaReferral.balanceOf(await alice.getAddress())
+        await tokenRewardOneOverlayerReferral.balanceOf(
+          await alice.getAddress()
+        )
       );
       expect(+rewardBalance).to.be.greaterThanOrEqual(+expected * 0.95);
       expect(+rewardBalance).to.be.lessThanOrEqual(+expected * 1.05);
@@ -513,7 +530,7 @@ describe("CurveStableStake", function () {
     });
 
     it("Should handle scaled rewards correctly with denominator", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice } =
+      const { liquidity, stakedAsset, tokenRewardOneOverlayerReferral, alice } =
         await loadFixture(deployFixture);
 
       // The held liquidity is slight more than 20 as virtual price is > 1.0 but as we use a 5% error in our calculations the results will still be in the range
@@ -524,13 +541,13 @@ describe("CurveStableStake", function () {
         .approve(liquidity.getAddress(), ethers.MaxUint256);
 
       await liquidity.setRewardForStakedAssets(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1000000,
         1000000000
       );
       await liquidity.addWithNumCoinsAndPool(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         3,
         CURVE_DAI_USDC_USDT_POOL,
@@ -559,7 +576,9 @@ describe("CurveStableStake", function () {
 
       await liquidity.connect(alice).withdraw(0, ethers.parseEther("1"));
       let rewardBalance = ethers.formatEther(
-        await tokenRewardOneOvaReferral.balanceOf(await alice.getAddress())
+        await tokenRewardOneOverlayerReferral.balanceOf(
+          await alice.getAddress()
+        )
       );
 
       expect(+rewardBalance).to.be.greaterThanOrEqual(+expected * 0.95);
@@ -587,7 +606,9 @@ describe("CurveStableStake", function () {
 
       await liquidity.connect(alice).withdraw(0, ethers.parseEther("9"));
       rewardBalance = ethers.formatEther(
-        await tokenRewardOneOvaReferral.balanceOf(await alice.getAddress())
+        await tokenRewardOneOverlayerReferral.balanceOf(
+          await alice.getAddress()
+        )
       );
 
       expect(+rewardBalance).to.be.greaterThanOrEqual(+expected * 0.95);

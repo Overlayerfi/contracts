@@ -16,7 +16,7 @@ import "./v3-staker/uniswap/IUniswapV3Pool.sol";
 import "./v3-staker/uniswap/FullMath.sol";
 import {UniswapV3Staker} from "./v3-staker/UniswapV3Staker.sol";
 
-interface IOvaReferral {
+interface IOverlayerReferral {
     function referredFrom(address user) external view returns (address);
     function seeReferred(address user) external view returns (address[] memory);
     function generatePoints(address user) external view returns (uint256);
@@ -48,10 +48,10 @@ contract UniswapV3StakerFront is Ownable, ReentrancyGuard, UniswapV3Staker {
     /// @dev 1.5%
     uint16 public selfReferralBonus = 15;
 
-    /// @notice Ova referral contract
-    IOvaReferral public referral;
+    /// @notice Overlayer referral contract
+    IOverlayerReferral public referral;
 
-    event UniswapV3StakerReferralUpdated(IOvaReferral referral);
+    event UniswapV3StakerReferralUpdated(IOverlayerReferral referral);
 
     event UniswapV3StakerReferralBonusUpdated(uint8 bonus);
 
@@ -87,7 +87,7 @@ contract UniswapV3StakerFront is Ownable, ReentrancyGuard, UniswapV3Staker {
 
     /// @notice Update the referral contract
     /// @param referral_ The new referral contract
-    function updateReferral(IOvaReferral referral_) external onlyOwner {
+    function updateReferral(IOverlayerReferral referral_) external onlyOwner {
         referral = referral_;
         emit UniswapV3StakerReferralUpdated(referral);
     }

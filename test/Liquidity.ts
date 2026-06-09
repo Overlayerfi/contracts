@@ -32,16 +32,16 @@ describe("Liquidity", function () {
     );
     await stakedAsset.setMinter(liquidity.getAddress());
 
-    const TokenRewardOne = await ethers.getContractFactory("OvaReferral");
-    const tokenRewardOneOvaReferral = await TokenRewardOne.deploy(
+    const TokenRewardOne = await ethers.getContractFactory("OverlayerReferral");
+    const tokenRewardOneOverlayerReferral = await TokenRewardOne.deploy(
       owner.address,
       defaultTransactionOptions
     );
-    await tokenRewardOneOvaReferral.setMinter(liquidity.getAddress());
-    await tokenRewardOneOvaReferral.setStakingPools([
+    await tokenRewardOneOverlayerReferral.setMinter(liquidity.getAddress());
+    await tokenRewardOneOverlayerReferral.setStakingPools([
       await liquidity.getAddress()
     ]);
-    // not using OvaReferral as in some tests we need to transfer it
+    // not using OverlayerReferral as in some tests we need to transfer it
     const TokenRewardTwo = await ethers.getContractFactory("TokenLP_A_B");
     const tokenRewardTwo = await TokenRewardTwo.deploy(
       ethers.parseEther("1000"),
@@ -54,7 +54,7 @@ describe("Liquidity", function () {
     return {
       liquidity,
       stakedAsset,
-      tokenRewardOneOvaReferral,
+      tokenRewardOneOverlayerReferral,
       tokenRewardTwo,
       latestTime,
       owner,
@@ -106,12 +106,15 @@ describe("Liquidity", function () {
 
   describe("Pool Management", function () {
     it("Should successfully create staking pool with correct settings", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral } =
+      const { liquidity, stakedAsset, tokenRewardOneOverlayerReferral } =
         await loadFixture(deployFixture);
-      await liquidity.setReward(tokenRewardOneOvaReferral.getAddress(), 1);
+      await liquidity.setReward(
+        tokenRewardOneOverlayerReferral.getAddress(),
+        1
+      );
       await liquidity.add(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         0,
         false,
@@ -120,7 +123,7 @@ describe("Liquidity", function () {
       expect(await liquidity.poolLength()).to.equal(1);
       await liquidity.setReward(stakedAsset.getAddress(), 1);
       await liquidity.add(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         stakedAsset.getAddress(),
         1,
         0,
@@ -134,13 +137,16 @@ describe("Liquidity", function () {
       const {
         liquidity,
         stakedAsset,
-        tokenRewardOneOvaReferral,
+        tokenRewardOneOverlayerReferral,
         tokenRewardTwo
       } = await loadFixture(deployFixture);
-      await liquidity.setReward(tokenRewardOneOvaReferral.getAddress(), 1);
+      await liquidity.setReward(
+        tokenRewardOneOverlayerReferral.getAddress(),
+        1
+      );
       await liquidity.add(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         0,
         false,
@@ -149,7 +155,7 @@ describe("Liquidity", function () {
       expect(await liquidity.poolLength()).to.equal(1);
       await liquidity.setReward(stakedAsset.getAddress(), 1);
       await liquidity.add(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         stakedAsset.getAddress(),
         10,
         0,
@@ -168,7 +174,7 @@ describe("Liquidity", function () {
       expect(await liquidity.poolLength()).to.equal(3);
       expect(
         await liquidity.totalAllocPointsPerReward(
-          tokenRewardOneOvaReferral.getAddress()
+          tokenRewardOneOverlayerReferral.getAddress()
         )
       ).to.be.equal(1);
       expect(
@@ -177,15 +183,22 @@ describe("Liquidity", function () {
     });
 
     it("Should restrict pool creation to owner only", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, notOwner } =
-        await loadFixture(deployFixture);
-      await liquidity.setReward(tokenRewardOneOvaReferral.getAddress(), 1);
+      const {
+        liquidity,
+        stakedAsset,
+        tokenRewardOneOverlayerReferral,
+        notOwner
+      } = await loadFixture(deployFixture);
+      await liquidity.setReward(
+        tokenRewardOneOverlayerReferral.getAddress(),
+        1
+      );
       await expect(
         liquidity
           .connect(notOwner)
           .add(
             stakedAsset.getAddress(),
-            tokenRewardOneOvaReferral.getAddress(),
+            tokenRewardOneOverlayerReferral.getAddress(),
             1,
             0,
             false,
@@ -231,11 +244,11 @@ describe("Liquidity", function () {
 
   describe("Pool Configuration", function () {
     it("Should allow modifying pool allocation points", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral } =
+      const { liquidity, stakedAsset, tokenRewardOneOverlayerReferral } =
         await loadFixture(deployFixture);
       await liquidity.setReward(stakedAsset.getAddress(), 1);
       await liquidity.add(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         stakedAsset.getAddress(),
         1,
         0,
@@ -254,11 +267,15 @@ describe("Liquidity", function () {
     });
 
     it("Should restrict pool modifications to owner only", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, notOwner } =
-        await loadFixture(deployFixture);
+      const {
+        liquidity,
+        stakedAsset,
+        tokenRewardOneOverlayerReferral,
+        notOwner
+      } = await loadFixture(deployFixture);
       await liquidity.setReward(stakedAsset.getAddress(), 1);
       await liquidity.add(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         stakedAsset.getAddress(),
         1,
         0,
@@ -272,8 +289,13 @@ describe("Liquidity", function () {
 
   describe("CoreFunctionality", function () {
     it("Should handle token deposits and approvals correctly", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
-        await loadFixture(deployFixture);
+      const {
+        liquidity,
+        stakedAsset,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        bob
+      } = await loadFixture(deployFixture);
 
       const latestTime: number = await time.latest();
       await time.increaseTo(latestTime + 1);
@@ -291,10 +313,13 @@ describe("Liquidity", function () {
         await stakedAsset.allowance(bob.getAddress(), liquidity.getAddress())
       ).to.equal(10);
 
-      await liquidity.setReward(tokenRewardOneOvaReferral.getAddress(), 1);
+      await liquidity.setReward(
+        tokenRewardOneOverlayerReferral.getAddress(),
+        1
+      );
       await liquidity.add(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         0,
         false,
@@ -312,8 +337,13 @@ describe("Liquidity", function () {
     });
 
     it("Should calculate time-bounded rewards accurately", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
-        await loadFixture(deployFixture);
+      const {
+        liquidity,
+        stakedAsset,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        bob
+      } = await loadFixture(deployFixture);
 
       const latestTime: number = await time.latest();
       await time.increaseTo(latestTime + 1);
@@ -322,12 +352,12 @@ describe("Liquidity", function () {
       await stakedAsset.connect(alice).approve(liquidity.getAddress(), amount);
 
       await liquidity.setReward(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         ethers.parseEther("1")
       );
       await liquidity.add(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         latestTime + 60 * 60,
         false,
@@ -349,14 +379,14 @@ describe("Liquidity", function () {
       );
 
       const rewardsBal = ethers.formatEther(
-        await tokenRewardOneOvaReferral.balanceOf(alice.address)
+        await tokenRewardOneOverlayerReferral.balanceOf(alice.address)
       );
       expect(+rewardsBal).to.be.greaterThan(expected * 0.99);
       expect(+rewardsBal).to.be.lessThan(expected * 1.01);
     });
 
     it("Should enforce vesting restrictions on withdrawals", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice } =
+      const { liquidity, stakedAsset, tokenRewardOneOverlayerReferral, alice } =
         await loadFixture(deployFixture);
       const n = "5";
       const amount = ethers.parseEther(n);
@@ -371,10 +401,13 @@ describe("Liquidity", function () {
 
       const latestTime: number = await time.latest();
 
-      await liquidity.setReward(tokenRewardOneOvaReferral.getAddress(), 1);
+      await liquidity.setReward(
+        tokenRewardOneOverlayerReferral.getAddress(),
+        1
+      );
       await liquidity.add(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         latestTime + 60 * 60 * 24 * 10,
         true,
@@ -382,14 +415,14 @@ describe("Liquidity", function () {
       );
 
       expect(
-        await tokenRewardOneOvaReferral.balanceOf(alice.address)
+        await tokenRewardOneOverlayerReferral.balanceOf(alice.address)
       ).to.be.equal(0);
       await expect(await liquidity.connect(alice).deposit(0, amount)).to.emit(
         liquidity,
         "Deposit"
       );
       expect(
-        await tokenRewardOneOvaReferral.balanceOf(alice.address)
+        await tokenRewardOneOverlayerReferral.balanceOf(alice.address)
       ).to.be.equal(0);
 
       await expect(liquidity.connect(alice).harvest(0)).to.be.not.eventually
@@ -400,7 +433,9 @@ describe("Liquidity", function () {
         "Deposit"
       );
       // Sequental deposits should harvest before endTimestamp
-      const firstBal = await tokenRewardOneOvaReferral.balanceOf(alice.address);
+      const firstBal = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
       expect(firstBal).to.be.greaterThan(0);
       await expect(liquidity.connect(alice).withdraw(0, amount)).to.be
         .eventually.rejected;
@@ -409,7 +444,7 @@ describe("Liquidity", function () {
         liquidity,
         "Withdraw"
       );
-      const secondBal = await tokenRewardOneOvaReferral.balanceOf(
+      const secondBal = await tokenRewardOneOverlayerReferral.balanceOf(
         alice.address
       );
       expect(secondBal).to.be.greaterThan(firstBal);
@@ -419,7 +454,7 @@ describe("Liquidity", function () {
       const {
         liquidity,
         stakedAsset,
-        tokenRewardOneOvaReferral,
+        tokenRewardOneOverlayerReferral,
         owner,
         alice,
         bob
@@ -437,30 +472,37 @@ describe("Liquidity", function () {
         .connect(owner)
         .approve(liquidity.getAddress(), ethers.parseEther("10"));
 
-      await liquidity.setReward(tokenRewardOneOvaReferral.getAddress(), 1);
+      await liquidity.setReward(
+        tokenRewardOneOverlayerReferral.getAddress(),
+        1
+      );
       await liquidity.add(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         0,
         false,
         true
       );
 
-      const referral = await tokenRewardOneOvaReferral.getAddress();
+      const referral = await tokenRewardOneOverlayerReferral.getAddress();
       // Make the liquidity contract an allowed referral tracker
-      await tokenRewardOneOvaReferral
+      await tokenRewardOneOverlayerReferral
         .connect(owner)
         .addPointsTracker(await liquidity.getAddress());
       await liquidity.connect(owner).updateReferral(referral);
 
-      await tokenRewardOneOvaReferral
+      await tokenRewardOneOverlayerReferral
         .connect(owner)
         .addCode("BOB", bob.address);
 
       // Consume referral code
-      await tokenRewardOneOvaReferral.connect(alice).consumeReferral("BOB");
-      await tokenRewardOneOvaReferral.connect(owner).consumeReferral("BOB");
+      await tokenRewardOneOverlayerReferral
+        .connect(alice)
+        .consumeReferral("BOB");
+      await tokenRewardOneOverlayerReferral
+        .connect(owner)
+        .consumeReferral("BOB");
 
       // Test an increasing amount of bonus payed out
       await expect(
@@ -470,10 +512,10 @@ describe("Liquidity", function () {
         await liquidity.connect(owner).deposit(0, ethers.parseEther("2"))
       ).to.emit(liquidity, "Deposit");
       expect(
-        await tokenRewardOneOvaReferral.balanceOf(alice.address)
+        await tokenRewardOneOverlayerReferral.balanceOf(alice.address)
       ).to.be.equal(0);
       expect(
-        await tokenRewardOneOvaReferral.balanceOf(bob.address)
+        await tokenRewardOneOverlayerReferral.balanceOf(bob.address)
       ).to.be.equal(0);
 
       await time.increaseTo((await time.latest()) + 60 * 60 * 24 * 10);
@@ -498,22 +540,24 @@ describe("Liquidity", function () {
         await liquidity.connect(alice).deposit(0, ethers.parseEther("3"))
       ).to.emit(liquidity, "Deposit");
       expect(
-        await tokenRewardOneOvaReferral.balanceOf(alice.address)
+        await tokenRewardOneOverlayerReferral.balanceOf(alice.address)
       ).to.be.greaterThan(0);
-      let bobBonus = await tokenRewardOneOvaReferral.balanceOf(bob.address);
+      let bobBonus = await tokenRewardOneOverlayerReferral.balanceOf(
+        bob.address
+      );
       expect(bobBonus).to.be.greaterThan(0);
       await time.increaseTo((await time.latest()) + 60 * 60 * 24 * 10);
       await expect(
         await liquidity.connect(alice).deposit(0, ethers.parseEther("5"))
       ).to.emit(liquidity, "Deposit");
       expect(
-        await tokenRewardOneOvaReferral.balanceOf(bob.address)
+        await tokenRewardOneOverlayerReferral.balanceOf(bob.address)
       ).to.be.greaterThan(bobBonus);
-      bobBonus = await tokenRewardOneOvaReferral.balanceOf(bob.address);
+      bobBonus = await tokenRewardOneOverlayerReferral.balanceOf(bob.address);
 
       // Check total points generated from the referral source
       expect(
-        await tokenRewardOneOvaReferral.generatedPoints(bob.address)
+        await tokenRewardOneOverlayerReferral.generatedPoints(bob.address)
       ).to.be.greaterThan(0);
 
       // Check harvest do generate bonuses
@@ -523,9 +567,9 @@ describe("Liquidity", function () {
         "SelfBonusPayed"
       );
       expect(
-        await tokenRewardOneOvaReferral.balanceOf(bob.address)
+        await tokenRewardOneOverlayerReferral.balanceOf(bob.address)
       ).to.be.greaterThan(bobBonus);
-      bobBonus = await tokenRewardOneOvaReferral.balanceOf(bob.address);
+      bobBonus = await tokenRewardOneOverlayerReferral.balanceOf(bob.address);
 
       // Check withdraw do generate bonuses
       await time.increaseTo((await time.latest()) + 60 * 60 * 24 * 10);
@@ -533,13 +577,18 @@ describe("Liquidity", function () {
         await liquidity.connect(alice).withdraw(0, ethers.parseEther("10"))
       ).to.emit(liquidity, "BonusPayed");
       expect(
-        await tokenRewardOneOvaReferral.balanceOf(bob.address)
+        await tokenRewardOneOverlayerReferral.balanceOf(bob.address)
       ).to.be.greaterThan(bobBonus);
     });
 
     it("Should calculate pending rewards accurately over time", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
-        await loadFixture(deployFixture);
+      const {
+        liquidity,
+        stakedAsset,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        bob
+      } = await loadFixture(deployFixture);
       const users: Array<any> = [alice, bob];
       const PARTICIPATION: string = "10";
       const TOTAL_PARTICIPATION: string = (
@@ -550,12 +599,12 @@ describe("Liquidity", function () {
       const lastestTime = await time.latest();
       await time.increaseTo(lastestTime + 1);
       await liquidity.setReward(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         ethers.parseEther(REWARD_PER_SECOND)
       );
       await liquidity.add(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         0,
         false,
@@ -665,7 +714,7 @@ describe("Liquidity", function () {
       const {
         liquidity,
         stakedAsset,
-        tokenRewardOneOvaReferral,
+        tokenRewardOneOverlayerReferral,
         tokenRewardTwo,
         alice,
         bob
@@ -676,12 +725,12 @@ describe("Liquidity", function () {
       const latestTime: number = await time.latest();
       await time.increaseTo(latestTime + 1);
       await liquidity.setReward(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         ethers.parseEther(REWARD_PER_SECOND)
       );
       await liquidity.add(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1000,
         0,
         false,
@@ -689,7 +738,7 @@ describe("Liquidity", function () {
       );
       await liquidity.add(
         tokenRewardTwo.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         2000,
         0,
         false,
@@ -791,8 +840,13 @@ describe("Liquidity", function () {
     });
 
     it("Should distribute equal rewards for equal stakes and time", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
-        await loadFixture(deployFixture);
+      const {
+        liquidity,
+        stakedAsset,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        bob
+      } = await loadFixture(deployFixture);
       const users: Array<any> = [alice, bob];
       const PARTICIPATION: string = "10";
       const TOTAL_PARTICIPATION: string = (
@@ -803,12 +857,12 @@ describe("Liquidity", function () {
       const latestTime: number = await time.latest();
       await time.increaseTo(latestTime + 1);
       await liquidity.setReward(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         ethers.parseEther(REWARD_PER_SECOND)
       );
       await liquidity.add(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         0,
         false,
@@ -900,10 +954,10 @@ describe("Liquidity", function () {
           .connect(bob)
           .withdraw(0, ethers.parseEther(PARTICIPATION))
       ).to.emit(liquidity, "Withdraw");
-      const aliceReward = await tokenRewardOneOvaReferral.balanceOf(
+      const aliceReward = await tokenRewardOneOverlayerReferral.balanceOf(
         alice.getAddress()
       );
-      const bobReward = await tokenRewardOneOvaReferral.balanceOf(
+      const bobReward = await tokenRewardOneOverlayerReferral.balanceOf(
         bob.getAddress()
       );
       assert.isTrue(
@@ -912,8 +966,13 @@ describe("Liquidity", function () {
     });
 
     it("Should distribute proportional rewards for unequal stakes", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
-        await loadFixture(deployFixture);
+      const {
+        liquidity,
+        stakedAsset,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        bob
+      } = await loadFixture(deployFixture);
       const PARTICIPATION: string = "10";
       const HALF_PARTICIPATION: string = "5";
       const TOTAL_PARTICIPATION: string = "15";
@@ -922,12 +981,12 @@ describe("Liquidity", function () {
       const latestTime: number = await time.latest();
       await time.increaseTo(latestTime + 1);
       await liquidity.setReward(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         ethers.parseEther(REWARD_PER_SECOND)
       );
       await liquidity.add(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         0,
         false,
@@ -1028,10 +1087,10 @@ describe("Liquidity", function () {
           .connect(bob)
           .withdraw(0, ethers.parseEther(HALF_PARTICIPATION))
       ).to.emit(liquidity, "Withdraw");
-      const aliceReward = await tokenRewardOneOvaReferral.balanceOf(
+      const aliceReward = await tokenRewardOneOverlayerReferral.balanceOf(
         alice.getAddress()
       );
-      const bobReward = await tokenRewardOneOvaReferral.balanceOf(
+      const bobReward = await tokenRewardOneOverlayerReferral.balanceOf(
         bob.getAddress()
       );
       assert.isTrue(
@@ -1043,8 +1102,13 @@ describe("Liquidity", function () {
     });
 
     it("Should track and distribute harvest rewards correctly", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
-        await loadFixture(deployFixture);
+      const {
+        liquidity,
+        stakedAsset,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        bob
+      } = await loadFixture(deployFixture);
       const users: Array<any> = [alice, bob];
       const PARTICIPATION: string = "10";
       const TOTAL_PARTICIPATION: string = (
@@ -1055,12 +1119,12 @@ describe("Liquidity", function () {
       const latestTime: number = await time.latest();
       await time.increaseTo(latestTime + 1);
       await liquidity.setReward(
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         ethers.parseEther(REWARD_PER_SECOND)
       );
       await liquidity.add(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         0,
         false,
@@ -1138,7 +1202,7 @@ describe("Liquidity", function () {
         afterBobHarverstBlock - beforeAliceHarvestBlock;
 
       expect(
-        await tokenRewardOneOvaReferral.balanceOf(alice.getAddress())
+        await tokenRewardOneOverlayerReferral.balanceOf(alice.getAddress())
       ).to.equal(
         ethers.parseEther(
           (
@@ -1151,7 +1215,7 @@ describe("Liquidity", function () {
         )
       );
       expect(
-        await tokenRewardOneOvaReferral.balanceOf(bob.getAddress())
+        await tokenRewardOneOverlayerReferral.balanceOf(bob.getAddress())
       ).to.equal(
         ethers.parseEther(
           (
@@ -1165,7 +1229,7 @@ describe("Liquidity", function () {
       //check that new pending reward discount already harvested amount
       await time.increaseTo((await time.latest()) + 100);
       const alreadyHarvestedAmount: number = +ethers.formatEther(
-        await tokenRewardOneOvaReferral.balanceOf(alice.getAddress())
+        await tokenRewardOneOverlayerReferral.balanceOf(alice.getAddress())
       );
       const elapsedBlockFromLastUpdate: number =
         (await time.latest()) - afterBobDeposit;
@@ -1181,8 +1245,13 @@ describe("Liquidity", function () {
     });
 
     it("Should enforce deposit limits and prevent excess withdrawals", async function () {
-      const { liquidity, stakedAsset, tokenRewardOneOvaReferral, alice, bob } =
-        await loadFixture(deployFixture);
+      const {
+        liquidity,
+        stakedAsset,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        bob
+      } = await loadFixture(deployFixture);
 
       await stakedAsset.transfer(alice.getAddress(), 10);
       await stakedAsset.transfer(bob.getAddress(), 10);
@@ -1197,10 +1266,13 @@ describe("Liquidity", function () {
         await stakedAsset.allowance(bob.getAddress(), liquidity.getAddress())
       ).to.equal(10);
 
-      await liquidity.setReward(tokenRewardOneOvaReferral.getAddress(), 1);
+      await liquidity.setReward(
+        tokenRewardOneOverlayerReferral.getAddress(),
+        1
+      );
       await liquidity.add(
         stakedAsset.getAddress(),
-        tokenRewardOneOvaReferral.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
         1,
         0,
         false,
@@ -1227,10 +1299,10 @@ describe("Liquidity", function () {
         liquidity,
         "Deposit"
       );
-      let aliceReward = await tokenRewardOneOvaReferral.balanceOf(
+      let aliceReward = await tokenRewardOneOverlayerReferral.balanceOf(
         alice.getAddress()
       );
-      let bobReward = await tokenRewardOneOvaReferral.balanceOf(
+      let bobReward = await tokenRewardOneOverlayerReferral.balanceOf(
         bob.getAddress()
       );
       assert.isTrue(aliceReward.toString() == "5");

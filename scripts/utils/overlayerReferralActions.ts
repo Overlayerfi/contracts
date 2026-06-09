@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import OVAREFERRAL_ABI from "../../artifacts/contracts/token/OvaReferral.sol/OvaReferral.json";
+import OVERLAYER_REFERRAL_ABI from "../../artifacts/contracts/overlayer/OverlayerReferral.sol/OverlayerReferral.json";
 import CURVESTABLESTAKINGPOOL_ABI from "../../artifacts/contracts/liquidity/CurveStableStake.sol/CurveStableStake.json";
 import ERC20_ABI from "../../artifacts/contracts/mock_ERC20/FixedSupplyERC20.sol/FixedSupplyERC20.json";
 import { OVA_BETA_RPC } from "../../rpc";
@@ -12,7 +12,7 @@ dotenv.config({ path: process.cwd() + "/process.env" });
 // const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545/");
 const provider = new ethers.JsonRpcProvider(OVA_BETA_RPC);
 const owner = new ethers.Wallet(process.env.ADMIN_WALLET_KEY!, provider);
-const ovaReferralAddress = "0xF8FF4fD5f485CE0FDAA0043f1Db283d9CB691A9F";
+const overlayerReferralAddress = "0xF8FF4fD5f485CE0FDAA0043f1Db283d9CB691A9F";
 const stakedCurveLpAddress = CURVE_DAI_USDC_USDT_LP;
 const curveStableStakingPoolAddress =
   "0xC040135dFad78636013ADb0d437DaA123B6A8f74";
@@ -57,9 +57,9 @@ async function main() {
     codes.push(`code${i}#${signers[i].address}`);
     console.log("Code:", codes[i]);
   }
-  const ovaReferralContract = new ethers.Contract(
-    ovaReferralAddress,
-    OVAREFERRAL_ABI.abi
+  const overlayerReferralContract = new ethers.Contract(
+    overlayerReferralAddress,
+    OVERLAYER_REFERRAL_ABI.abi
   );
   const curveStableStakingContract = new ethers.Contract(
     curveStableStakingPoolAddress,
@@ -73,7 +73,7 @@ async function main() {
   try {
     // Add codes
     for (let i = 0; i < codesNum; i++) {
-      let tx = await ovaReferralContract
+      let tx = await overlayerReferralContract
         .connect(signers[i])
         .addCodeSelf(codes[i]);
       console.log("Transaction sent! Waiting for confirmation...");
@@ -85,7 +85,7 @@ async function main() {
 
     // Consume codes
     for (let i = 0; i < codesNum; i++) {
-      let tx = await ovaReferralContract
+      let tx = await overlayerReferralContract
         .connect(signers[i + codesNum])
         .consumeReferral(codes[i], signers[i + codesNum]);
       console.log("Transaction sent! Waiting for confirmation...");
@@ -97,7 +97,7 @@ async function main() {
   } catch (e) {
     console.error(e);
     console.log("Try to decode it...");
-    decodeCustomError(e, OVAREFERRAL_ABI.abi);
+    decodeCustomError(e, OVERLAYER_REFERRAL_ABI.abi);
   }
 
   try {
@@ -170,7 +170,7 @@ async function main() {
   } catch (e) {
     console.error(e);
     console.log("Try to decode it with first abi...");
-    decodeCustomError(e, OVAREFERRAL_ABI.abi);
+    decodeCustomError(e, OVERLAYER_REFERRAL_ABI.abi);
     console.log("Try to decode it with second abi...");
     decodeCustomError(e, CURVESTABLESTAKINGPOOL_ABI.abi);
   }

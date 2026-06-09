@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/// @title IOvaReferral Interface
-/// @notice Interface for the OVA referral system that tracks referrals and rewards
-interface IOvaReferral {
+/// @title IOverlayerReferral Interface
+/// @notice Interface for the Overlayer referral system that tracks referrals and rewards
+interface IOverlayerReferral {
     /// @notice Get the address that referred a user
     /// @param user The address of the user to check
     /// @return The address that referred the user, or zero address if not referred

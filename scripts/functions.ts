@@ -9,7 +9,7 @@ import SUBSCRIPTIONCONSUMERSEPOLIA_ABI from "../artifacts/contracts/sepolialotte
 import TESTMATH_ABI from "../artifacts/contracts/test/TestMath.sol/TestMath.json";
 import LIQUIDITY_ABI from "../artifacts/contracts/liquidity/Liquidity.sol/Liquidity.json";
 import OverlayerWrap_ABI from "../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
-import OVAREFERRAL_ABI from "../artifacts/contracts/overlayer/OvaReferral.sol/OvaReferral.json";
+import OVERLAYER_REFERRAL_ABI from "../artifacts/contracts/overlayer/OverlayerReferral.sol/OverlayerReferral.json";
 import SOverlayerWrap_ABI from "../artifacts/contracts/overlayer/StakedOverlayerWrap.sol/StakedOverlayerWrap.json";
 import { ILiquidity } from "./types";
 import { USDT_ABI } from "./abi/USDT_abi";
@@ -175,7 +175,7 @@ export async function deploy_AirdropOVAReceipt(
   );
 }
 
-export async function deploy_AirdropReward(
+export async function deploy_OverlayerReferral(
   admin: string,
   baseGasFeeMult?: number
 ): Promise<string> {
@@ -186,64 +186,72 @@ export async function deploy_AirdropReward(
   }
 
   console.log(
-    "[deploy_AirdropReward] Deploying Airdrop::Reward contract with signer:",
+    "[deploy_OverlayerReferral] Deploying OverlayerReferral contract with signer:",
     deployer.address
   );
 
-  const ContractSource = await ethers.getContractFactory("OvaReferral");
+  const ContractSource = await ethers.getContractFactory("OverlayerReferral");
   const deployedContract = await ContractSource.deploy(admin, {
     gasLimit: 10000000
   });
   await deployedContract.waitForDeployment();
 
   console.log(
-    "[deploy_AirdropReward] Contract deployed at:",
+    "[deploy_OverlayerReferral] Contract deployed at:",
     await deployedContract.getAddress()
   );
   return await deployedContract.getAddress();
 }
 
-export async function AirdropReward_setStakingPools(
+export async function OverlayerReferral_setStakingPools(
   addr: string,
   pools: string[]
 ): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
   console.log(
-    "[AirdropReward_setStakingPools] Setting ova referral token staking pools with:",
+    "[OverlayerReferral_setStakingPools] Setting Overlayer referral token staking pools with:",
     deployer.address
   );
-  console.log("[AirdropReward_setStakingPools] Address:", addr);
-  console.log("[AirdropReward_setStakingPools] Pools:", pools);
+  console.log("[OverlayerReferral_setStakingPools] Address:", addr);
+  console.log("[OverlayerReferral_setStakingPools] Pools:", pools);
 
-  const contract = new ethers.Contract(addr, OVAREFERRAL_ABI.abi, deployer);
+  const contract = new ethers.Contract(
+    addr,
+    OVERLAYER_REFERRAL_ABI.abi,
+    deployer
+  );
   await (contract.connect(deployer) as Contract).setStakingPools(pools, {
     gasLimit: 2000000
   });
 
-  console.log("[AirdropReward_setStakingPools] Operation passed");
+  console.log("[OverlayerReferral_setStakingPools] Operation passed");
 }
 
-export async function AirdropReward_addTrackers(
+export async function OverlayerReferral_addTrackers(
   addr: string,
   trackers: string[]
 ): Promise<void> {
   const [deployer] = await ethers.getSigners();
 
   console.log(
-    "[AirdropReward_addTrackers] Setting ova referral token trackers with:",
+    "[OverlayerReferral_addTrackers] Setting Overlayer referral token trackers with:",
     deployer.address
   );
-  console.log("[AirdropReward_addTrackers] Address:", addr);
-  console.log("[AirdropReward_addTrackers] Trackers:", trackers);
+  console.log("[OverlayerReferral_addTrackers] Address:", addr);
+  console.log("[OverlayerReferral_addTrackers] Trackers:", trackers);
 
-  const contract = new ethers.Contract(addr, OVAREFERRAL_ABI.abi, deployer);
+  const contract = new ethers.Contract(
+    addr,
+    OVERLAYER_REFERRAL_ABI.abi,
+    deployer
+  );
   for (const t of trackers) {
     await (contract.connect(deployer) as Contract).addPointsTracker(t, {
       gasLimit: 2000000
     });
   }
-  console.log("[AirdropReward_addTrackers] Operation passed");
+  console.log("[OverlayerReferral_addTrackers] Operation passed");
 }
 
 export async function deploy_LiquidityAirdropReward(
@@ -417,7 +425,7 @@ export async function Liquidity_updateReferral(
   const [deployer] = await ethers.getSigners();
 
   console.log(
-    "[Liquidity_updateReferral] Setting ova referral address to staking pool with:",
+    "[Liquidity_updateReferral] Setting Overlayer referral address to staking pool with:",
     deployer.address
   );
 

@@ -60,9 +60,9 @@ const config: HardhatUserConfig = {
       'overlayer/rOVA.sol',
       'overlayer/rOVAV2.sol',
       'overlayer/OVA.sol',
-      'overlayer/OvaReferral.sol',
+      'overlayer/OverlayerReferral.sol',
       'overlayer/OverlayerWrapFactory.sol',
-      'overlayer/interfaces/IOvaReferral.sol'
+      'overlayer/interfaces/IOverlayerReferral.sol'
     ],
     pages: 'files'
   },

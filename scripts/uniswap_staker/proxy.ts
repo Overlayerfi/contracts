@@ -234,7 +234,7 @@ export async function deployV3StakerAndReward(
   const stakerContract = await ethers.getContractFactory(
     "UniswapV3StakerFront"
   );
-  const tokenContract = await ethers.getContractFactory("OvaReferral");
+  const tokenContract = await ethers.getContractFactory("OverlayerReferral");
 
   // define max fee for test network
   const block = await deployer.provider.getBlock("latest");

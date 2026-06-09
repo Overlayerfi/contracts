@@ -18,15 +18,17 @@ describe("OVA Ambassador Tracking System", function () {
       defaultTransactionOptions
     );
 
-    const OvaReferral = await ethers.getContractFactory("OvaReferral");
-    const ovaReferral = await OvaReferral.deploy(
+    const OverlayerReferral = await ethers.getContractFactory(
+      "OverlayerReferral"
+    );
+    const overlayerReferral = await OverlayerReferral.deploy(
       admin.address,
       defaultTransactionOptions
     );
 
-    await ovaReferral.setMinter(await contract.getAddress());
+    await overlayerReferral.setMinter(await contract.getAddress());
 
-    return { contract, ovaReferral, admin, a1, a2, a3 };
+    return { contract, overlayerReferral, admin, a1, a2, a3 };
   }
 
   describe("Ambassador Management", function () {
@@ -82,9 +84,8 @@ describe("OVA Ambassador Tracking System", function () {
     });
 
     it("Should process point collection within specified timeframe", async function () {
-      const { contract, ovaReferral, admin, a1, a2, a3 } = await loadFixture(
-        deployFixture
-      );
+      const { contract, overlayerReferral, admin, a1, a2, a3 } =
+        await loadFixture(deployFixture);
       const ambassadors = [a1.address, a2.address];
       await contract.addAmbassadorBatch(ambassadors);
 
@@ -101,7 +102,7 @@ describe("OVA Ambassador Tracking System", function () {
         ethers.parseEther("200")
       );
 
-      await contract.setReward(await ovaReferral.getAddress());
+      await contract.setReward(await overlayerReferral.getAddress());
 
       // Collection not set
       await expect(contract.connect(a1).collect()).to.be.eventually.rejected;
@@ -118,10 +119,10 @@ describe("OVA Ambassador Tracking System", function () {
       await time.increase(60 * 31);
       await contract.connect(a1).collect();
       await contract.connect(a2).collect();
-      expect(await ovaReferral.balanceOf(a1.address)).to.be.equal(
+      expect(await overlayerReferral.balanceOf(a1.address)).to.be.equal(
         ethers.parseEther("100")
       );
-      expect(await ovaReferral.balanceOf(a2.address)).to.be.equal(
+      expect(await overlayerReferral.balanceOf(a2.address)).to.be.equal(
         ethers.parseEther("200")
       );
 
