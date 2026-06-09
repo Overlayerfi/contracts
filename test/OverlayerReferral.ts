@@ -117,9 +117,7 @@ describe("Overlayer Referral System", function () {
       );
 
       await expect(
-        overlayerReferral
-          .connect(admin)
-          .addCode("", await alice.getAddress())
+        overlayerReferral.connect(admin).addCode("", await alice.getAddress())
       ).to.be.revertedWithCustomError(
         overlayerReferral,
         "OverlayerReferralCodeNotValid"
