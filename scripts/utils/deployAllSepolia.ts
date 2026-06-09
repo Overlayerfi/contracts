@@ -7,12 +7,12 @@ import {
   deploy_OverlayerWrapBacking,
   OverlayerWrap_mint,
   StakedOverlayerWrap_deposit,
-  deploy_AirdropReward,
+  deploy_OverlayerReferral,
   deploy_AirdropSingleStableStake,
   SingleStableStake_setRewardForStakedAssets,
   SingleStableStake_addPool,
-  AirdropReward_setStakingPools,
-  AirdropReward_addTrackers,
+  OverlayerReferral_setStakingPools,
+  OverlayerReferral_addTrackers,
   Liquidity_updateReferral,
   deploy_Dispatcher
 } from "../functions";
@@ -20,7 +20,7 @@ import OverlayerWrap_ABI from "../../artifacts/contracts/overlayer/OverlayerWrap
 import SOverlayerWrap_ABI from "../../artifacts/contracts/overlayer/StakedOverlayerWrap.sol/StakedOverlayerWrap.json";
 import OverlayerWrapBacking_ABI from "../../artifacts/contracts/overlayerbacking/OverlayerBacking.sol/OverlayerWrapBacking.json";
 import SINGLE_STABLE_STAKE_ABI from "../../artifacts/contracts/liquidity/SingleStableStake.sol/SingleStableStake.json";
-import OVA_REFERRAL_ABI from "../../artifacts/contracts/overlayer/OvaReferral.sol/OvaReferral.json";
+import OVERLAYER_REFERRAL_ABI from "../../artifacts/contracts/overlayer/OverlayerReferral.sol/OverlayerReferral.json";
 import { getContractAddress } from "@ethersproject/address";
 import {
   USDT_SEPOLIA_ADDRESS,
@@ -95,13 +95,13 @@ async function main() {
     let receipt = null;
 
     // 2. Deploy airdrop points (also referral contract)
-    // const ovaReferralAddress = await deploy_AirdropReward(
+    // const overlayerReferralAddress = await deploy_OverlayerReferral(
     //   AIRDROP_POOLS_REWARD_TOKEN_ADMIN,
     //   2
     // );
-    // const ovaReferralContract = new ethers.Contract(
-    //   ovaReferralAddress,
-    //   OVA_REFERRAL_ABI.abi,
+    // const overlayerReferralContract = new ethers.Contract(
+    //   overlayerReferralAddress,
+    //   OVERLAYER_REFERRAL_ABI.abi,
     //   admin.provider
     // );
 
@@ -135,7 +135,7 @@ async function main() {
     // );
 
     // 5. Set airdrop reward minters
-    // tx = await (ovaReferralContract.connect(admin) as Contract).setMinter(
+    // tx = await (overlayerReferralContract.connect(admin) as Contract).setMinter(
     //   singleStableStakeAddr,
     //   defaultTransactionOptions
     // );
@@ -146,7 +146,7 @@ async function main() {
     //   "hash =",
     //   tx.hash
     // );
-    // tx = await (ovaReferralContract.connect(admin) as Contract).setMinter(
+    // tx = await (overlayerReferralContract.connect(admin) as Contract).setMinter(
     //   singleStableStakePremiumAddr,
     //   defaultTransactionOptions
     // );
@@ -157,7 +157,7 @@ async function main() {
     //   "hash =",
     //   tx.hash
     // );
-    // tx = await (ovaReferralContract.connect(admin) as Contract).setMinter(
+    // tx = await (overlayerReferralContract.connect(admin) as Contract).setMinter(
     //   curveStableStakeCrvAddr,
     //   defaultTransactionOptions
     // );
@@ -173,7 +173,7 @@ async function main() {
     // await SingleStableStake_setRewardForStakedAssets(
     //   curveStableStakeCrvContract,
     //   admin,
-    //   ovaReferralAddress,
+    //   overlayerReferralAddress,
     //   200,
     //   1,
     //   2
@@ -181,7 +181,7 @@ async function main() {
     // await SingleStableStake_setRewardForStakedAssets(
     //   singleStableStakeContract,
     //   admin,
-    //   ovaReferralAddress,
+    //   overlayerReferralAddress,
     //   500,
     //   1,
     //   2
@@ -189,7 +189,7 @@ async function main() {
     // await SingleStableStake_setRewardForStakedAssets(
     //   singleStableStakePremiumContract,
     //   admin,
-    //   ovaReferralAddress,
+    //   overlayerReferralAddress,
     //   1000,
     //   1,
     //   2
@@ -201,7 +201,7 @@ async function main() {
     //   curveStableStakeCrvContract,
     //   admin,
     //   mockLp,
-    //   ovaReferralAddress,
+    //   overlayerReferralAddress,
     //   1,
     //   endTimeStamp,
     //   false,
@@ -212,7 +212,7 @@ async function main() {
     //   singleStableStakeContract,
     //   admin,
     //   overlayerWrapAddr,
-    //   ovaReferralAddress,
+    //   overlayerReferralAddress,
     //   1,
     //   endTimeStamp,
     //   false,
@@ -223,7 +223,7 @@ async function main() {
     //   singleStableStakePremiumContract,
     //   admin,
     //   overlayerWrapAddr,
-    //   ovaReferralAddress,
+    //   overlayerReferralAddress,
     //   1,
     //   endTimeStamp,
     //   true,
@@ -341,25 +341,25 @@ async function main() {
     await StakedOverlayerWrap_deposit(sOverlayerWrapAddr, "1", admin.address);
 
     // 13. Set staking pools inside the referral contract
-    // await AirdropReward_setStakingPools(ovaReferralAddress, [
+    // await OverlayerReferral_setStakingPools(overlayerReferralAddress, [
     //   curveStableStakeCrvAddr,
     //   singleStableStakePremiumAddr,
     //   singleStableStakeAddr
     // ]);
 
     // 14. Add points trackers
-    // await AirdropReward_addTrackers(ovaReferralAddress, [
+    // await OverlayerReferral_addTrackers(overlayerReferralAddress, [
     //   curveStableStakeCrvAddr,
     //   singleStableStakePremiumAddr,
     //   singleStableStakeAddr
     // ]);
 
     // 15. Update referral contract address
-    // await Liquidity_updateReferral(curveStableStakeCrvAddr, ovaReferralAddress);
-    // await Liquidity_updateReferral(singleStableStakeAddr, ovaReferralAddress);
+    // await Liquidity_updateReferral(curveStableStakeCrvAddr, overlayerReferralAddress);
+    // await Liquidity_updateReferral(singleStableStakeAddr, overlayerReferralAddress);
     // await Liquidity_updateReferral(
     //   singleStableStakePremiumAddr,
-    //   ovaReferralAddress
+    //   overlayerReferralAddress
     // );
   } catch (err) {
     console.error(`[${getTimestamp()}] Batch deployment failed ->`, err);

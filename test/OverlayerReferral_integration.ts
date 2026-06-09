@@ -96,35 +96,38 @@ describe("CurveStableStake", function () {
     );
     await singleLiquidity.waitForDeployment();
 
-    const TokenRewardOneOvaReferral = await ethers.getContractFactory(
-      "OvaReferral"
+    const TokenRewardOneOverlayerReferral = await ethers.getContractFactory(
+      "OverlayerReferral"
     );
-    const tokenRewardOneOvaReferral = await TokenRewardOneOvaReferral.deploy(
-      owner.address,
-      defaultTransactionOptions
+    const tokenRewardOneOverlayerReferral =
+      await TokenRewardOneOverlayerReferral.deploy(
+        owner.address,
+        defaultTransactionOptions
+      );
+    await tokenRewardOneOverlayerReferral.waitForDeployment();
+    await tokenRewardOneOverlayerReferral.setMinter(
+      curveLiquidity.getAddress()
     );
-    await tokenRewardOneOvaReferral.waitForDeployment();
-    await tokenRewardOneOvaReferral.setMinter(curveLiquidity.getAddress());
-    await tokenRewardOneOvaReferral.setStakingPools([
+    await tokenRewardOneOverlayerReferral.setStakingPools([
       await curveLiquidity.getAddress()
     ]);
 
     // Set staking pools
-    await tokenRewardOneOvaReferral.addPointsTracker(
+    await tokenRewardOneOverlayerReferral.addPointsTracker(
       await curveLiquidity.getAddress()
     );
-    await tokenRewardOneOvaReferral.addPointsTracker(
+    await tokenRewardOneOverlayerReferral.addPointsTracker(
       await singleLiquidity.getAddress()
     );
-    await tokenRewardOneOvaReferral.setStakingPools([
+    await tokenRewardOneOverlayerReferral.setStakingPools([
       await curveLiquidity.getAddress(),
       await singleLiquidity.getAddress()
     ]);
 
-    await tokenRewardOneOvaReferral
+    await tokenRewardOneOverlayerReferral
       .connect(owner)
       .setMinter(await curveLiquidity.getAddress());
-    await tokenRewardOneOvaReferral
+    await tokenRewardOneOverlayerReferral
       .connect(owner)
       .setMinter(await singleLiquidity.getAddress());
 
@@ -145,47 +148,47 @@ describe("CurveStableStake", function () {
       .approve(await singleLiquidity.getAddress(), ethers.MaxUint256);
 
     await singleLiquidity.updateReferral(
-      await tokenRewardOneOvaReferral.getAddress()
+      await tokenRewardOneOverlayerReferral.getAddress()
     );
     await curveLiquidity.updateReferral(
-      await tokenRewardOneOvaReferral.getAddress()
+      await tokenRewardOneOverlayerReferral.getAddress()
     );
 
     return {
       curveLiquidity,
       singleLiquidity,
       stakedAsset,
-      tokenRewardOneOvaReferral,
+      tokenRewardOneOverlayerReferral,
       latestTime,
       owner,
       alice
     };
   }
 
-  describe("OVA Referral System Integration", function () {
+  describe("Overlayer Referral System Integration", function () {
     describe("Multi-Pool Referral System", function () {
       it("Should correctly track and distribute rewards across multiple staking pools", async function () {
         const {
           curveLiquidity,
           singleLiquidity,
           stakedAsset,
-          tokenRewardOneOvaReferral,
+          tokenRewardOneOverlayerReferral,
           owner,
           alice
         } = await loadFixture(deployFixture);
         await curveLiquidity.setRewardForStakedAssets(
-          tokenRewardOneOvaReferral.getAddress(),
+          tokenRewardOneOverlayerReferral.getAddress(),
           100_000,
           1
         );
         await singleLiquidity.setRewardForStakedAssets(
-          tokenRewardOneOvaReferral.getAddress(),
+          tokenRewardOneOverlayerReferral.getAddress(),
           200_000,
           1
         );
         await curveLiquidity.addWithNumCoinsAndPool(
           stakedAsset.getAddress(),
-          tokenRewardOneOvaReferral.getAddress(),
+          tokenRewardOneOverlayerReferral.getAddress(),
           1,
           3,
           CURVE_DAI_USDC_USDT_POOL,
@@ -195,7 +198,7 @@ describe("CurveStableStake", function () {
         );
         await singleLiquidity.add(
           stakedAsset.getAddress(),
-          tokenRewardOneOvaReferral.getAddress(),
+          tokenRewardOneOverlayerReferral.getAddress(),
           1,
           0,
           false,
@@ -219,13 +222,15 @@ describe("CurveStableStake", function () {
           await singleLiquidity.pendingReward(0, alice.address)
         ).to.be.greaterThan(0);
 
-        await tokenRewardOneOvaReferral
+        await tokenRewardOneOverlayerReferral
           .connect(owner)
           .addCode("2025", owner.address);
         expect(
-          await tokenRewardOneOvaReferral.balanceOf(alice.address)
+          await tokenRewardOneOverlayerReferral.balanceOf(alice.address)
         ).to.be.equal(0);
-        await tokenRewardOneOvaReferral.connect(alice).consumeReferral("2025");
+        await tokenRewardOneOverlayerReferral
+          .connect(alice)
+          .consumeReferral("2025");
 
         // By using a referral we harvest all the previous amounts
         expect(
@@ -235,11 +240,11 @@ describe("CurveStableStake", function () {
           await singleLiquidity.pendingReward(0, alice.address)
         ).to.be.equal(0);
         expect(
-          await tokenRewardOneOvaReferral.balanceOf(alice.address)
+          await tokenRewardOneOverlayerReferral.balanceOf(alice.address)
         ).to.be.greaterThan(0);
         expect(
           +ethers.formatEther(
-            await tokenRewardOneOvaReferral.codeTotalPoints("2025")
+            await tokenRewardOneOverlayerReferral.codeTotalPoints("2025")
           )
         ).to.be.equal(0);
 
@@ -268,22 +273,22 @@ describe("CurveStableStake", function () {
           (60 * 60 * 24 * days);
         expect(
           +ethers.formatEther(
-            await tokenRewardOneOvaReferral.codeTotalPoints("2025")
+            await tokenRewardOneOverlayerReferral.codeTotalPoints("2025")
           )
         ).to.be.greaterThan((expectedOne + expectedTwo) * 0.995);
         expect(
           +ethers.formatEther(
-            await tokenRewardOneOvaReferral.codeTotalPoints("2025")
+            await tokenRewardOneOverlayerReferral.codeTotalPoints("2025")
           )
         ).to.be.lessThan((expectedOne + expectedTwo) * 1.015);
         expect(
           +ethers.formatEther(
-            await tokenRewardOneOvaReferral.generatedPoints(owner.address)
+            await tokenRewardOneOverlayerReferral.generatedPoints(owner.address)
           )
         ).to.be.greaterThan((expectedOne + expectedTwo) * 0.995);
         expect(
           +ethers.formatEther(
-            await tokenRewardOneOvaReferral.generatedPoints(owner.address)
+            await tokenRewardOneOverlayerReferral.generatedPoints(owner.address)
           )
         ).to.be.lessThan((expectedOne + expectedTwo) * 1.015);
       });

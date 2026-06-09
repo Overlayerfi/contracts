@@ -3,14 +3,18 @@ pragma solidity ^0.8.20;
 
 import "./MintableTokenBase.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./interfaces/IOvaReferral.sol";
+import "./interfaces/IOverlayerReferral.sol";
 import {ILiquidityDefs} from "../liquidity/interfaces/ILiquidityDefs.sol";
 
 /**
- * @title OvaReferral
- * @notice This token tracks the referral points for OVA airdrop.
+ * @title OverlayerReferral
+ * @notice This token tracks the referral points for the Overlayer airdrop.
  */
-contract OvaReferral is MintableTokenBase, ReentrancyGuard, IOvaReferral {
+contract OverlayerReferral is
+    MintableTokenBase,
+    ReentrancyGuard,
+    IOverlayerReferral
+{
     /// @notice Track the referral source for given address
     mapping(address => address) public referredFrom;
 
@@ -41,17 +45,17 @@ contract OvaReferral is MintableTokenBase, ReentrancyGuard, IOvaReferral {
     event RemoveTracker(address tracker);
     event StakingPoolSet(address[] pools);
 
-    error OvaReferralAlreadyReferred();
-    error OvaReferralZeroAddress();
-    error OvaReferralNotAllowed();
-    error OvaReferralCodeNotValid();
-    error OvaReferralCodeAlreadyUsed();
-    error OvaReferralAlreadyCreatedACode();
-    error OvaReferralStakingPoolsNotSet();
+    error OverlayerReferralAlreadyReferred();
+    error OverlayerReferralZeroAddress();
+    error OverlayerReferralNotAllowed();
+    error OverlayerReferralCodeNotValid();
+    error OverlayerReferralCodeAlreadyUsed();
+    error OverlayerReferralAlreadyCreatedACode();
+    error OverlayerReferralStakingPoolsNotSet();
 
     modifier onlyTracker() {
         if (!allowedPointsTrackers[msg.sender] && msg.sender != address(this)) {
-            revert OvaReferralNotAllowed();
+            revert OverlayerReferralNotAllowed();
         }
         _;
     }
@@ -60,7 +64,7 @@ contract OvaReferral is MintableTokenBase, ReentrancyGuard, IOvaReferral {
     ///@param admin_ The contract admin
     constructor(
         address admin_
-    ) MintableTokenBase(admin_, "Airdrop OVA", "AOVA") {}
+    ) MintableTokenBase(admin_, "Airdrop Overlayer", "AOVER") {}
 
     function getStakingPools() external view returns (address[] memory) {
         return stakingPools;
@@ -80,26 +84,26 @@ contract OvaReferral is MintableTokenBase, ReentrancyGuard, IOvaReferral {
     ) external override nonReentrant {
         address consumer = msg.sender;
         if (referredFrom[consumer] != address(0)) {
-            revert OvaReferralAlreadyReferred();
+            revert OverlayerReferralAlreadyReferred();
         }
         if (referralCodes[code_] == address(0)) {
-            revert OvaReferralCodeNotValid();
+            revert OverlayerReferralCodeNotValid();
         }
         // Code providers can not use any referral
         if (bytes(referralCodesRev[consumer]).length > 0) {
-            revert OvaReferralNotAllowed();
+            revert OverlayerReferralNotAllowed();
         }
         address source = referralCodes[code_];
         // Can not refer self
         if (source == consumer) {
-            revert OvaReferralNotAllowed();
+            revert OverlayerReferralNotAllowed();
         }
         if (source == address(0)) {
-            revert OvaReferralZeroAddress();
+            revert OverlayerReferralZeroAddress();
         }
 
         if (stakingPools.length == 0) {
-            revert OvaReferralStakingPoolsNotSet();
+            revert OverlayerReferralStakingPoolsNotSet();
         }
         for (uint256 i = 0; i < stakingPools.length; ) {
             ILiquidityDefs stakingPool = ILiquidityDefs(stakingPools[i]);
@@ -145,18 +149,21 @@ contract OvaReferral is MintableTokenBase, ReentrancyGuard, IOvaReferral {
     /// @param code_ The tracker address
     /// @param holder_ The code owner
     function addCode(string memory code_, address holder_) external onlyOwner {
+        if (bytes(code_).length == 0) {
+            revert OverlayerReferralCodeNotValid();
+        }
         if (holder_ == address(0)) {
-            revert OvaReferralZeroAddress();
+            revert OverlayerReferralZeroAddress();
         }
         // Code users can not create codes
         if (referredFrom[holder_] != address(0)) {
-            revert OvaReferralAlreadyReferred();
+            revert OverlayerReferralAlreadyReferred();
         }
         if (referralCodes[code_] != address(0)) {
-            revert OvaReferralCodeAlreadyUsed();
+            revert OverlayerReferralCodeAlreadyUsed();
         }
         if (bytes(referralCodesRev[holder_]).length > 0) {
-            revert OvaReferralAlreadyCreatedACode();
+            revert OverlayerReferralAlreadyCreatedACode();
         }
         referralCodes[code_] = holder_;
         referralCodesRev[holder_] = code_;
@@ -167,19 +174,22 @@ contract OvaReferral is MintableTokenBase, ReentrancyGuard, IOvaReferral {
     /// @notice Add a new referral code for the caller
     /// @param code_ The tracker address
     function addCodeSelf(string memory code_) external {
+        if (bytes(code_).length == 0) {
+            revert OverlayerReferralCodeNotValid();
+        }
         address holder = msg.sender;
         if (holder == address(0)) {
-            revert OvaReferralZeroAddress();
+            revert OverlayerReferralZeroAddress();
         }
         // Code users can not create codes
         if (referredFrom[holder] != address(0)) {
-            revert OvaReferralAlreadyReferred();
+            revert OverlayerReferralAlreadyReferred();
         }
         if (referralCodes[code_] != address(0)) {
-            revert OvaReferralCodeAlreadyUsed();
+            revert OverlayerReferralCodeAlreadyUsed();
         }
         if (bytes(referralCodesRev[holder]).length > 0) {
-            revert OvaReferralAlreadyCreatedACode();
+            revert OverlayerReferralAlreadyCreatedACode();
         }
         referralCodes[code_] = holder;
         referralCodesRev[holder] = code_;
