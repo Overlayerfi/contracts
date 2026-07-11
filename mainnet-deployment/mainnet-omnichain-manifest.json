@@ -1,0 +1,53 @@
+{
+  "generatedAt": "2026-06-26T14:51:25.225Z",
+  "network": "mainnet",
+  "ethChainFolder": "eth-mainnet",
+  "chains": {
+    "base-mainnet": {
+      "chainId": "8453",
+      "omnichain": {
+        "OverlayerCircle": "0xEE1f83E766235DB707aB7658b3e232e9f6BaF959",
+        "OverlayerUSDG": "0x07126B6d292F1eCF79D87c0371CfaA749b1b4F95",
+        "ShareOFT-C+": "0xB17EE7D061e076ff1aD6bd2141888CFb39C0Ccdc",
+        "ShareOFT-G+": "0x20AACD618BB19A5A5b5937f54A1a1943AeC89380"
+      }
+    },
+    "eth-mainnet": {
+      "chainId": "1",
+      "omnichain": {
+        "OVault-C+": "0x8aC6AD5D76D07B202832f323888B64286E944A9e",
+        "OVault-G+": "0xcda929Ac3016A17151CD63c1Ca210cFc56D85333",
+        "OVault-T+": "0x001F7096A4521C1945543E458798aF9233140ED7",
+        "OVaultComposer-C+": "0x5269D5136f5aDaCE7f7cDe98E8378fB27fa94b70",
+        "OVaultComposer-G+": "0xBe1b51d8A837695E6e787168436eb0d67A312631",
+        "OVaultComposer-T+": "0xdf2C2a0528930a061b66bb94E18627a83C01b97D",
+        "OverlayerCircle": "0xB17EE7D061e076ff1aD6bd2141888CFb39C0Ccdc",
+        "OverlayerTether": "0xBfaE8C8500cD35B652373a3Ad5BaA0D604A05a29",
+        "OverlayerUSDG": "0xD4E1CAF200b29585aADc9AF39c16D57C8c82EbF1",
+        "ShareOFTAdapter-C+": "0xE711528898059A61428768D6665Ce4e5e93bA024",
+        "ShareOFTAdapter-G+": "0xd9EDC4CfA8134f433aEDc89f12F4C07a2539eBF0",
+        "ShareOFTAdapter-T+": "0x6f6e207dcD430e6899955153b485784E25875dcA"
+      },
+      "contractsRepo": {
+        "OverlayerTether": {
+          "OvaDispatcher": "0xCb3dF3e09011FCDc2Bf2B1F46D3292a5A4C068e3",
+          "OverlayerWrapBacking": "0xBb32471973caD2f6317a7f366628A90e0A94a03f",
+          "oftOverlayerWrap": "0xBfaE8C8500cD35B652373a3Ad5BaA0D604A05a29",
+          "stakedOverlayerWrap": "0x001F7096A4521C1945543E458798aF9233140ED7"
+        },
+        "OverlayerCircle": {
+          "OvaDispatcher": "0x7d2b0376f434532A4a48f0469b13c8eD55a3f926",
+          "OverlayerWrapBacking": "0xeF2a40901a9A985eb028a0B927b427dA9BAD2aCa",
+          "oftOverlayerWrap": "0xB17EE7D061e076ff1aD6bd2141888CFb39C0Ccdc",
+          "stakedOverlayerWrap": "0x8aC6AD5D76D07B202832f323888B64286E944A9e"
+        },
+        "OverlayerUSDG": {
+          "OvaDispatcher": "0xaA694574d4a340ceD543E12135030f8C7aE67A85",
+          "OverlayerWrapBacking": "0x51366973e57c3fec58319812e9d148dE4F772f37",
+          "oftOverlayerWrap": "0xD4E1CAF200b29585aADc9AF39c16D57C8c82EbF1",
+          "stakedOverlayerWrap": "0xcda929Ac3016A17151CD63c1Ca210cFc56D85333"
+        }
+      }
+    }
+  }
+}

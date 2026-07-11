@@ -1,17 +1,20 @@
 /**
- * Post-configure Sepolia for each OFT Overlayer product discovered under a
- * contracts-omnichain deployments directory (e.g. deployments-sep). Reads
- * Overlayer*.json + matching OVault-*.json on the ETH testnet chain folder,
- * runs dispatcher / backing / roles / seed mint, and writes a merged manifest
- * of omnichain + this repo’s deployed addresses.
+ * Post-configure mainnet OFT Overlayer products discovered under a
+ * contracts-omnichain deployments directory. Reads Overlayer*.json + matching
+ * OVault-*.json on the ETH mainnet chain folder, runs dispatcher / backing /
+ * roles / seed mint, and writes a merged manifest of omnichain + this repo’s
+ * deployed addresses.
  *
  * Hardhat rejects custom CLI flags (HH310). Use environment variables:
- *   OMNICHAIN_DEPLOYMENTS_DIR  — path to deployments-sep (required)
- *   OMNICHAIN_ETH_CHAIN_DIR    — default eth-testnet
- *   SEPOLIA_OMNICHAIN_MANIFEST_OUT — output JSON path
- *   SEPOLIA_OMNICHAIN_COLLECT_ONLY=1 — manifest only, no transactions
- *   SEPOLIA_OMNICHAIN_PRODUCT_MAP — optional JSON merging Overlayer* → { vaultSuffix, decimalsKey }
- *   SEPOLIA_SIGNER_ADDR — override default deployer
+ *   OMNICHAIN_DEPLOYMENTS_DIR — path to mainnet deployments directory (required)
+ *   OMNICHAIN_ETH_CHAIN_DIR   — default eth-mainnet
+ *   OMNICHAIN_COLLECT_ONLY=1  — manifest only, no transactions
+ *   OMNICHAIN_PRODUCT_MAP     — optional JSON merging Overlayer* → { vaultSuffix, decimalsKey }
+ *   OMNICHAIN_SIGNER_ADDR     — required; must match the configured Hardhat private key
+ *   OVA_TEAM                  — required dispatcher team recipient
+ *   OVA_SAFETY_MODULE         — required dispatcher safety module recipient
+ *   OVA_BUYBACK               — required dispatcher buyback recipient
+ *   OMNICHAIN_MANIFEST_OUT    — output JSON path
  */
 
 import * as fs from "fs";
@@ -31,24 +34,28 @@ import SOverlayerWrap_ABI from "../../artifacts/contracts/overlayer/StakedOverla
 import OverlayerWrapBacking_ABI from "../../artifacts/contracts/overlayerbacking/OverlayerBacking.sol/OverlayerWrapBacking.json";
 import { getContractAddress } from "@ethersproject/address";
 import {
-  USDT_SEPOLIA_ADDRESS,
-  AUSDT_SEPOLIA_ADDRESS,
-  USDC_SEPOLIA_ADDRESS,
-  AUSDC_SEPOLIA_ADDRESS,
-  EURS_SEPOLIA_ADDRESS,
-  AEURS_SEPOLIA_ADDRESS,
-  AAVE_POOL_V3_SEPOLIA_ADDRESS
+  USDT_ADDRESS,
+  AUSDT_ADDRESS,
+  USDC_ADDRESS,
+  AUSDC_ADDRESS,
+  USDG_ADDRESS,
+  AUSDG_ADDRESS,
+  AAVE_POOL_V3_ADDRESS
 } from "../addresses";
-import { SEPOLIA_TOKEN_DECIMALS } from "../constants";
+import { ETH_MAINNET_TOKEN_DECIMALS } from "../constants";
 import { USDT_ABI } from "../abi/USDT_abi";
 
-const LOG = "[postConfigureSepoliaOftFromOmnichain]";
+const LOG = "[postConfigureMainnetOftFromOmnichain]";
 
 /** OpenZeppelin AccessControl DEFAULT_ADMIN_ROLE (bytes32(0)). */
 const DEFAULT_ADMIN_ROLE = ethers.ZeroHash;
 
-/** Stable run order: USDT (T+) before USDC (C+) so logs match typical dependency expectations. */
-const PREFERRED_OVERLAYER_ORDER = ["OverlayerTether", "OverlayerCircle"];
+/** Stable run order so logs and manifests are deterministic. */
+const PREFERRED_OVERLAYER_ORDER = [
+  "OverlayerTether",
+  "OverlayerCircle",
+  "OverlayerUSDG"
+];
 
 function sortOverlayerJsonFiles(files: string[]): string[] {
   return [...files].sort((a, b) => {
@@ -85,20 +92,21 @@ async function assertSignerIsDefaultAdminOnOverlayer(
     throw new Error(
       `${LOG} [${productLabel}] Signer ${me} is not DEFAULT_ADMIN on OverlayerWrap at ${overlayerWrapAddress}. ` +
         `The next step calls grantRole(COLLATERAL_MANAGER_ROLE), which requires DEFAULT_ADMIN (on-chain: AccessControlUnauthorizedAccount). ` +
-        `deployAllSepolia.ts has no extra step before grantRole — use the key that administers this OFT (see omnichain deploy), or set SEPOLIA_SIGNER_ADDR to that account.`
+        `Use the key that administers this OFT (see omnichain deploy), and set OMNICHAIN_SIGNER_ADDR to that account.`
     );
   }
 }
 
-// --- Shared Sepolia post-config (one OFT product) ---------------------------------------------
+// --- Shared mainnet post-config (one OFT product) ---------------------------------------------
 
-export interface SepoliaSharedDeploymentConfig {
+export interface MainnetSharedDeploymentConfig {
   signerAddr: string;
-  ovaSepoliaTeam: string;
-  ovaSepoliaReserveFund: string;
+  team: string;
+  safetyModule: string;
+  buyBack: string;
 }
 
-export interface SepoliaProductDeploymentInput {
+export interface MainnetProductDeploymentInput {
   productLabel: string;
   oftOverlayerWrapAddr: string;
   stakedOverlayerWrapAddr: string;
@@ -107,7 +115,7 @@ export interface SepoliaProductDeploymentInput {
   decimals: number;
 }
 
-export interface SepoliaProductDeploymentResult {
+export interface MainnetProductDeploymentResult {
   productLabel: string;
   oftOverlayerWrapAddr: string;
   stakedOverlayerWrapAddr: string;
@@ -115,24 +123,17 @@ export interface SepoliaProductDeploymentResult {
   overlayerWrapBackingAddress: string;
 }
 
-export const DEFAULT_SEPOLIA_SHARED: SepoliaSharedDeploymentConfig = {
-  signerAddr: "0x1b4b7eD919416550457d142E54e7f98583E4B018",
-  ovaSepoliaTeam: "0x4b05A19E5b50498fe94d9F7A7c8362f5ACc457b1",
-  ovaSepoliaReserveFund: "0x7bE51020c8c6a9153B3C8688410d201bbbb27fB9"
-};
-
 function ts(): string {
   return new Date().toISOString();
 }
 
 /**
  * Dispatcher, OverlayerWrapBacking, roles, and seed mint/stake for one OFT-backed product.
- * Mirrors the active path in scripts/utils/deployAllSepolia.ts without modifying that file.
  */
-export async function runSepoliaOftProductPostConfigure(
-  product: SepoliaProductDeploymentInput,
-  shared: SepoliaSharedDeploymentConfig = DEFAULT_SEPOLIA_SHARED
-): Promise<SepoliaProductDeploymentResult> {
+export async function runMainnetOftProductPostConfigure(
+  product: MainnetProductDeploymentInput,
+  shared: MainnetSharedDeploymentConfig
+): Promise<MainnetProductDeploymentResult> {
   const admin = await ethers.getSigner(shared.signerAddr);
   console.log(
     `${LOG} [${ts()}] [${product.productLabel}] Signer:`,
@@ -162,9 +163,9 @@ export async function runSepoliaOftProductPostConfigure(
 
   const dispatcherAddress = await deploy_Dispatcher(
     admin.address,
-    shared.ovaSepoliaTeam,
-    shared.ovaSepoliaReserveFund,
-    shared.ovaSepoliaReserveFund,
+    shared.team,
+    shared.safetyModule,
+    shared.buyBack,
     overlayerWrapAddr,
     admin
   );
@@ -194,7 +195,7 @@ export async function runSepoliaOftProductPostConfigure(
     dispatcherAddress,
     overlayerWrapAddr,
     sOverlayerWrapAddr,
-    AAVE_POOL_V3_SEPOLIA_ADDRESS,
+    AAVE_POOL_V3_ADDRESS,
     product.collateralAddress,
     product.aCollateralAddress,
     admin
@@ -285,29 +286,30 @@ export async function runSepoliaOftProductPostConfigure(
 
 type ProductMapEntry = {
   vaultSuffix: string;
-  decimalsKey: keyof typeof SEPOLIA_TOKEN_DECIMALS;
+  decimalsKey: string;
 };
 
-const DEFAULT_OVERLAYER_TO_PRODUCT: Record<string, ProductMapEntry> = {
+const DEFAULT_MAINNET_OVERLAYER_TO_PRODUCT: Record<string, ProductMapEntry> = {
   OverlayerTether: { vaultSuffix: "T+", decimalsKey: "USDT" },
-  OverlayerCircle: { vaultSuffix: "C+", decimalsKey: "USDC" }
+  OverlayerCircle: { vaultSuffix: "C+", decimalsKey: "USDC" },
+  OverlayerUSDG: { vaultSuffix: "G+", decimalsKey: "USDG" }
 };
 
-const COLLATERAL_BY_DECIMALS_KEY: Record<
-  keyof typeof SEPOLIA_TOKEN_DECIMALS,
+const MAINNET_COLLATERAL_BY_DECIMALS_KEY: Record<
+  string,
   { collateral: string; aCollateral: string }
 > = {
   USDT: {
-    collateral: USDT_SEPOLIA_ADDRESS,
-    aCollateral: AUSDT_SEPOLIA_ADDRESS
+    collateral: USDT_ADDRESS,
+    aCollateral: AUSDT_ADDRESS
   },
   USDC: {
-    collateral: USDC_SEPOLIA_ADDRESS,
-    aCollateral: AUSDC_SEPOLIA_ADDRESS
+    collateral: USDC_ADDRESS,
+    aCollateral: AUSDC_ADDRESS
   },
-  EURS: {
-    collateral: EURS_SEPOLIA_ADDRESS,
-    aCollateral: AEURS_SEPOLIA_ADDRESS
+  USDG: {
+    collateral: USDG_ADDRESS,
+    aCollateral: AUSDG_ADDRESS
   }
 };
 
@@ -372,8 +374,8 @@ function collectOmnichainChains(deploymentsRoot: string) {
 }
 
 function loadProductMap(): Record<string, ProductMapEntry> {
-  const base = { ...DEFAULT_OVERLAYER_TO_PRODUCT };
-  const extraPath = process.env.SEPOLIA_OMNICHAIN_PRODUCT_MAP;
+  const base = { ...DEFAULT_MAINNET_OVERLAYER_TO_PRODUCT };
+  const extraPath = process.env.OMNICHAIN_PRODUCT_MAP;
   if (extraPath && fs.existsSync(extraPath)) {
     const extra = JSON.parse(fs.readFileSync(extraPath, "utf8")) as Record<
       string,
@@ -384,17 +386,20 @@ function loadProductMap(): Record<string, ProductMapEntry> {
   return base;
 }
 
-function resolveSharedConfig(): SepoliaSharedDeploymentConfig {
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${LOG} ${name} is required for mainnet post-config`);
+  }
+  return value;
+}
+
+function resolveSharedConfig(): MainnetSharedDeploymentConfig {
   return {
-    signerAddr:
-      process.env.OMNICHAIN_SIGNER_ADDR ||
-      process.env.SEPOLIA_SIGNER_ADDR ||
-      DEFAULT_SEPOLIA_SHARED.signerAddr,
-    ovaSepoliaTeam:
-      process.env.OVA_TEAM || DEFAULT_SEPOLIA_SHARED.ovaSepoliaTeam,
-    ovaSepoliaReserveFund:
-      process.env.OVA_RESERVE_FUND ||
-      DEFAULT_SEPOLIA_SHARED.ovaSepoliaReserveFund
+    signerAddr: requireEnv("OMNICHAIN_SIGNER_ADDR"),
+    team: requireEnv("OVA_TEAM"),
+    safetyModule: requireEnv("OVA_SAFETY_MODULE"),
+    buyBack: requireEnv("OVA_BUYBACK")
   };
 }
 
@@ -414,18 +419,22 @@ async function main() {
   const ethChainDir =
     (args["eth-chain-dir"] as string) ||
     process.env.OMNICHAIN_ETH_CHAIN_DIR ||
-    "eth-testnet";
+    "eth-mainnet";
 
   const outputPath = path.resolve(
     (args.output as string) ||
-      process.env.SEPOLIA_OMNICHAIN_MANIFEST_OUT ||
-      path.join(process.cwd(), "sepolia-omnichain-manifest.json")
+      process.env.OMNICHAIN_MANIFEST_OUT ||
+      path.join(
+        process.cwd(),
+        "mainnet-deployment",
+        "mainnet-omnichain-manifest.json"
+      )
   );
 
   const collectOnly =
     args["collect-only"] === true ||
-    process.env.SEPOLIA_OMNICHAIN_COLLECT_ONLY === "1" ||
-    process.env.SEPOLIA_OMNICHAIN_COLLECT_ONLY === "true";
+    process.env.OMNICHAIN_COLLECT_ONLY === "1" ||
+    process.env.OMNICHAIN_COLLECT_ONLY === "true";
 
   const productMap = loadProductMap();
   const shared = resolveSharedConfig();
@@ -484,7 +493,7 @@ async function main() {
       const meta = productMap[base];
       if (!meta) {
         console.warn(
-          `${LOG} Skip ${file}: no product map entry (DEFAULT_OVERLAYER_TO_PRODUCT or SEPOLIA_OMNICHAIN_PRODUCT_MAP)`
+          `${LOG} Skip ${file}: no product map entry (DEFAULT_MAINNET_OVERLAYER_TO_PRODUCT or OMNICHAIN_PRODUCT_MAP)`
         );
         continue;
       }
@@ -496,15 +505,15 @@ async function main() {
         throw new Error(`Expected vault deployment at ${vaultPath}`);
       }
 
-      const coll = COLLATERAL_BY_DECIMALS_KEY[meta.decimalsKey];
-      const decimals = SEPOLIA_TOKEN_DECIMALS[meta.decimalsKey];
+      const coll = MAINNET_COLLATERAL_BY_DECIMALS_KEY[meta.decimalsKey];
+      const decimals = ETH_MAINNET_TOKEN_DECIMALS[meta.decimalsKey];
       if (!coll || decimals == null) {
         throw new Error(
-          `${LOG} Missing Sepolia collateral/decimals config for ${base} (${meta.decimalsKey})`
+          `${LOG} Missing mainnet collateral/decimals config for ${base} (${meta.decimalsKey})`
         );
       }
 
-      const result = await runSepoliaOftProductPostConfigure(
+      const result = await runMainnetOftProductPostConfigure(
         {
           productLabel: base,
           oftOverlayerWrapAddr: readJsonAddress(oftJsonPath),
@@ -527,7 +536,7 @@ async function main() {
 
   const manifest = {
     generatedAt: new Date().toISOString(),
-    omnichainDeploymentsRoot: deploymentsRoot,
+    network: "mainnet",
     ethChainFolder: ethChainDir,
     chains: Object.fromEntries(
       Object.entries(chains).map(([folder, data]) => {
@@ -539,13 +548,14 @@ async function main() {
           folder === ethChainDir &&
           Object.keys(contractsRepoDeployments).length > 0
         ) {
-          entry.contractsRepoSepolia = contractsRepoDeployments;
+          entry.contractsRepo = contractsRepoDeployments;
         }
         return [folder, entry];
       })
     )
   };
 
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, JSON.stringify(manifest, null, 2), "utf8");
   console.log(`${LOG} Wrote manifest: ${outputPath}`);
 }

@@ -1,14 +1,30 @@
 import * as dotenv from "dotenv";
-import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
-import "@nomicfoundation/hardhat-ethers";
-import "@nomicfoundation/hardhat-chai-matchers";
-import "@nomicfoundation/hardhat-toolbox/network-helpers";
+import type { HardhatUserConfig } from "hardhat/config";
 import { ETH_RPC, GOERLI_RPC, OVA_BETA_RPC, PRIVATE_ARB_SEPOLIA_RPC_PREFIX, PRIVATE_ETH_RPC_PREFIX, PRIVATE_ETH_SEPOLIA_RPC_PREFIX } from './rpc';
-import 'solidity-docgen';
 import { EndpointId } from '@layerzerolabs/lz-definitions'
 
 dotenv.config({ path: process.cwd() + "/process.env"});
+
+type HardhatEthersUtils = {
+  formatTransactionResponse: (value: any) => unknown;
+};
+
+const hardhatEthersUtils = require("@nomicfoundation/hardhat-ethers/internal/ethers-utils") as HardhatEthersUtils;
+const originalFormatTransactionResponse = hardhatEthersUtils.formatTransactionResponse;
+
+hardhatEthersUtils.formatTransactionResponse = (value: any) => {
+  if (value?.to === "") {
+    value = { ...value, to: null };
+  }
+
+  return originalFormatTransactionResponse(value);
+};
+
+require("@nomicfoundation/hardhat-toolbox");
+require("@nomicfoundation/hardhat-ethers");
+require("@nomicfoundation/hardhat-chai-matchers");
+require("@nomicfoundation/hardhat-toolbox/network-helpers");
+require("solidity-docgen");
 
 const testAccounts = [
   {
@@ -131,7 +147,7 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: true,
     },
     eth: {
-      url: ETH_RPC,
+      url: "https://eth-mainnet.g.alchemy.com/v2/vLSQVgCsYEwDkTUBOtAVsWDNGC_G7ZXW",
       chainId: 0x1,
       accounts: [process.env.OVA_MAINNET_ROVA_DEPLOYER_KEY!],
       gas: "auto",

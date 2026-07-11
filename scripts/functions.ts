@@ -731,9 +731,10 @@ export async function OverlayerWrap_proposeNewCollateralSpender(
     "[OverlayerWrap_proposeNewCollateralSpender] Proposing new collateral spender:",
     spender
   );
-  await (contract.connect(admin) as Contract).proposeNewCollateralSpender(
+  const tx = await (contract.connect(admin) as Contract).proposeNewCollateralSpender(
     spender
   );
+  await tx.wait();
   console.log("[OverlayerWrap_proposeNewCollateralSpender] Spender proposed");
 }
 
