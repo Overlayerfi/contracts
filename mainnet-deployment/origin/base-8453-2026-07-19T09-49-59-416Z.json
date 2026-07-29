@@ -1,0 +1,85 @@
+{
+  "deployedAt": "2026-07-19T09:49:59.416Z",
+  "network": {
+    "name": "base",
+    "chainId": "8453"
+  },
+  "deployer": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
+  "constructorConfig": {
+    "shrimp": {
+      "initialOwner": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
+      "baseURI": "https://app.overlayer.fi/origin/shrimp.json",
+      "royalty": {
+        "receiver": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+        "feeNumerator": "0"
+      },
+      "maxSupply": "20000",
+      "bonus": {
+        "numerator": "1",
+        "denominator": "100"
+      },
+      "mintStartTime": "1784552400"
+    },
+    "dolphin": {
+      "initialOwner": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
+      "baseURI": "https://app.overlayer.fi/origin/dolphin.json",
+      "royalty": {
+        "receiver": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+        "feeNumerator": "0"
+      },
+      "maxSupply": "1500",
+      "bonus": {
+        "numerator": "5",
+        "denominator": "100"
+      },
+      "mintStartTime": "1784552400",
+      "feeCollector": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+      "pricing": {
+        "initialMintPriceWei": "13000000000000000",
+        "initialMintPriceEth": "0.013",
+        "priceIncrementWei": "2600000000000000",
+        "priceIncrementEth": "0.0026",
+        "priceUnitDelta": "300"
+      }
+    },
+    "whale": {
+      "initialOwner": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
+      "baseURI": "https://app.overlayer.fi/origin/whale.json",
+      "royalty": {
+        "receiver": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+        "feeNumerator": "0"
+      },
+      "maxSupply": "500",
+      "bonus": {
+        "numerator": "10",
+        "denominator": "100"
+      },
+      "mintStartTime": "1784552400",
+      "feeCollector": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+      "pricing": {
+        "initialMintPriceWei": "130000000000000000",
+        "initialMintPriceEth": "0.13",
+        "priceIncrementWei": "2600000000000000",
+        "priceIncrementEth": "0.0026",
+        "priceUnitDelta": "100"
+      }
+    }
+  },
+  "contracts": [
+    {
+      "contractName": "OverlayerOriginShrimp",
+      "address": "0x03F82aeA7291c9919e911c194889fb65b4C75fF4",
+      "transactionHash": "0xf81afc1dfdcbad4424617754d494befa46164312f775b5f8cede6d17699b7820"
+    },
+    {
+      "contractName": "OverlayerOriginDolphin",
+      "address": "0x9C79D81D10633b3064c7195Da383c011Efc62272",
+      "transactionHash": "0x7b2672aa84efd7b79afc4473a0c8383c959c6127b3e92104df82401d75b7ce2e"
+    },
+    {
+      "contractName": "OverlayerOriginWhale",
+      "address": "0x2380B05E26E67A9ECb2B51DF9881556C67D62Edd",
+      "transactionHash": "0xfec8949225c6468a7d1a349e6e9cf6985c161f665165f1b77ae049262fcc0197"
+    }
+  ]
+}
