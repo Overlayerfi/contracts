@@ -1,6 +1,6 @@
 import * as dotenv from "dotenv";
 import type { HardhatUserConfig } from "hardhat/config";
-import { ETH_RPC, GOERLI_RPC, OVA_BETA_RPC, PRIVATE_ARB_SEPOLIA_RPC_PREFIX, PRIVATE_ETH_RPC_PREFIX, PRIVATE_ETH_SEPOLIA_RPC_PREFIX } from './rpc';
+import { OVA_BETA_RPC, PRIVATE_ARB_SEPOLIA_RPC_PREFIX, PRIVATE_BASE_RPC_PREFIX, PRIVATE_BASE_SEPOLIA_RPC_PREFIX, PRIVATE_ETH_RPC_PREFIX, PRIVATE_ETH_SEPOLIA_RPC_PREFIX } from './rpc';
 import { EndpointId } from '@layerzerolabs/lz-definitions'
 
 dotenv.config({ path: process.cwd() + "/process.env"});
@@ -147,9 +147,17 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: true,
     },
     eth: {
-      url: "https://eth-mainnet.g.alchemy.com/v2/vLSQVgCsYEwDkTUBOtAVsWDNGC_G7ZXW",
+      url: PRIVATE_ETH_RPC_PREFIX + process.env.ALCHEMY_KEY!,
       chainId: 0x1,
-      accounts: [process.env.OVA_MAINNET_ROVA_DEPLOYER_KEY!],
+      accounts: [process.env.OVERLAYER_HEAD_OP_KEY!],
+      gas: "auto",
+      gasPrice: "auto",
+      allowUnlimitedContractSize: true,
+    },
+    base: {
+      url: PRIVATE_BASE_RPC_PREFIX + process.env.ALCHEMY_KEY!,
+      chainId: 0x2105,
+      accounts: [process.env.OVERLAYER_HEAD_OP_KEY!],
       gas: "auto",
       gasPrice: "auto",
       allowUnlimitedContractSize: true,
@@ -158,6 +166,15 @@ const config: HardhatUserConfig = {
       eid: EndpointId.SEPOLIA_V2_TESTNET,
       url: PRIVATE_ETH_SEPOLIA_RPC_PREFIX + process.env.ALCHEMY_KEY!,
       chainId: 0xAA36A7,
+      accounts: [process.env.OVA_SEPOLIA_DEPLOYER_KEY!, process.env.OVA_SEPOLIA_TREASURY_KEY!],
+      gasPrice: "auto",
+      gas: "auto",
+      allowUnlimitedContractSize: true,
+    },
+    base_sepolia: {
+      eid: EndpointId.BASESEP_V2_TESTNET,
+      url: PRIVATE_BASE_SEPOLIA_RPC_PREFIX + process.env.ALCHEMY_KEY!,
+      chainId: 0x14a34,
       accounts: [process.env.OVA_SEPOLIA_DEPLOYER_KEY!, process.env.OVA_SEPOLIA_TREASURY_KEY!],
       gasPrice: "auto",
       gas: "auto",
