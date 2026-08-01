@@ -1,6 +1,6 @@
 import * as dotenv from "dotenv";
 import type { HardhatUserConfig } from "hardhat/config";
-import { OVA_BETA_RPC, PRIVATE_ARB_SEPOLIA_RPC_PREFIX, PRIVATE_BASE_RPC_PREFIX, PRIVATE_BASE_SEPOLIA_RPC_PREFIX, PRIVATE_ETH_RPC_PREFIX, PRIVATE_ETH_SEPOLIA_RPC_PREFIX } from './rpc';
+import { OVA_BETA_RPC, PRIVATE_ARB_SEPOLIA_RPC_PREFIX, PRIVATE_BASE_RPC_PREFIX, PRIVATE_BASE_SEPOLIA_RPC_PREFIX, PRIVATE_ETH_RPC_PREFIX, PRIVATE_ETH_SEPOLIA_RPC_PREFIX, PRIVATE_ROBINHOOD_RPC_PREFIX, ROBINHOOD_PUBLIC_RPC } from './rpc';
 import { EndpointId } from '@layerzerolabs/lz-definitions'
 
 dotenv.config({ path: process.cwd() + "/process.env"});
@@ -157,6 +157,16 @@ const config: HardhatUserConfig = {
     base: {
       url: PRIVATE_BASE_RPC_PREFIX + process.env.ALCHEMY_KEY!,
       chainId: 0x2105,
+      accounts: [process.env.OVERLAYER_HEAD_OP_KEY!],
+      gas: "auto",
+      gasPrice: "auto",
+      allowUnlimitedContractSize: true,
+    },
+    robinhood: {
+      url: process.env.ALCHEMY_KEY
+        ? PRIVATE_ROBINHOOD_RPC_PREFIX + process.env.ALCHEMY_KEY
+        : ROBINHOOD_PUBLIC_RPC,
+      chainId: 0x1237, // 4663
       accounts: [process.env.OVERLAYER_HEAD_OP_KEY!],
       gas: "auto",
       gasPrice: "auto",
