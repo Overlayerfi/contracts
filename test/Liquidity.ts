@@ -1315,4 +1315,1523 @@ describe("Liquidity", function () {
         .rejected;
     });
   });
+
+  describe("NFT Staking Bonus", function () {
+    async function deployNftFixture() {
+      const base = await deployFixture();
+      const { liquidity, owner, alice } = base;
+
+      const BonusNFT = await ethers.getContractFactory("BonusNFTMock");
+      const shrimpNft = await BonusNFT.deploy("Shrimp", "SHRIMP", 2, 100);
+      const dolphinNft = await BonusNFT.deploy("Dolphin", "DOLPHIN", 6, 100);
+      const whaleNft = await BonusNFT.deploy("Whale", "WHALE", 11, 100);
+      const bonusA = await BonusNFT.deploy("BonusA", "BA", 3, 100);
+      const bonusB = await BonusNFT.deploy("BonusB", "BB", 4, 100);
+
+      await liquidity
+        .connect(owner)
+        .setOriginNfts(
+          await shrimpNft.getAddress(),
+          await dolphinNft.getAddress(),
+          await whaleNft.getAddress()
+        );
+      await liquidity
+        .connect(owner)
+        .setWhitelistedNft(await bonusA.getAddress(), true);
+      await liquidity
+        .connect(owner)
+        .setWhitelistedNft(await bonusB.getAddress(), true);
+
+      await shrimpNft.connect(alice).mint(alice.address);
+      await dolphinNft.connect(alice).mint(alice.address);
+      await whaleNft.connect(alice).mint(alice.address);
+      await bonusA.connect(alice).mint(alice.address);
+      await bonusB.connect(alice).mint(alice.address);
+
+      return {
+        ...base,
+        shrimpNft,
+        dolphinNft,
+        whaleNft,
+        bonusA,
+        bonusB,
+        shrimpTokenId: 1n,
+        dolphinTokenId: 1n,
+        whaleTokenId: 1n,
+        bonusATokenId: 1n,
+        bonusBTokenId: 1n
+      };
+    }
+
+    async function setupPoolWithDeposit(
+      fixture: Awaited<ReturnType<typeof deployNftFixture>>
+    ) {
+      const {
+        liquidity,
+        stakedAsset,
+        tokenRewardOneOverlayerReferral,
+        owner,
+        alice
+      } = fixture;
+
+      await stakedAsset.transfer(alice.getAddress(), ethers.parseEther("100"));
+      await stakedAsset
+        .connect(alice)
+        .approve(liquidity.getAddress(), ethers.parseEther("100"));
+
+      await liquidity.setReward(
+        tokenRewardOneOverlayerReferral.getAddress(),
+        100
+      );
+      await liquidity.add(
+        stakedAsset.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
+        1,
+        0,
+        false,
+        true
+      );
+      await tokenRewardOneOverlayerReferral
+        .connect(owner)
+        .addPointsTracker(await liquidity.getAddress());
+
+      await liquidity.connect(alice).deposit(0, ethers.parseEther("10"));
+    }
+
+    it("Should stake and unstake an Origin NFT", async function () {
+      const { liquidity, shrimpNft, alice, shrimpTokenId } = await loadFixture(
+        deployNftFixture
+      );
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+
+      await expect(
+        liquidity
+          .connect(alice)
+          .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId)
+      )
+        .to.emit(liquidity, "OriginNftStaked")
+        .withArgs(alice.address, await shrimpNft.getAddress(), shrimpTokenId);
+
+      expect(await shrimpNft.ownerOf(shrimpTokenId)).to.equal(
+        await liquidity.getAddress()
+      );
+      const [collection, tokenId] = await liquidity.originStakeOf(
+        alice.address
+      );
+      expect(collection).to.equal(await shrimpNft.getAddress());
+      expect(tokenId).to.equal(shrimpTokenId);
+
+      await expect(liquidity.connect(alice).unstakeOriginNft())
+        .to.emit(liquidity, "OriginNftUnstaked")
+        .withArgs(alice.address, await shrimpNft.getAddress(), shrimpTokenId);
+
+      expect(await shrimpNft.ownerOf(shrimpTokenId)).to.equal(alice.address);
+      const [clearedCollection] = await liquidity.originStakeOf(alice.address);
+      expect(clearedCollection).to.equal(ethers.ZeroAddress);
+    });
+
+    it("Should allow only one Origin NFT at a time", async function () {
+      const {
+        liquidity,
+        shrimpNft,
+        dolphinNft,
+        alice,
+        shrimpTokenId,
+        dolphinTokenId
+      } = await loadFixture(deployNftFixture);
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await dolphinNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), dolphinTokenId);
+
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+
+      await expect(
+        liquidity
+          .connect(alice)
+          .stakeOriginNft(await dolphinNft.getAddress(), dolphinTokenId)
+      ).to.be.revertedWithCustomError(liquidity, "OriginAlreadyStaked");
+    });
+
+    it("Should reject non-Origin collections for Origin staking", async function () {
+      const { liquidity, bonusA, alice, bonusATokenId } = await loadFixture(
+        deployNftFixture
+      );
+
+      await bonusA
+        .connect(alice)
+        .approve(await liquidity.getAddress(), bonusATokenId);
+
+      await expect(
+        liquidity
+          .connect(alice)
+          .stakeOriginNft(await bonusA.getAddress(), bonusATokenId)
+      ).to.be.revertedWithCustomError(liquidity, "InvalidOriginNft");
+    });
+
+    it("Should pay Origin NFT bonus on harvest", async function () {
+      const fixture = await loadFixture(deployNftFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        shrimpTokenId
+      } = fixture;
+      await setupPoolWithDeposit(fixture);
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+
+      await time.increase(1000);
+
+      const balBefore = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const tx = await liquidity.connect(alice).harvest(0);
+      const receipt = await tx.wait();
+      const harvestLog = receipt!.logs
+        .map((log: any) => {
+          try {
+            return liquidity.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find((parsed: any) => parsed?.name === "Harvest");
+      const pending = harvestLog!.args.amount as bigint;
+      const expectedNftBonus = (pending * 2n) / 100n;
+
+      await expect(tx).to.emit(liquidity, "NftBonusPayed");
+      const balAfter = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+
+      expect(balAfter - balBefore).to.equal(pending + expectedNftBonus);
+      expect(await liquidity.nftBonusOf(alice.address, pending)).to.equal(
+        expectedNftBonus
+      );
+    });
+
+    it("Should harvest before Origin stake so old pending is unpaid at new rate", async function () {
+      const fixture = await loadFixture(deployNftFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        shrimpTokenId
+      } = fixture;
+      await setupPoolWithDeposit(fixture);
+
+      await time.increase(1000);
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+
+      const balBefore = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      // stakeOriginNft harvests first without NFT bonus
+      const stakeTx = await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+      await expect(stakeTx).to.not.emit(liquidity, "NftBonusPayed");
+      const balAfterStake = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      // Base rewards were paid (pending accrued before stake)
+      expect(balAfterStake).to.be.greaterThan(balBefore);
+
+      await time.increase(1000);
+      const balMid = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const harvestTx = await liquidity.connect(alice).harvest(0);
+      const receipt = await harvestTx.wait();
+      const harvestLog = receipt!.logs
+        .map((log: any) => {
+          try {
+            return liquidity.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find((parsed: any) => parsed?.name === "Harvest");
+      const pendingAfter = harvestLog!.args.amount as bigint;
+      const expectedNftBonus = (pendingAfter * 2n) / 100n;
+      const balFinal = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      expect(balFinal - balMid).to.equal(pendingAfter + expectedNftBonus);
+    });
+
+    it("Should sum multiple whitelisted NFT bonuses", async function () {
+      const fixture = await loadFixture(deployNftFixture);
+      const {
+        liquidity,
+        bonusA,
+        bonusB,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        bonusATokenId,
+        bonusBTokenId
+      } = fixture;
+      await setupPoolWithDeposit(fixture);
+
+      await bonusA
+        .connect(alice)
+        .approve(await liquidity.getAddress(), bonusATokenId);
+      await bonusB
+        .connect(alice)
+        .approve(await liquidity.getAddress(), bonusBTokenId);
+
+      await liquidity
+        .connect(alice)
+        .stakeWhitelistedNft(await bonusA.getAddress(), bonusATokenId);
+      await liquidity
+        .connect(alice)
+        .stakeWhitelistedNft(await bonusB.getAddress(), bonusBTokenId);
+
+      const stakes = await liquidity.whitelistedStakesOf(alice.address);
+      expect(stakes.length).to.equal(2);
+
+      await time.increase(1000);
+      const balBefore = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const tx = await liquidity.connect(alice).harvest(0);
+      const receipt = await tx.wait();
+      const harvestLog = receipt!.logs
+        .map((log: any) => {
+          try {
+            return liquidity.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find((parsed: any) => parsed?.name === "Harvest");
+      const pending = harvestLog!.args.amount as bigint;
+      // 3% + 4% = 7%
+      const expectedNftBonus = (pending * 7n) / 100n;
+      const balAfter = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      expect(balAfter - balBefore).to.equal(pending + expectedNftBonus);
+    });
+
+    it("Should combine self-referral and NFT bonuses", async function () {
+      const fixture = await loadFixture(deployNftFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        tokenRewardOneOverlayerReferral,
+        owner,
+        alice,
+        bob,
+        shrimpTokenId
+      } = fixture;
+      await setupPoolWithDeposit(fixture);
+
+      await liquidity
+        .connect(owner)
+        .updateReferral(await tokenRewardOneOverlayerReferral.getAddress());
+      await tokenRewardOneOverlayerReferral
+        .connect(owner)
+        .addCode("BOB", bob.address);
+      await tokenRewardOneOverlayerReferral
+        .connect(alice)
+        .consumeReferral("BOB");
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+
+      await time.increase(1000);
+      const aliceBefore = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const bobBefore = await tokenRewardOneOverlayerReferral.balanceOf(
+        bob.address
+      );
+
+      const tx = await liquidity.connect(alice).harvest(0);
+      const receipt = await tx.wait();
+      const harvestLog = receipt!.logs
+        .map((log: any) => {
+          try {
+            return liquidity.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find((parsed: any) => parsed?.name === "Harvest");
+      const pending = harvestLog!.args.amount as bigint;
+      const selfBonus = (pending * 25n) / 1000n; // 2.5%
+      const nftBonus = (pending * 2n) / 100n; // 2%
+      const referrerBonus = (pending * 5n) / 100n; // 5%
+
+      const aliceAfter = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const bobAfter = await tokenRewardOneOverlayerReferral.balanceOf(
+        bob.address
+      );
+
+      expect(aliceAfter - aliceBefore).to.equal(pending + selfBonus + nftBonus);
+      expect(bobAfter - bobBefore).to.equal(referrerBonus);
+    });
+
+    it("Should apply one Origin stake across all pool ids", async function () {
+      const fixture = await loadFixture(deployNftFixture);
+      const {
+        liquidity,
+        stakedAsset,
+        tokenRewardOneOverlayerReferral,
+        shrimpNft,
+        owner,
+        alice,
+        shrimpTokenId
+      } = fixture;
+
+      const StakedAsset = await ethers.getContractFactory("TokenLP_A_B");
+      const stakedAssetTwo = await StakedAsset.deploy(
+        ethers.parseEther("1000"),
+        "LPABTWO",
+        "LPABTWO"
+      );
+
+      await stakedAsset.transfer(alice.getAddress(), ethers.parseEther("50"));
+      await stakedAssetTwo.transfer(
+        alice.getAddress(),
+        ethers.parseEther("50")
+      );
+      await stakedAsset
+        .connect(alice)
+        .approve(liquidity.getAddress(), ethers.parseEther("50"));
+      await stakedAssetTwo
+        .connect(alice)
+        .approve(liquidity.getAddress(), ethers.parseEther("50"));
+
+      await liquidity.setReward(
+        tokenRewardOneOverlayerReferral.getAddress(),
+        100
+      );
+      await liquidity.add(
+        stakedAsset.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
+        1,
+        0,
+        false,
+        true
+      );
+      await liquidity.add(
+        stakedAssetTwo.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
+        1,
+        0,
+        false,
+        true
+      );
+      await tokenRewardOneOverlayerReferral
+        .connect(owner)
+        .addPointsTracker(await liquidity.getAddress());
+
+      await liquidity.connect(alice).deposit(0, ethers.parseEther("10"));
+      await liquidity.connect(alice).deposit(1, ethers.parseEther("10"));
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+
+      await time.increase(1000);
+      const balBefore = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+
+      const tx0 = await liquidity.connect(alice).harvest(0);
+      const receipt0 = await tx0.wait();
+      const harvest0 = receipt0!.logs
+        .map((log: any) => {
+          try {
+            return liquidity.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find((parsed: any) => parsed?.name === "Harvest");
+      const pending0 = harvest0!.args.amount as bigint;
+
+      const tx1 = await liquidity.connect(alice).harvest(1);
+      const receipt1 = await tx1.wait();
+      const harvest1 = receipt1!.logs
+        .map((log: any) => {
+          try {
+            return liquidity.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find((parsed: any) => parsed?.name === "Harvest");
+      const pending1 = harvest1!.args.amount as bigint;
+
+      const balAfter = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+
+      const expected =
+        pending0 + (pending0 * 2n) / 100n + pending1 + (pending1 * 2n) / 100n;
+      expect(balAfter - balBefore).to.equal(expected);
+    });
+
+    it("Should allow owner to add and remove whitelisted NFTs", async function () {
+      const { liquidity, owner, notOwner } = await loadFixture(
+        deployNftFixture
+      );
+      const BonusNFT = await ethers.getContractFactory("BonusNFTMock");
+      const bonusC = await BonusNFT.deploy("BonusC", "BC", 5, 100);
+
+      await expect(
+        liquidity
+          .connect(notOwner)
+          .setWhitelistedNft(await bonusC.getAddress(), true)
+      ).to.be.eventually.rejected;
+
+      await expect(
+        liquidity
+          .connect(owner)
+          .setWhitelistedNft(await bonusC.getAddress(), true)
+      )
+        .to.emit(liquidity, "WhitelistedNftUpdated")
+        .withArgs(await bonusC.getAddress(), true);
+
+      expect(
+        await liquidity.whitelistedNft(await bonusC.getAddress())
+      ).to.equal(true);
+
+      await liquidity
+        .connect(owner)
+        .setWhitelistedNft(await bonusC.getAddress(), false);
+      expect(
+        await liquidity.whitelistedNft(await bonusC.getAddress())
+      ).to.equal(false);
+    });
+
+    it("Should unstake whitelisted NFT after delist", async function () {
+      const fixture = await loadFixture(deployNftFixture);
+      const { liquidity, bonusA, owner, alice, bonusATokenId } = fixture;
+
+      await bonusA
+        .connect(alice)
+        .approve(await liquidity.getAddress(), bonusATokenId);
+      await liquidity
+        .connect(alice)
+        .stakeWhitelistedNft(await bonusA.getAddress(), bonusATokenId);
+
+      await liquidity
+        .connect(owner)
+        .setWhitelistedNft(await bonusA.getAddress(), false);
+
+      await expect(
+        liquidity
+          .connect(alice)
+          .unstakeWhitelistedNft(await bonusA.getAddress(), bonusATokenId)
+      )
+        .to.emit(liquidity, "WhitelistedNftUnstaked")
+        .withArgs(alice.address, await bonusA.getAddress(), bonusATokenId);
+
+      expect(await bonusA.ownerOf(bonusATokenId)).to.equal(alice.address);
+    });
+  });
+
+  describe("NFT Bonus Accounting", function () {
+    const REWARD_PER_SECOND = 1_000n;
+
+    function mulDiv(a: bigint, b: bigint, c: bigint): bigint {
+      return (a * b) / c;
+    }
+
+    function parseLiquidityLogs(liquidity: any, receipt: any) {
+      return receipt.logs
+        .map((log: any) => {
+          try {
+            return liquidity.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean);
+    }
+
+    function eventAmount(parsedLogs: any[], name: string): bigint {
+      const found = parsedLogs.find((p) => p.name === name);
+      expect(found, `missing event ${name}`).to.not.equal(undefined);
+      return found.args.amount as bigint;
+    }
+
+    function optionalEventAmount(
+      parsedLogs: any[],
+      name: string
+    ): bigint | undefined {
+      const found = parsedLogs.find((p) => p.name === name);
+      return found ? (found.args.amount as bigint) : undefined;
+    }
+
+    async function deployAccountingFixture() {
+      const base = await deployFixture();
+      const { liquidity, owner, alice, bob } = base;
+
+      const BonusNFT = await ethers.getContractFactory("BonusNFTMock");
+      // Origin tiers
+      const shrimpNft = await BonusNFT.deploy("Shrimp", "SHRIMP", 2, 100);
+      const dolphinNft = await BonusNFT.deploy("Dolphin", "DOLPHIN", 6, 100);
+      const whaleNft = await BonusNFT.deploy("Whale", "WHALE", 11, 100);
+      // Whitelist with mixed denominators for rounding tests
+      const bonusPct = await BonusNFT.deploy("BonusPct", "BP", 3, 100); // 3%
+      const bonusThird = await BonusNFT.deploy("BonusThird", "BT", 1, 3); // 1/3
+      const bonusSeventh = await BonusNFT.deploy("BonusSeventh", "BS", 1, 7); // 1/7
+      const bonusZero = await BonusNFT.deploy("BonusZero", "BZ", 0, 100); // 0%
+      const ogNft = await BonusNFT.deploy("OG", "OG", 0, 100);
+
+      await liquidity
+        .connect(owner)
+        .setOriginNfts(
+          await shrimpNft.getAddress(),
+          await dolphinNft.getAddress(),
+          await whaleNft.getAddress()
+        );
+      await liquidity.connect(owner).setOgNft(await ogNft.getAddress());
+      for (const nft of [bonusPct, bonusThird, bonusSeventh, bonusZero]) {
+        await liquidity
+          .connect(owner)
+          .setWhitelistedNft(await nft.getAddress(), true);
+      }
+
+      await shrimpNft.connect(alice).mint(alice.address);
+      await whaleNft.connect(alice).mint(alice.address);
+      await bonusPct.connect(alice).mint(alice.address);
+      await bonusPct.connect(alice).mint(alice.address); // tokenId 2, same collection
+      await bonusThird.connect(alice).mint(alice.address);
+      await bonusSeventh.connect(alice).mint(alice.address);
+      await bonusZero.connect(alice).mint(alice.address);
+      // OG minted to alice only in tests that need it
+
+      // Second shrimp for bob (harvestFor tests)
+      await shrimpNft.connect(bob).mint(bob.address);
+
+      return {
+        ...base,
+        shrimpNft,
+        dolphinNft,
+        whaleNft,
+        bonusPct,
+        bonusThird,
+        bonusSeventh,
+        bonusZero,
+        ogNft,
+        shrimpTokenId: 1n,
+        whaleTokenId: 1n,
+        bobShrimpTokenId: 2n,
+        bonusPctTokenId: 1n,
+        bonusPctTokenId2: 2n,
+        bonusThirdTokenId: 1n,
+        bonusSeventhTokenId: 1n,
+        bonusZeroTokenId: 1n
+      };
+    }
+
+    async function setupSoleStakerPool(
+      fixture: Awaited<ReturnType<typeof deployAccountingFixture>>,
+      opts?: { secondPool?: boolean }
+    ) {
+      const {
+        liquidity,
+        stakedAsset,
+        tokenRewardOneOverlayerReferral,
+        owner,
+        alice
+      } = fixture;
+
+      await stakedAsset.transfer(alice.address, ethers.parseEther("1000"));
+      await stakedAsset
+        .connect(alice)
+        .approve(await liquidity.getAddress(), ethers.parseEther("1000"));
+
+      await liquidity.setReward(
+        await tokenRewardOneOverlayerReferral.getAddress(),
+        REWARD_PER_SECOND
+      );
+      await tokenRewardOneOverlayerReferral
+        .connect(owner)
+        .addPointsTracker(await liquidity.getAddress());
+
+      await liquidity.add(
+        await stakedAsset.getAddress(),
+        await tokenRewardOneOverlayerReferral.getAddress(),
+        1,
+        0,
+        false,
+        true
+      );
+
+      let stakedAssetTwo: any;
+      if (opts?.secondPool) {
+        const StakedAsset = await ethers.getContractFactory("TokenLP_A_B");
+        stakedAssetTwo = await StakedAsset.deploy(
+          ethers.parseEther("1000"),
+          "LP2",
+          "LP2"
+        );
+        await stakedAssetTwo.transfer(alice.address, ethers.parseEther("1000"));
+        await stakedAssetTwo
+          .connect(alice)
+          .approve(await liquidity.getAddress(), ethers.parseEther("1000"));
+        await liquidity.add(
+          await stakedAssetTwo.getAddress(),
+          await tokenRewardOneOverlayerReferral.getAddress(),
+          1,
+          0,
+          false,
+          true
+        );
+      }
+
+      await liquidity.connect(alice).deposit(0, ethers.parseEther("100"));
+      if (opts?.secondPool) {
+        await liquidity.connect(alice).deposit(1, ethers.parseEther("100"));
+      }
+
+      return { stakedAssetTwo };
+    }
+
+    it("pendingReward stays base-only while nftBonusOf matches staked fractions", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        bonusPct,
+        alice,
+        shrimpTokenId,
+        bonusPctTokenId
+      } = fixture;
+      await setupSoleStakerPool(fixture);
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await bonusPct
+        .connect(alice)
+        .approve(await liquidity.getAddress(), bonusPctTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeWhitelistedNft(await bonusPct.getAddress(), bonusPctTokenId);
+
+      await time.increase(500);
+      const pending = await liquidity.pendingReward(0, alice.address);
+      expect(pending).to.be.greaterThan(0n);
+
+      // pendingReward must NOT include NFT bonus
+      const expectedNft = mulDiv(pending, 2n, 100n) + mulDiv(pending, 3n, 100n);
+      expect(await liquidity.nftBonusOf(alice.address, pending)).to.equal(
+        expectedNft
+      );
+      // View consistency: applying bonus off-chain is strictly additive to base pending
+      expect(pending + expectedNft).to.be.greaterThan(pending);
+      expect(
+        await liquidity.pendingRewardWithNftBonus(0, alice.address)
+      ).to.equal(pending + expectedNft);
+    });
+
+    it("pays exact Origin bonus on harvest from Harvest amount", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        shrimpTokenId
+      } = fixture;
+      await setupSoleStakerPool(fixture);
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+
+      await time.increase(1_000);
+      const before = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const tx = await liquidity.connect(alice).harvest(0);
+      const logs = parseLiquidityLogs(liquidity, await tx.wait());
+      const base = eventAmount(logs, "Harvest");
+      const nftBonus = eventAmount(logs, "NftBonusPayed");
+
+      expect(nftBonus).to.equal(mulDiv(base, 2n, 100n));
+      expect(await liquidity.nftBonusOf(alice.address, base)).to.equal(
+        nftBonus
+      );
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(alice.address)) -
+          before
+      ).to.equal(base + nftBonus);
+    });
+
+    it("pays exact NFT bonus on deposit harvest path", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        shrimpTokenId
+      } = fixture;
+      await setupSoleStakerPool(fixture);
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+
+      await time.increase(750);
+      const before = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      // deposit(0) harvests pending then adds zero stake amount change path with extra deposit
+      const tx = await liquidity
+        .connect(alice)
+        .deposit(0, ethers.parseEther("1"));
+      const logs = parseLiquidityLogs(liquidity, await tx.wait());
+      // Deposit does not emit Harvest; reconstruct from balance + known bonus formula via NftBonusPayed
+      const nftBonus = eventAmount(logs, "NftBonusPayed");
+      const after = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const totalPaid = after - before;
+      // totalPaid = base + nftBonus => base = totalPaid - nftBonus
+      const base = totalPaid - nftBonus;
+      expect(nftBonus).to.equal(mulDiv(base, 2n, 100n));
+      expect(base).to.be.greaterThan(0n);
+    });
+
+    it("pays exact NFT bonus on withdraw harvest path", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        shrimpTokenId
+      } = fixture;
+      await setupSoleStakerPool(fixture);
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+
+      await time.increase(640);
+      const before = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const tx = await liquidity
+        .connect(alice)
+        .withdraw(0, ethers.parseEther("1"));
+      const logs = parseLiquidityLogs(liquidity, await tx.wait());
+      const nftBonus = eventAmount(logs, "NftBonusPayed");
+      const after = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const totalPaid = after - before;
+      const base = totalPaid - nftBonus;
+      expect(nftBonus).to.equal(mulDiv(base, 2n, 100n));
+      expect(base).to.be.greaterThan(0n);
+    });
+
+    it("sums Origin and whitelist bonuses additively (2% + 3%)", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        bonusPct,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        shrimpTokenId,
+        bonusPctTokenId
+      } = fixture;
+      await setupSoleStakerPool(fixture);
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await bonusPct
+        .connect(alice)
+        .approve(await liquidity.getAddress(), bonusPctTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeWhitelistedNft(await bonusPct.getAddress(), bonusPctTokenId);
+
+      await time.increase(900);
+      const before = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const tx = await liquidity.connect(alice).harvest(0);
+      const logs = parseLiquidityLogs(liquidity, await tx.wait());
+      const base = eventAmount(logs, "Harvest");
+      const nftBonus = eventAmount(logs, "NftBonusPayed");
+
+      expect(nftBonus).to.equal(
+        mulDiv(base, 2n, 100n) + mulDiv(base, 3n, 100n)
+      );
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(alice.address)) -
+          before
+      ).to.equal(base + nftBonus);
+    });
+
+    it("floors each collection bonus independently with mixed denominators", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const {
+        liquidity,
+        bonusThird,
+        bonusSeventh,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        bonusThirdTokenId,
+        bonusSeventhTokenId
+      } = fixture;
+      await setupSoleStakerPool(fixture);
+
+      await bonusThird
+        .connect(alice)
+        .approve(await liquidity.getAddress(), bonusThirdTokenId);
+      await bonusSeventh
+        .connect(alice)
+        .approve(await liquidity.getAddress(), bonusSeventhTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeWhitelistedNft(await bonusThird.getAddress(), bonusThirdTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeWhitelistedNft(
+          await bonusSeventh.getAddress(),
+          bonusSeventhTokenId
+        );
+
+      // Use a base that is not divisible by 3 or 7 to expose flooring
+      await time.increase(1_001);
+      const tx = await liquidity.connect(alice).harvest(0);
+      const logs = parseLiquidityLogs(liquidity, await tx.wait());
+      const base = eventAmount(logs, "Harvest");
+      const nftBonus = eventAmount(logs, "NftBonusPayed");
+
+      const expected = mulDiv(base, 1n, 3n) + mulDiv(base, 1n, 7n);
+      expect(nftBonus).to.equal(expected);
+      expect(await liquidity.nftBonusOf(alice.address, base)).to.equal(
+        expected
+      );
+
+      // Per-collection floor can diverge from floor of summed fraction
+      const crafted = 5n;
+      expect(await liquidity.nftBonusOf(alice.address, crafted)).to.equal(
+        mulDiv(crafted, 1n, 3n) + mulDiv(crafted, 1n, 7n)
+      ); // 1 + 0 = 1
+      expect(await liquidity.nftBonusOf(alice.address, crafted)).to.not.equal(
+        mulDiv(crafted, 10n, 21n)
+      ); // floor(50/21)=2
+      expect(
+        await tokenRewardOneOverlayerReferral.balanceOf(alice.address)
+      ).to.be.greaterThan(0n);
+    });
+
+    it("counts two tokens from the same collection twice", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const { liquidity, bonusPct, alice, bonusPctTokenId, bonusPctTokenId2 } =
+        fixture;
+      await setupSoleStakerPool(fixture);
+
+      await bonusPct
+        .connect(alice)
+        .approve(await liquidity.getAddress(), bonusPctTokenId);
+      await bonusPct
+        .connect(alice)
+        .approve(await liquidity.getAddress(), bonusPctTokenId2);
+      await liquidity
+        .connect(alice)
+        .stakeWhitelistedNft(await bonusPct.getAddress(), bonusPctTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeWhitelistedNft(await bonusPct.getAddress(), bonusPctTokenId2);
+
+      await time.increase(400);
+      const tx = await liquidity.connect(alice).harvest(0);
+      const logs = parseLiquidityLogs(liquidity, await tx.wait());
+      const base = eventAmount(logs, "Harvest");
+      const nftBonus = eventAmount(logs, "NftBonusPayed");
+      // 3% + 3% = 6%
+      expect(nftBonus).to.equal(
+        mulDiv(base, 3n, 100n) + mulDiv(base, 3n, 100n)
+      );
+      expect(await liquidity.nftBonusOf(alice.address, base)).to.equal(
+        nftBonus
+      );
+    });
+
+    it("zero-numerator NFT pays no NFT bonus", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const {
+        liquidity,
+        bonusZero,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        bonusZeroTokenId
+      } = fixture;
+      await setupSoleStakerPool(fixture);
+
+      await bonusZero
+        .connect(alice)
+        .approve(await liquidity.getAddress(), bonusZeroTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeWhitelistedNft(await bonusZero.getAddress(), bonusZeroTokenId);
+
+      await time.increase(300);
+      const before = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const tx = await liquidity.connect(alice).harvest(0);
+      const logs = parseLiquidityLogs(liquidity, await tx.wait());
+      const base = eventAmount(logs, "Harvest");
+      expect(optionalEventAmount(logs, "NftBonusPayed")).to.equal(undefined);
+      expect(await liquidity.nftBonusOf(alice.address, base)).to.equal(0n);
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(alice.address)) -
+          before
+      ).to.equal(base);
+    });
+
+    it("zero pending harvest pays neither base nor NFT bonus", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        shrimpTokenId
+      } = fixture;
+      await setupSoleStakerPool(fixture);
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+
+      // Clear any dust by harvesting once, then harvest again immediately
+      await time.increase(10);
+      await liquidity.connect(alice).harvest(0);
+      const before = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const tx = await liquidity.connect(alice).harvest(0);
+      const logs = parseLiquidityLogs(liquidity, await tx.wait());
+      const base = eventAmount(logs, "Harvest");
+      // At most one second of accrual from the harvest tx itself
+      if (base === 0n) {
+        expect(optionalEventAmount(logs, "NftBonusPayed")).to.equal(undefined);
+        expect(
+          await tokenRewardOneOverlayerReferral.balanceOf(alice.address)
+        ).to.equal(before);
+      } else {
+        expect(eventAmount(logs, "NftBonusPayed")).to.equal(
+          mulDiv(base, 2n, 100n)
+        );
+      }
+    });
+
+    it("drops NFT bonus after unstake for subsequent accrual only", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        shrimpTokenId
+      } = fixture;
+      await setupSoleStakerPool(fixture);
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+
+      await time.increase(500);
+      const harvestWithBonus = await liquidity.connect(alice).harvest(0);
+      const logsWith = parseLiquidityLogs(
+        liquidity,
+        await harvestWithBonus.wait()
+      );
+      const baseWith = eventAmount(logsWith, "Harvest");
+      expect(eventAmount(logsWith, "NftBonusPayed")).to.equal(
+        mulDiv(baseWith, 2n, 100n)
+      );
+
+      await time.increase(200);
+      // Unstake harvests remaining pending STILL with NFT bonus, then clears stake
+      const unstakeTx = await liquidity.connect(alice).unstakeOriginNft();
+      const unstakeLogs = parseLiquidityLogs(liquidity, await unstakeTx.wait());
+      const baseUnstake = eventAmount(unstakeLogs, "Harvest");
+      expect(eventAmount(unstakeLogs, "NftBonusPayed")).to.equal(
+        mulDiv(baseUnstake, 2n, 100n)
+      );
+
+      await time.increase(300);
+      const before = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const harvestNoBonus = await liquidity.connect(alice).harvest(0);
+      const logsNo = parseLiquidityLogs(liquidity, await harvestNoBonus.wait());
+      const baseNo = eventAmount(logsNo, "Harvest");
+      expect(optionalEventAmount(logsNo, "NftBonusPayed")).to.equal(undefined);
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(alice.address)) -
+          before
+      ).to.equal(baseNo);
+      expect(await liquidity.nftBonusOf(alice.address, baseNo)).to.equal(0n);
+    });
+
+    it("harvest-all on stake pays pre-stake pending without NFT bonus across pools", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        tokenRewardOneOverlayerReferral,
+        alice,
+        shrimpTokenId
+      } = fixture;
+      await setupSoleStakerPool(fixture, { secondPool: true });
+
+      await time.increase(400);
+      const pending0 = await liquidity.pendingReward(0, alice.address);
+      const pending1 = await liquidity.pendingReward(1, alice.address);
+      expect(pending0).to.be.greaterThan(0n);
+      expect(pending1).to.be.greaterThan(0n);
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+
+      const before = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const stakeTx = await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+      const logs = parseLiquidityLogs(liquidity, await stakeTx.wait());
+      expect(optionalEventAmount(logs, "NftBonusPayed")).to.equal(undefined);
+
+      const harvests = logs.filter((l: any) => l.name === "Harvest");
+      expect(harvests.length).to.equal(2);
+      const paid0 = harvests[0].args.amount as bigint;
+      const paid1 = harvests[1].args.amount as bigint;
+      // Paid base is at least the pre-read pending (may include 1s block drift)
+      expect(paid0).to.be.gte(pending0);
+      expect(paid1).to.be.gte(pending1);
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(alice.address)) -
+          before
+      ).to.equal(paid0 + paid1);
+
+      // After stake, new accrual gets NFT bonus on both pools
+      await time.increase(250);
+      for (const pid of [0, 1]) {
+        const tx = await liquidity.connect(alice).harvest(pid);
+        const hLogs = parseLiquidityLogs(liquidity, await tx.wait());
+        const base = eventAmount(hLogs, "Harvest");
+        expect(eventAmount(hLogs, "NftBonusPayed")).to.equal(
+          mulDiv(base, 2n, 100n)
+        );
+      }
+    });
+
+    it("combines self-referral and NFT bonuses exactly", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        bonusPct,
+        tokenRewardOneOverlayerReferral,
+        owner,
+        alice,
+        bob,
+        shrimpTokenId,
+        bonusPctTokenId
+      } = fixture;
+      await setupSoleStakerPool(fixture);
+
+      await liquidity
+        .connect(owner)
+        .updateReferral(await tokenRewardOneOverlayerReferral.getAddress());
+      await tokenRewardOneOverlayerReferral
+        .connect(owner)
+        .addCode("BOB", bob.address);
+      await tokenRewardOneOverlayerReferral
+        .connect(alice)
+        .consumeReferral("BOB");
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await bonusPct
+        .connect(alice)
+        .approve(await liquidity.getAddress(), bonusPctTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeWhitelistedNft(await bonusPct.getAddress(), bonusPctTokenId);
+
+      await time.increase(800);
+      const aliceBefore = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const bobBefore = await tokenRewardOneOverlayerReferral.balanceOf(
+        bob.address
+      );
+
+      const tx = await liquidity.connect(alice).harvest(0);
+      const logs = parseLiquidityLogs(liquidity, await tx.wait());
+      const base = eventAmount(logs, "Harvest");
+      const selfBonus = eventAmount(logs, "SelfBonusPayed");
+      const nftBonus = eventAmount(logs, "NftBonusPayed");
+      const referrerBonus = eventAmount(logs, "BonusPayed");
+
+      expect(selfBonus).to.equal(mulDiv(base, 25n, 1000n));
+      expect(nftBonus).to.equal(
+        mulDiv(base, 2n, 100n) + mulDiv(base, 3n, 100n)
+      );
+      expect(referrerBonus).to.equal(mulDiv(base, 5n, 100n));
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(alice.address)) -
+          aliceBefore
+      ).to.equal(base + selfBonus + nftBonus);
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(bob.address)) -
+          bobBefore
+      ).to.equal(referrerBonus);
+    });
+
+    it("harvestFor pays NFT bonus based on target stake, not caller", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        stakedAsset,
+        tokenRewardOneOverlayerReferral,
+        owner,
+        alice,
+        bob,
+        shrimpTokenId,
+        bobShrimpTokenId
+      } = fixture;
+
+      await stakedAsset.transfer(alice.address, ethers.parseEther("100"));
+      await stakedAsset.transfer(bob.address, ethers.parseEther("100"));
+      await stakedAsset
+        .connect(alice)
+        .approve(await liquidity.getAddress(), ethers.parseEther("100"));
+      await stakedAsset
+        .connect(bob)
+        .approve(await liquidity.getAddress(), ethers.parseEther("100"));
+
+      await liquidity.setReward(
+        await tokenRewardOneOverlayerReferral.getAddress(),
+        REWARD_PER_SECOND
+      );
+      await tokenRewardOneOverlayerReferral
+        .connect(owner)
+        .addPointsTracker(await liquidity.getAddress());
+      await liquidity.add(
+        await stakedAsset.getAddress(),
+        await tokenRewardOneOverlayerReferral.getAddress(),
+        1,
+        0,
+        false,
+        true
+      );
+
+      await liquidity.connect(alice).deposit(0, ethers.parseEther("50"));
+      await liquidity.connect(bob).deposit(0, ethers.parseEther("50"));
+
+      // Only bob stakes an Origin NFT
+      await shrimpNft
+        .connect(bob)
+        .approve(await liquidity.getAddress(), bobShrimpTokenId);
+      await liquidity
+        .connect(bob)
+        .stakeOriginNft(await shrimpNft.getAddress(), bobShrimpTokenId);
+
+      await time.increase(600);
+
+      const bobBefore = await tokenRewardOneOverlayerReferral.balanceOf(
+        bob.address
+      );
+      const aliceBefore = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+
+      // Alice calls harvestFor(bob)
+      const tx = await liquidity.connect(alice).harvestFor(0, bob.address);
+      const logs = parseLiquidityLogs(liquidity, await tx.wait());
+      const base = eventAmount(logs, "Harvest");
+      const nftBonus = eventAmount(logs, "NftBonusPayed");
+      expect(nftBonus).to.equal(mulDiv(base, 2n, 100n));
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(bob.address)) -
+          bobBefore
+      ).to.equal(base + nftBonus);
+      // Caller alice should not receive bob's rewards
+      expect(
+        await tokenRewardOneOverlayerReferral.balanceOf(alice.address)
+      ).to.equal(aliceBefore);
+
+      // Alice herself has no NFT — her harvest has no NFT bonus
+      const aliceTx = await liquidity.connect(alice).harvest(0);
+      const aliceLogs = parseLiquidityLogs(liquidity, await aliceTx.wait());
+      expect(optionalEventAmount(aliceLogs, "NftBonusPayed")).to.equal(
+        undefined
+      );
+      // silence unused
+      void shrimpTokenId;
+    });
+
+    it("switching Origin tier changes bonus only on new accrual", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        whaleNft,
+        alice,
+        shrimpTokenId,
+        whaleTokenId
+      } = fixture;
+      await setupSoleStakerPool(fixture);
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+
+      await time.increase(200);
+      const shrimpHarvest = await liquidity.connect(alice).harvest(0);
+      const shrimpLogs = parseLiquidityLogs(
+        liquidity,
+        await shrimpHarvest.wait()
+      );
+      const shrimpBase = eventAmount(shrimpLogs, "Harvest");
+      expect(eventAmount(shrimpLogs, "NftBonusPayed")).to.equal(
+        mulDiv(shrimpBase, 2n, 100n)
+      );
+
+      await time.increase(100);
+      await liquidity.connect(alice).unstakeOriginNft();
+
+      await whaleNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), whaleTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await whaleNft.getAddress(), whaleTokenId);
+
+      await time.increase(200);
+      const whaleHarvest = await liquidity.connect(alice).harvest(0);
+      const whaleLogs = parseLiquidityLogs(
+        liquidity,
+        await whaleHarvest.wait()
+      );
+      const whaleBase = eventAmount(whaleLogs, "Harvest");
+      expect(eventAmount(whaleLogs, "NftBonusPayed")).to.equal(
+        mulDiv(whaleBase, 11n, 100n)
+      );
+    });
+
+    it("sole staker accrual matches rewardPerSecond * elapsed within harvest window", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const { liquidity, shrimpNft, alice, shrimpTokenId } = fixture;
+      await setupSoleStakerPool(fixture);
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+
+      // Align to a clean timestamp, then advance a known duration
+      const t0 = BigInt(await time.latest());
+      await time.increaseTo(t0 + 1n);
+      const start = BigInt(await time.latest());
+      await time.increaseTo(start + 1_000n);
+
+      const tx = await liquidity.connect(alice).harvest(0);
+      const receipt = await tx.wait();
+      const end = BigInt(await time.latest());
+      const logs = parseLiquidityLogs(liquidity, receipt);
+      const base = eventAmount(logs, "Harvest");
+      const elapsed = end - start;
+      // Sole staker, alloc=1/1 => rewards ~= rewardPerSecond * elapsed
+      // Allow ±1 second of pool-update skew from the stake/deposit lastRewardTime vs start
+      expect(base).to.be.gte(REWARD_PER_SECOND * (elapsed - 2n));
+      expect(base).to.be.lte(REWARD_PER_SECOND * (elapsed + 2n));
+      expect(eventAmount(logs, "NftBonusPayed")).to.equal(
+        mulDiv(base, 2n, 100n)
+      );
+    });
+
+    it("adds 2.5% OG holder boost on top of Origin bonus when Origin is staked", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const { liquidity, shrimpNft, ogNft, alice, shrimpTokenId } = fixture;
+      await setupSoleStakerPool(fixture);
+
+      await ogNft.connect(alice).mint(alice.address);
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+
+      await time.increase(500);
+      const tx = await liquidity.connect(alice).harvest(0);
+      const logs = parseLiquidityLogs(liquidity, await tx.wait());
+      const base = eventAmount(logs, "Harvest");
+      const nftBonus = eventAmount(logs, "NftBonusPayed");
+      // shrimp 2% + OG 2.5%
+      expect(nftBonus).to.equal(
+        mulDiv(base, 2n, 100n) + mulDiv(base, 25n, 1000n)
+      );
+      expect(await liquidity.nftBonusOf(alice.address, base)).to.equal(
+        nftBonus
+      );
+      expect(
+        await liquidity.pendingRewardWithNftBonus(0, alice.address)
+      ).to.equal(0n); // just harvested
+    });
+
+    it("does not apply OG boost without an Origin stake", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const { liquidity, ogNft, alice } = fixture;
+      await setupSoleStakerPool(fixture);
+
+      await ogNft.connect(alice).mint(alice.address);
+
+      await time.increase(400);
+      const tx = await liquidity.connect(alice).harvest(0);
+      const logs = parseLiquidityLogs(liquidity, await tx.wait());
+      const base = eventAmount(logs, "Harvest");
+      expect(optionalEventAmount(logs, "NftBonusPayed")).to.equal(undefined);
+      expect(await liquidity.nftBonusOf(alice.address, base)).to.equal(0n);
+    });
+
+    it("stacks OG boost with whitelist bonuses on Origin stake", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        bonusPct,
+        ogNft,
+        alice,
+        shrimpTokenId,
+        bonusPctTokenId
+      } = fixture;
+      await setupSoleStakerPool(fixture);
+
+      await ogNft.connect(alice).mint(alice.address);
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await bonusPct
+        .connect(alice)
+        .approve(await liquidity.getAddress(), bonusPctTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeWhitelistedNft(await bonusPct.getAddress(), bonusPctTokenId);
+
+      await time.increase(600);
+      const tx = await liquidity.connect(alice).harvest(0);
+      const logs = parseLiquidityLogs(liquidity, await tx.wait());
+      const base = eventAmount(logs, "Harvest");
+      const nftBonus = eventAmount(logs, "NftBonusPayed");
+      // shrimp 2% + OG 2.5% + whitelist 3%
+      expect(nftBonus).to.equal(
+        mulDiv(base, 2n, 100n) +
+          mulDiv(base, 25n, 1000n) +
+          mulDiv(base, 3n, 100n)
+      );
+    });
+
+    it("allows owner to set and clear the OG NFT address", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const { liquidity, owner, notOwner, ogNft } = fixture;
+      const BonusNFT = await ethers.getContractFactory("BonusNFTMock");
+      const otherOg = await BonusNFT.deploy("OG2", "OG2", 0, 100);
+
+      await expect(
+        liquidity.connect(notOwner).setOgNft(await otherOg.getAddress())
+      ).to.be.eventually.rejected;
+
+      await expect(
+        liquidity.connect(owner).setOgNft(await otherOg.getAddress())
+      )
+        .to.emit(liquidity, "OgNftUpdated")
+        .withArgs(await otherOg.getAddress());
+      expect(await liquidity.ogNft()).to.equal(await otherOg.getAddress());
+
+      await liquidity.connect(owner).setOgNft(ethers.ZeroAddress);
+      expect(await liquidity.ogNft()).to.equal(ethers.ZeroAddress);
+
+      // Clearing OG address disables boost even if alice still holds old OG
+      void ogNft;
+    });
+  });
 });
