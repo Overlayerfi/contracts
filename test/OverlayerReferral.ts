@@ -185,7 +185,10 @@ describe("Overlayer Referral System", function () {
         .be.eventually.rejected;
 
       expect(
-        await overlayerReferral.referredFromByType(bob.address, ReferralType.Team)
+        await overlayerReferral.referredFromByType(
+          bob.address,
+          ReferralType.Team
+        )
       ).to.be.equal(alice.address);
       const referred = await overlayerReferral.seeReferredByType(
         alice.address,
@@ -201,7 +204,9 @@ describe("Overlayer Referral System", function () {
 
       // Can create the other type
       await expect(
-        await overlayerReferral.connect(bob).addCodeSelf("BOB_REF", ReferralType.Ref)
+        await overlayerReferral
+          .connect(bob)
+          .addCodeSelf("BOB_REF", ReferralType.Ref)
       ).to.emit(overlayerReferral, "NewCode");
     });
 
@@ -244,9 +249,8 @@ describe("Overlayer Referral System", function () {
       ).to.emit(overlayerReferral, "NewCode");
 
       // Alice created A, cannot consume A
-      await expect(
-        overlayerReferral.connect(alice).consumeReferral("BOB_TEAM")
-      ).to.be.eventually.rejected;
+      await expect(overlayerReferral.connect(alice).consumeReferral("BOB_TEAM"))
+        .to.be.eventually.rejected;
 
       // Alice can consume B
       await expect(
@@ -306,6 +310,25 @@ describe("Overlayer Referral System", function () {
           .connect(admin)
           .addCode("ALICE", ethers.ZeroAddress, ReferralType.Team)
       ).to.be.eventually.rejected;
+    });
+
+    it("Should reject Ref consume when consumer already holds reward tokens", async function () {
+      const { overlayerReferral, admin, minter, bob, alice } =
+        await loadFixture(deployFixture);
+      await overlayerReferral
+        .connect(admin)
+        .addCode("BOB_REF", bob.address, ReferralType.Ref);
+
+      await overlayerReferral
+        .connect(minter)
+        .mint(alice.address, ethers.parseEther("1"));
+
+      await expect(
+        overlayerReferral.connect(alice).consumeReferral("BOB_REF")
+      ).to.be.revertedWithCustomError(
+        overlayerReferral,
+        "OverlayerReferralNotFresh"
+      );
     });
   });
 

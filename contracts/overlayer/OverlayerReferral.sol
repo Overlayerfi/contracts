@@ -64,6 +64,8 @@ contract OverlayerReferral is
     error OverlayerReferralAlreadyCreatedACode();
     error OverlayerReferralStakingPoolsNotSet();
     error OverlayerReferralInvalidType();
+    /// @notice Ref codes may only be consumed by users with no reward balance and no deposits
+    error OverlayerReferralNotFresh();
 
     modifier onlyTracker() {
         if (!allowedPointsTrackers[msg.sender] && msg.sender != address(this)) {
@@ -87,9 +89,11 @@ contract OverlayerReferral is
         emit StakingPoolSet(pools_);
     }
 
-    /// @notice Consume a referral code. This action will harvest all the user positions in the staking pools
-    /// @dev Create/consume exclusivity is enforced per type only
-    /// @dev Staking pools must be set
+    /// @notice Consume a referral code
+    /// @dev Create/consume exclusivity is enforced per type only. Staking pools must be set.
+    /// @dev Team: harvests all open positions first so bonuses apply only to future accrual.
+    /// @dev Ref: consumer must be fresh — zero reward-token balance and zero deposits in all pools.
+    ///      Pending rewards are not checked separately: with amount == 0 they are always zero.
     /// @param code_ The referral code
     function consumeReferral(
         string memory code_
@@ -118,12 +122,21 @@ contract OverlayerReferral is
         if (stakingPools.length == 0) {
             revert OverlayerReferralStakingPoolsNotSet();
         }
+
+        // Ref also requires no already-claimed reward tokens
+        if (type_ == ReferralType.Ref && balanceOf(consumer) > 0) {
+            revert OverlayerReferralNotFresh();
+        }
+        // Shared pool walk: Ref rejects any deposit; Team harvests it
         for (uint256 i = 0; i < stakingPools.length; ) {
             ILiquidityDefs stakingPool = ILiquidityDefs(stakingPools[i]);
             uint256 stakingPoolLen = stakingPool.poolLength();
             for (uint256 j = 0; j < stakingPoolLen; ) {
                 (uint256 userAmount, ) = stakingPool.userInfo(j, consumer);
                 if (userAmount > 0) {
+                    if (type_ == ReferralType.Ref) {
+                        revert OverlayerReferralNotFresh();
+                    }
                     stakingPool.harvestFor(j, consumer);
                 }
                 unchecked {
