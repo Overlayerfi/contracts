@@ -4,15 +4,23 @@ pragma solidity ^0.8.20;
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "./interfaces/ILiquidityDefs.sol";
 import "./interfaces/IRewardAsset.sol";
+import "./interfaces/IBonusNFT.sol";
 
 /**
  * @notice Liquidity contract implementation.
  */
-contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
+contract Liquidity is
+    Ownable,
+    ReentrancyGuard,
+    ILiquidityDefs,
+    IERC721Receiver
+{
     using SafeERC20 for IERC20;
     using Math for uint256;
 
@@ -74,6 +82,68 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     IOverlayerReferral public referral;
 
     /**
+     * @notice Overlayer Origin Shrimp NFT collection.
+     */
+    address public shrimp;
+
+    /**
+     * @notice Overlayer Origin Dolphin NFT collection.
+     */
+    address public dolphin;
+
+    /**
+     * @notice Overlayer Origin Whale NFT collection.
+     */
+    address public whale;
+
+    /**
+     * @notice Overlayer OG NFT collection. Holders get an extra 2.5% when an Origin NFT is staked.
+     */
+    address public ogNft;
+
+    /**
+     * @notice OG holder bonus numerator (2.5%).
+     */
+    uint16 public constant OG_BONUS_NUMERATOR = 25;
+
+    /**
+     * @notice OG holder bonus denominator.
+     */
+    uint16 public constant OG_BONUS_DENOMINATOR = 1000;
+
+    /**
+     * @notice Per-user Origin NFT stake (at most one).
+     * @dev `collection == address(0)` means no Origin NFT is staked.
+     */
+    mapping(address => NftStake) public originNftStaked;
+
+    /**
+     * @notice Dynamically whitelisted bonus NFT collections.
+     */
+    mapping(address => bool) public whitelistedNft;
+
+    /**
+     * @notice Enumerable list of whitelisted bonus NFT collections.
+     */
+    address[] public whitelistedNftList;
+
+    /**
+     * @notice 1-based index of a collection inside {whitelistedNftList}.
+     */
+    mapping(address => uint256) private whitelistedNftListIndex;
+
+    /**
+     * @notice Per-user list of staked whitelisted NFTs.
+     */
+    mapping(address => NftStake[]) private whitelistedNftStakes;
+
+    /**
+     * @notice 1-based index of a user's staked whitelisted NFT.
+     */
+    mapping(address => mapping(address => mapping(uint256 => uint256)))
+        private whitelistedNftStakeIndex;
+
+    /**
      * @notice Contract constructor.
      * @param admin The contract admin
      */
@@ -82,6 +152,16 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
             revert InvalidZeroAddress();
         }
         startTime = block.timestamp;
+    }
+
+    /// @inheritdoc IERC721Receiver
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external pure override returns (bytes4) {
+        return IERC721Receiver.onERC721Received.selector;
     }
 
     /**
@@ -141,6 +221,221 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     }
 
     /**
+     * @notice Set the Overlayer Origin NFT collections used for exclusive Origin staking.
+     * @param shrimp_ Shrimp collection address.
+     * @param dolphin_ Dolphin collection address.
+     * @param whale_ Whale collection address.
+     */
+    function setOriginNfts(
+        address shrimp_,
+        address dolphin_,
+        address whale_
+    ) external onlyOwner {
+        if (
+            shrimp_ == address(0) ||
+            dolphin_ == address(0) ||
+            whale_ == address(0)
+        ) {
+            revert InvalidZeroAddress();
+        }
+        shrimp = shrimp_;
+        dolphin = dolphin_;
+        whale = whale_;
+        emit OriginNftsUpdated(shrimp_, dolphin_, whale_);
+    }
+
+    /**
+     * @notice Set the Overlayer OG NFT collection used for the Origin holder boost.
+     * @dev Pass the zero address to disable the OG boost. Holders are detected via balanceOf.
+     * @param ogNft_ OG collection address.
+     */
+    function setOgNft(address ogNft_) external onlyOwner {
+        ogNft = ogNft_;
+        emit OgNftUpdated(ogNft_);
+    }
+
+    /**
+     * @notice Add or remove a dynamically whitelisted bonus NFT collection.
+     * @param collection The NFT collection.
+     * @param allowed Whether the collection is allowed for staking.
+     */
+    function setWhitelistedNft(
+        address collection,
+        bool allowed
+    ) external onlyOwner {
+        if (collection == address(0)) {
+            revert InvalidZeroAddress();
+        }
+        if (allowed) {
+            if (whitelistedNft[collection]) {
+                revert DuplicateWhitelistedNft();
+            }
+            if (IBonusNFT(collection).bonusDenominator() == 0) {
+                revert InvalidBonusDenominator();
+            }
+            whitelistedNft[collection] = true;
+            whitelistedNftList.push(collection);
+            whitelistedNftListIndex[collection] = whitelistedNftList.length;
+        } else {
+            if (!whitelistedNft[collection]) {
+                revert NftNotWhitelisted();
+            }
+            whitelistedNft[collection] = false;
+            uint256 index = whitelistedNftListIndex[collection];
+            uint256 lastIndex = whitelistedNftList.length;
+            address lastCollection = whitelistedNftList[lastIndex - 1];
+            if (index != lastIndex) {
+                whitelistedNftList[index - 1] = lastCollection;
+                whitelistedNftListIndex[lastCollection] = index;
+            }
+            whitelistedNftList.pop();
+            delete whitelistedNftListIndex[collection];
+        }
+        emit WhitelistedNftUpdated(collection, allowed);
+    }
+
+    /**
+     * @notice Stake an Overlayer Origin NFT (shrimp, dolphin, or whale). Only one at a time.
+     * @dev Harvests all pools first so the new bonus applies only to newly farmed points.
+     * @param collection Origin collection address.
+     * @param tokenId Token ID to stake.
+     */
+    function stakeOriginNft(
+        address collection,
+        uint256 tokenId
+    ) external nonReentrant {
+        if (!_isOriginNft(collection)) {
+            revert InvalidOriginNft();
+        }
+        if (originNftStaked[msg.sender].collection != address(0)) {
+            revert OriginAlreadyStaked();
+        }
+        if (IERC721(collection).ownerOf(tokenId) != msg.sender) {
+            revert NotNftOwner();
+        }
+        if (IBonusNFT(collection).bonusDenominator() == 0) {
+            revert InvalidBonusDenominator();
+        }
+
+        _harvestAllPools(msg.sender);
+
+        originNftStaked[msg.sender] = NftStake({
+            collection: collection,
+            tokenId: tokenId
+        });
+        IERC721(collection).safeTransferFrom(
+            msg.sender,
+            address(this),
+            tokenId
+        );
+
+        emit OriginNftStaked(msg.sender, collection, tokenId);
+    }
+
+    /**
+     * @notice Unstake the caller's Origin NFT.
+     * @dev Harvests all pools first so the removed bonus stops applying only after payout.
+     */
+    function unstakeOriginNft() external nonReentrant {
+        NftStake memory stake = originNftStaked[msg.sender];
+        if (stake.collection == address(0)) {
+            revert NoOriginStaked();
+        }
+
+        _harvestAllPools(msg.sender);
+
+        delete originNftStaked[msg.sender];
+        IERC721(stake.collection).safeTransferFrom(
+            address(this),
+            msg.sender,
+            stake.tokenId
+        );
+
+        emit OriginNftUnstaked(msg.sender, stake.collection, stake.tokenId);
+    }
+
+    /**
+     * @notice Stake a dynamically whitelisted bonus NFT.
+     * @dev Harvests all pools first so the new bonus applies only to newly farmed points.
+     * @param collection Whitelisted collection address.
+     * @param tokenId Token ID to stake.
+     */
+    function stakeWhitelistedNft(
+        address collection,
+        uint256 tokenId
+    ) external nonReentrant {
+        if (!whitelistedNft[collection]) {
+            revert NftNotWhitelisted();
+        }
+        if (IERC721(collection).ownerOf(tokenId) != msg.sender) {
+            revert NotNftOwner();
+        }
+        if (whitelistedNftStakeIndex[msg.sender][collection][tokenId] != 0) {
+            revert DuplicateWhitelistedNft();
+        }
+        if (IBonusNFT(collection).bonusDenominator() == 0) {
+            revert InvalidBonusDenominator();
+        }
+
+        _harvestAllPools(msg.sender);
+
+        whitelistedNftStakes[msg.sender].push(
+            NftStake({collection: collection, tokenId: tokenId})
+        );
+        whitelistedNftStakeIndex[msg.sender][collection][
+            tokenId
+        ] = whitelistedNftStakes[msg.sender].length;
+
+        IERC721(collection).safeTransferFrom(
+            msg.sender,
+            address(this),
+            tokenId
+        );
+
+        emit WhitelistedNftStaked(msg.sender, collection, tokenId);
+    }
+
+    /**
+     * @notice Unstake a previously staked whitelisted bonus NFT.
+     * @dev Harvests all pools first. Unstake is allowed even if the collection was later delisted.
+     * @param collection Collection address.
+     * @param tokenId Token ID to unstake.
+     */
+    function unstakeWhitelistedNft(
+        address collection,
+        uint256 tokenId
+    ) external nonReentrant {
+        uint256 index = whitelistedNftStakeIndex[msg.sender][collection][
+            tokenId
+        ];
+        if (index == 0) {
+            revert NftNotStaked();
+        }
+
+        _harvestAllPools(msg.sender);
+
+        NftStake[] storage stakes = whitelistedNftStakes[msg.sender];
+        uint256 lastIndex = stakes.length;
+        NftStake memory lastStake = stakes[lastIndex - 1];
+        if (index != lastIndex) {
+            stakes[index - 1] = lastStake;
+            whitelistedNftStakeIndex[msg.sender][lastStake.collection][
+                lastStake.tokenId
+            ] = index;
+        }
+        stakes.pop();
+        delete whitelistedNftStakeIndex[msg.sender][collection][tokenId];
+
+        IERC721(collection).safeTransferFrom(
+            address(this),
+            msg.sender,
+            tokenId
+        );
+
+        emit WhitelistedNftUnstaked(msg.sender, collection, tokenId);
+    }
+
+    /**
      * @notice Set a reward rate.
      * @param rewardAsset the reward.
      * @param rewardRate the new reward rate.
@@ -188,8 +483,6 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     }
 
     /**
-
-    /**
      * @notice Withdraw from the pool with harvest.
      * @param pid the pool identifier.
      * @param amount the amount to withdraw.
@@ -233,10 +526,8 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         if (pending > 0) {
             _payReward(pool.rewardAsset, msg.sender, pending);
         }
-        // harvest referral bonus and track gained point from the referral source
-        if (address(referral) != address(0)) {
-            _payBonus(pending, pool.rewardAsset, msg.sender);
-        }
+        // harvest referral and NFT bonuses
+        _payBonus(pending, pool.rewardAsset, msg.sender);
         //return stating funds
         if (amount > 0) {
             _returnStakedTokens(pool.stakedAsset, address(msg.sender), amount);
@@ -258,26 +549,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
-
-        // Get pool and user
-        PoolInfo memory pool = poolInfo[pid];
-        UserInfo storage currentUser = userInfo[pid][target];
-
-        // Compute pending rewards
-        uint256 pending = pendingReward(pid, target);
-        // Update reward debt
-        currentUser.rewardDebt = currentUser.rewardDebt + pending;
-
-        // Pay rewards
-        if (pending > 0) {
-            _payReward(pool.rewardAsset, target, pending);
-        }
-        // Pay bonus rewards
-        if (address(referral) != address(0)) {
-            _payBonus(pending, pool.rewardAsset, target);
-        }
-
-        emit Harvest(target, pid, pending);
+        _harvestPool(pid, target);
     }
 
     /**
@@ -289,26 +561,7 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
-
-        // Get pool and user
-        PoolInfo memory pool = poolInfo[pid];
-        UserInfo storage currentUser = userInfo[pid][msg.sender];
-
-        // Compute pending rewards
-        uint256 pending = pendingReward(pid, msg.sender);
-        // Update reward debt
-        currentUser.rewardDebt = currentUser.rewardDebt + pending;
-
-        // Pay rewards
-        if (pending > 0) {
-            _payReward(pool.rewardAsset, msg.sender, pending);
-        }
-        // Pay bonus rewards
-        if (address(referral) != address(0)) {
-            _payBonus(pending, pool.rewardAsset, msg.sender);
-        }
-
-        emit Harvest(msg.sender, pid, pending);
+        _harvestPool(pid, msg.sender);
     }
 
     /**
@@ -347,6 +600,63 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
             revert InvalidPid();
         }
         return (poolInfo[pid].stakedAsset.balanceOf(address(this)));
+    }
+
+    /**
+     * @notice Return the caller's Origin NFT stake.
+     * @param user The account to query.
+     * @return collection Staked collection, or zero if none.
+     * @return tokenId Staked token ID.
+     */
+    function originStakeOf(
+        address user
+    ) external view returns (address collection, uint256 tokenId) {
+        NftStake memory stake = originNftStaked[user];
+        return (stake.collection, stake.tokenId);
+    }
+
+    /**
+     * @notice Return all whitelisted NFT stakes for a user.
+     * @param user The account to query.
+     */
+    function whitelistedStakesOf(
+        address user
+    ) external view returns (NftStake[] memory) {
+        return whitelistedNftStakes[user];
+    }
+
+    /**
+     * @notice Return the number of whitelisted NFT collections.
+     */
+    function whitelistedNftListLength() external view returns (uint256) {
+        return whitelistedNftList.length;
+    }
+
+    /**
+     * @notice Compute the NFT bonus amount for a given base reward and user.
+     * @param user The account whose staked NFTs are used.
+     * @param amount The base pending reward amount.
+     */
+    function nftBonusOf(
+        address user,
+        uint256 amount
+    ) external view returns (uint256) {
+        return _nftBonusAmount(amount, user);
+    }
+
+    /**
+     * @notice Pending base reward plus NFT bonus for a pool and user.
+     * @dev Does not include referral or self-referral bonuses.
+     * @param pid The pool identifier.
+     * @param user The account to query.
+     * @return total Base pending plus NFT bonus.
+     */
+    function pendingRewardWithNftBonus(
+        uint256 pid,
+        address user
+    ) external view returns (uint256 total) {
+        uint256 pending = pendingReward(pid, user);
+        return pending + _nftBonusAmount(pending, user);
     }
 
     /**
@@ -389,10 +699,8 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
             _payReward(pool.rewardAsset, msg.sender, pending);
         }
 
-        // harvest referral bonus and track gained point from the referral source
-        if (address(referral) != address(0)) {
-            _payBonus(pending, pool.rewardAsset, msg.sender);
-        }
+        // harvest referral and NFT bonuses
+        _payBonus(pending, pool.rewardAsset, msg.sender);
 
         // collect collateral
         if (amount > 0) {
@@ -544,6 +852,37 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     }
 
     /**
+     * @notice Harvest every pool for a user using the current (pre-change) NFT stake set.
+     * @param user The account to harvest.
+     */
+    function _harvestAllPools(address user) internal {
+        uint256 length = poolInfo.length;
+        for (uint256 pid = 0; pid < length; ++pid) {
+            _harvestPool(pid, user);
+        }
+    }
+
+    /**
+     * @notice Harvest a single pool for a user.
+     * @param pid The pool identifier.
+     * @param user The account to harvest.
+     */
+    function _harvestPool(uint256 pid, address user) internal {
+        PoolInfo memory pool = poolInfo[pid];
+        UserInfo storage currentUser = userInfo[pid][user];
+
+        uint256 pending = pendingReward(pid, user);
+        currentUser.rewardDebt = currentUser.rewardDebt + pending;
+
+        if (pending > 0) {
+            _payReward(pool.rewardAsset, user, pending);
+        }
+        _payBonus(pending, pool.rewardAsset, user);
+
+        emit Harvest(user, pid, pending);
+    }
+
+    /**
      * @notice Pay the reward.
      * @dev The reward asset is directly minted from the reward token
      * @param rewardAsset the reward token.
@@ -573,9 +912,11 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
     }
 
     /**
-     * @notice Pay bonus referral tokens
-     * @dev The self bonus will be payed only if the current user is referred.
+     * @notice Pay referral and NFT bonus tokens.
+     * @dev Self referral is paid only if the current user is referred.
+     * @dev NFT bonus is paid for every staked Origin and whitelisted NFT.
      * @param originalAmount the original amount.
+     * @param asset the reward asset.
      * @param source the reward source address.
      */
     function _payBonus(
@@ -583,19 +924,97 @@ contract Liquidity is Ownable, ReentrancyGuard, ILiquidityDefs {
         IERC20 asset,
         address source
     ) internal {
-        uint256 bonus = originalAmount.mulDiv(referralBonus, 100);
-        address recipient = referral.referredFrom(source);
-        if (bonus > 0 && recipient != address(0)) {
-            _payReward(asset, recipient, bonus);
-            referral.track(recipient, bonus);
-            emit BonusPayed(recipient, bonus);
-
-            // Pay also the self referral bonus (for having consumed a referral)
-            uint256 selfBonus = originalAmount.mulDiv(selfReferralBonus, 1000);
-            // Self bonus is not zero
-            _payReward(asset, source, selfBonus);
-            emit SelfBonusPayed(source, selfBonus);
+        if (originalAmount == 0) {
+            return;
         }
+
+        if (address(referral) != address(0)) {
+            uint256 bonus = originalAmount.mulDiv(referralBonus, 100);
+            address recipient = referral.referredFrom(source);
+            if (bonus > 0 && recipient != address(0)) {
+                _payReward(asset, recipient, bonus);
+                referral.track(recipient, bonus);
+                emit BonusPayed(recipient, bonus);
+
+                // Pay also the self referral bonus (for having consumed a referral)
+                uint256 selfBonus = originalAmount.mulDiv(
+                    selfReferralBonus,
+                    1000
+                );
+                _payReward(asset, source, selfBonus);
+                emit SelfBonusPayed(source, selfBonus);
+            }
+        }
+
+        uint256 nftExtra = _nftBonusAmount(originalAmount, source);
+        if (nftExtra > 0) {
+            _payReward(asset, source, nftExtra);
+            emit NftBonusPayed(source, nftExtra);
+        }
+    }
+
+    /**
+     * @notice Compute NFT bonus for a base amount and user stake set.
+     * @param originalAmount Base pending reward.
+     * @param user Account whose NFTs are counted.
+     */
+    function _nftBonusAmount(
+        uint256 originalAmount,
+        address user
+    ) internal view returns (uint256 total) {
+        if (originalAmount == 0) {
+            return 0;
+        }
+
+        NftStake memory originStake = originNftStaked[user];
+        if (originStake.collection != address(0)) {
+            total += _bonusFromCollection(
+                originalAmount,
+                originStake.collection
+            );
+            // OG holders get an extra 2.5% of base on top of the Origin bonus.
+            if (ogNft != address(0) && IERC721(ogNft).balanceOf(user) > 0) {
+                total += originalAmount.mulDiv(
+                    OG_BONUS_NUMERATOR,
+                    OG_BONUS_DENOMINATOR
+                );
+            }
+        }
+
+        NftStake[] storage stakes = whitelistedNftStakes[user];
+        uint256 length = stakes.length;
+        for (uint256 i = 0; i < length; ++i) {
+            total += _bonusFromCollection(originalAmount, stakes[i].collection);
+        }
+    }
+
+    /**
+     * @notice Compute bonus from a single NFT collection for a base amount.
+     */
+    function _bonusFromCollection(
+        uint256 originalAmount,
+        address collection
+    ) internal view returns (uint256) {
+        uint256 denominator = IBonusNFT(collection).bonusDenominator();
+        if (denominator == 0) {
+            return 0;
+        }
+        return
+            originalAmount.mulDiv(
+                IBonusNFT(collection).bonusNumerator(),
+                denominator
+            );
+    }
+
+    /**
+     * @notice Whether an address is a configured Origin NFT collection.
+     */
+    function _isOriginNft(address collection) internal view returns (bool) {
+        return
+            collection != address(0) &&
+            (collection == shrimp ||
+                collection == dolphin ||
+                collection == whale);
     }
 
     /**

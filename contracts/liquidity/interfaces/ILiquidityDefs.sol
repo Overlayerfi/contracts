@@ -63,6 +63,46 @@ interface ILiquidityDefs {
 
     event SelfBonusPayed(address indexed recipient, uint256 amount);
 
+    event NftBonusPayed(address indexed recipient, uint256 amount);
+
+    event OriginNftsUpdated(address shrimp, address dolphin, address whale);
+
+    event OgNftUpdated(address indexed ogNft);
+
+    event WhitelistedNftUpdated(address indexed collection, bool allowed);
+
+    event OriginNftStaked(
+        address indexed user,
+        address indexed collection,
+        uint256 indexed tokenId
+    );
+
+    event OriginNftUnstaked(
+        address indexed user,
+        address indexed collection,
+        uint256 indexed tokenId
+    );
+
+    event WhitelistedNftStaked(
+        address indexed user,
+        address indexed collection,
+        uint256 indexed tokenId
+    );
+
+    event WhitelistedNftUnstaked(
+        address indexed user,
+        address indexed collection,
+        uint256 indexed tokenId
+    );
+
+    /**
+     * @notice A staked bonus NFT position.
+     */
+    struct NftStake {
+        address collection;
+        uint256 tokenId;
+    }
+
     error NotAllowed();
 
     error VestingPool();
@@ -83,6 +123,22 @@ interface ILiquidityDefs {
 
     error AlreadyUsedStakedAsset();
 
+    error InvalidOriginNft();
+
+    error OriginAlreadyStaked();
+
+    error NoOriginStaked();
+
+    error NftNotWhitelisted();
+
+    error NftNotStaked();
+
+    error NotNftOwner();
+
+    error InvalidBonusDenominator();
+
+    error DuplicateWhitelistedNft();
+
     function poolLength() external view returns (uint256);
 
     function deposit(uint256 pid, uint256 amount) external;
@@ -94,6 +150,11 @@ interface ILiquidityDefs {
     function harvestFor(uint256 pid, address target) external;
 
     function pendingReward(
+        uint256 pid,
+        address _user
+    ) external view returns (uint256);
+
+    function pendingRewardWithNftBonus(
         uint256 pid,
         address _user
     ) external view returns (uint256);
