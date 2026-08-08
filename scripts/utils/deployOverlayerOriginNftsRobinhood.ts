@@ -143,16 +143,24 @@ async function main(): Promise<void> {
   );
   console.log("Aligned mint schedule (matches eth/base Dolphin & Whale):");
   console.log(
-    `  mintStartTime (whitelist): ${MINT_START_TIME} (${new Date(Number(MINT_START_TIME) * 1000).toISOString()})`
+    `  mintStartTime (whitelist): ${MINT_START_TIME} (${new Date(
+      Number(MINT_START_TIME) * 1000
+    ).toISOString()})`
   );
   console.log(
-    `  publicMintStartTime:       ${PUBLIC_MINT_START_TIME} (${new Date(Number(PUBLIC_MINT_START_TIME) * 1000).toISOString()})`
+    `  publicMintStartTime:       ${PUBLIC_MINT_START_TIME} (${new Date(
+      Number(PUBLIC_MINT_START_TIME) * 1000
+    ).toISOString()})`
   );
   console.log(
-    `  mintEndTime:               ${MINT_END_TIME} (${new Date(Number(MINT_END_TIME) * 1000).toISOString()})`
+    `  mintEndTime:               ${MINT_END_TIME} (${new Date(
+      Number(MINT_END_TIME) * 1000
+    ).toISOString()})`
   );
   console.log(
-    `  shrimp price:              ${ethers.formatEther(SHRIMP_INITIAL_MINT_PRICE)} ETH (flat)`
+    `  shrimp price:              ${ethers.formatEther(
+      SHRIMP_INITIAL_MINT_PRICE
+    )} ETH (flat)`
   );
 
   const deployments = [

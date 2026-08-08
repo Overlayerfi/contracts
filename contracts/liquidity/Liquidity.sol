@@ -865,7 +865,9 @@ contract Liquidity is
             return 0;
         }
         address refSource = referral.referralCodes(code);
-        IOverlayerReferral.ReferralType type_ = referral.referralCodeTypes(code);
+        IOverlayerReferral.ReferralType type_ = referral.referralCodeTypes(
+            code
+        );
         address[] memory referredUsers = referral.seeReferredByType(
             refSource,
             type_
