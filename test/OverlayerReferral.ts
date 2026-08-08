@@ -84,6 +84,27 @@ describe("Overlayer Referral System", function () {
         ethers.parseEther("10")
       );
     });
+
+    it("Should allow burn but reject peer transfers", async function () {
+      const { overlayerReferral, minter, bob, alice } = await loadFixture(
+        deployFixture
+      );
+      const amount = ethers.parseEther("10");
+      await overlayerReferral.connect(minter).mint(bob.address, amount);
+
+      await expect(
+        overlayerReferral.connect(bob).transfer(alice.address, amount)
+      ).to.be.revertedWithCustomError(
+        overlayerReferral,
+        "OverlayerReferralNonTransferable"
+      );
+
+      await expect(overlayerReferral.connect(bob).burn(amount)).to.emit(
+        overlayerReferral,
+        "Transfer"
+      );
+      expect(await overlayerReferral.balanceOf(bob.address)).to.equal(0);
+    });
   });
 
   describe("Referral Code Management", function () {
@@ -538,6 +559,59 @@ describe("Overlayer Referral System", function () {
       await expect(
         overlayerReferral.connect(minter).addPointsTracker(minter.address)
       ).to.be.eventually.rejected;
+    });
+
+    it("Should track Team and Ref points separately with total as sum", async function () {
+      const { overlayerReferral, admin, alice, bob } = await loadFixture(
+        deployFixture
+      );
+      await overlayerReferral.connect(admin).addPointsTracker(admin.address);
+      await overlayerReferral
+        .connect(admin)
+        .addCode("ALICE_TEAM", alice.address, ReferralType.Team);
+      await overlayerReferral
+        .connect(admin)
+        .addCode("ALICE_REF", alice.address, ReferralType.Ref);
+
+      const teamPts = ethers.parseEther("3");
+      const refPts = ethers.parseEther("2");
+      await overlayerReferral
+        .connect(admin)
+        .track(alice.address, teamPts, ReferralType.Team);
+      await overlayerReferral
+        .connect(admin)
+        .track(alice.address, refPts, ReferralType.Ref);
+
+      expect(
+        await overlayerReferral.generatedPointsByType(
+          alice.address,
+          ReferralType.Team
+        )
+      ).to.equal(teamPts);
+      expect(
+        await overlayerReferral.generatedPointsByType(
+          alice.address,
+          ReferralType.Ref
+        )
+      ).to.equal(refPts);
+      expect(await overlayerReferral.generatedPoints(alice.address)).to.equal(
+        teamPts + refPts
+      );
+      expect(await overlayerReferral.codeTotalPoints("ALICE_TEAM")).to.equal(
+        teamPts
+      );
+      expect(await overlayerReferral.codeTotalPoints("ALICE_REF")).to.equal(
+        refPts
+      );
+
+      await expect(
+        overlayerReferral
+          .connect(admin)
+          .track(bob.address, 1n, ReferralType.None)
+      ).to.be.revertedWithCustomError(
+        overlayerReferral,
+        "OverlayerReferralInvalidType"
+      );
     });
   });
 });

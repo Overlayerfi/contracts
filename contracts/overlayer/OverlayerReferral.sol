@@ -11,6 +11,7 @@ import {ILiquidityDefs} from "../liquidity/interfaces/ILiquidityDefs.sol";
  * @notice This token tracks the referral points for the Overlayer airdrop.
  * @dev Referral types Team and Ref are independent. Create/consume exclusivity is per type only.
  * @dev Team codes start closed: only whitelisted members can join until the owner opens the team.
+ * @dev AOVER is non-transferable: only mint (from zero) and burn (to zero) may change balances.
  */
 contract OverlayerReferral is
     MintableTokenBase,
@@ -35,8 +36,9 @@ contract OverlayerReferral is
     mapping(address => mapping(ReferralType => address[]))
         private referredUsersByType;
 
-    /// @notice Track all the generated referral points for given address
-    mapping(address => uint256) public generatedPoints;
+    /// @notice Generated referral points by address and type
+    mapping(address => mapping(ReferralType => uint256))
+        public generatedPointsByType;
 
     /// @notice External entities who can control the points tracking
     mapping(address => bool) public allowedPointsTrackers;
@@ -83,6 +85,8 @@ contract OverlayerReferral is
     error OverlayerReferralNotWhitelisted();
     /// @notice Caller does not own a Team referral code
     error OverlayerReferralNotTeamOwner();
+    /// @notice AOVER cannot be transferred between accounts
+    error OverlayerReferralNonTransferable();
 
     modifier onlyTracker() {
         if (!allowedPointsTrackers[msg.sender] && msg.sender != address(this)) {
@@ -96,6 +100,18 @@ contract OverlayerReferral is
     constructor(
         address admin_
     ) MintableTokenBase(admin_, "Airdrop Overlayer", "AOVER") {}
+
+    /// @dev Allow only mint (from == 0) and burn (to == 0); block peer transfers.
+    function _update(
+        address from,
+        address to,
+        uint256 value
+    ) internal override {
+        if (from != address(0) && to != address(0)) {
+            revert OverlayerReferralNonTransferable();
+        }
+        super._update(from, to, value);
+    }
 
     function getStakingPools() external view returns (address[] memory) {
         return stakingPools;
@@ -214,14 +230,19 @@ contract OverlayerReferral is
         emit Referral(source, consumer, type_);
     }
 
-    /// @notice Track a new points update
+    /// @notice Track a new points update for a referral type
     /// @param source_ The user address to track
     /// @param amount_ The amount of points to be tracked
+    /// @param type_ The referral type
     function track(
         address source_,
-        uint256 amount_
+        uint256 amount_,
+        ReferralType type_
     ) external override onlyTracker {
-        generatedPoints[source_] += amount_;
+        if (!_isValidType(type_)) {
+            revert OverlayerReferralInvalidType();
+        }
+        generatedPointsByType[source_][type_] += amount_;
     }
 
     /// @notice Add a new points tracker
@@ -300,14 +321,24 @@ contract OverlayerReferral is
         return teamOpen[owner_] || teamWhitelist[owner_][consumer_];
     }
 
-    /// @notice Retrieve all points earned by a given code
+    /// @inheritdoc IOverlayerReferral
+    function generatedPoints(
+        address user_
+    ) external view override returns (uint256) {
+        return
+            generatedPointsByType[user_][ReferralType.Team] +
+            generatedPointsByType[user_][ReferralType.Ref];
+    }
+
+    /// @notice Points earned by a code (for that code's type only)
     /// @param code_ The referral code
-    /// @return The total points
+    /// @return Points for the code's type
     function codeTotalPoints(
         string memory code_
     ) external view returns (uint256) {
         address source = referralCodes[code_];
-        return generatedPoints[source];
+        ReferralType type_ = referralCodeTypes[code_];
+        return generatedPointsByType[source][type_];
     }
 
     /// @notice Retrieve all the active referral codes

@@ -358,6 +358,9 @@ export async function OverlayerReferral_canJoinTeam(
   return await contract.canJoinTeam(owner, consumer);
 }
 
+/** ReferralType.Ref */
+const REFERRAL_TYPE_REF = 2;
+
 export async function OverlayerReferral_getTeamDashboard(
   addr: string,
   owner: string,
@@ -366,7 +369,9 @@ export async function OverlayerReferral_getTeamDashboard(
   owner: string;
   code: string;
   open: boolean;
-  points: bigint;
+  pointsTeam: bigint;
+  pointsRef: bigint;
+  pointsTotal: bigint;
 }> {
   if (!ethers.isAddress(addr) || !ethers.isAddress(owner)) {
     throw new Error("invalid address");
@@ -378,23 +383,29 @@ export async function OverlayerReferral_getTeamDashboard(
   );
   // Full whitelist / member lists are not fetched here (unbounded); use
   // isTeamWhitelisted / canJoinTeam / event indexing for membership UX.
-  const [code, open, points] = await Promise.all([
+  const [code, open, pointsTeam, pointsRef, pointsTotal] = await Promise.all([
     contract.referralCodesByType(owner, REFERRAL_TYPE_TEAM),
     contract.isTeamOpen(owner),
+    contract.generatedPointsByType(owner, REFERRAL_TYPE_TEAM),
+    contract.generatedPointsByType(owner, REFERRAL_TYPE_REF),
     contract.generatedPoints(owner)
   ]);
   const dashboard = {
     owner,
     code,
     open,
-    points
+    pointsTeam,
+    pointsRef,
+    pointsTotal
   };
   console.log(
     "[OverlayerReferral_getTeamDashboard]",
     JSON.stringify(
       {
         ...dashboard,
-        points: points.toString()
+        pointsTeam: pointsTeam.toString(),
+        pointsRef: pointsRef.toString(),
+        pointsTotal: pointsTotal.toString()
       },
       null,
       2

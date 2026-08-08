@@ -1014,7 +1014,7 @@ contract Liquidity is
         uint256 bonus = originalAmount.mulDiv(referralBonus_, 100);
         if (bonus > 0) {
             _payReward(asset, recipient, bonus);
-            referral.track(recipient, bonus);
+            referral.track(recipient, bonus, type_);
             emit BonusPayed(recipient, bonus, type_);
         }
 
