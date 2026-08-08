@@ -254,6 +254,155 @@ export async function OverlayerReferral_addTrackers(
   console.log("[OverlayerReferral_addTrackers] Operation passed");
 }
 
+/** ReferralType.Team */
+const REFERRAL_TYPE_TEAM = 1;
+
+export async function OverlayerReferral_setTeamOpen(
+  addr: string,
+  open: boolean,
+  signer: Signer
+): Promise<void> {
+  if (!ethers.isAddress(addr)) {
+    throw new Error(`${addr} is not a valid address`);
+  }
+  const contract = new ethers.Contract(
+    addr,
+    OVERLAYER_REFERRAL_ABI.abi,
+    signer
+  );
+  console.log(
+    `[OverlayerReferral_setTeamOpen] signer=${await signer.getAddress()} open=${open}`
+  );
+  const tx = await (contract as Contract).setTeamOpen(open, {
+    gasLimit: 2000000
+  });
+  await tx.wait();
+  console.log(`[OverlayerReferral_setTeamOpen] tx=${tx.hash}`);
+}
+
+export async function OverlayerReferral_setTeamWhitelist(
+  addr: string,
+  member: string,
+  allowed: boolean,
+  signer: Signer
+): Promise<void> {
+  if (!ethers.isAddress(addr) || !ethers.isAddress(member)) {
+    throw new Error("invalid address");
+  }
+  const contract = new ethers.Contract(
+    addr,
+    OVERLAYER_REFERRAL_ABI.abi,
+    signer
+  );
+  console.log(
+    `[OverlayerReferral_setTeamWhitelist] signer=${await signer.getAddress()} member=${member} allowed=${allowed}`
+  );
+  const tx = await (contract as Contract).setTeamWhitelist(member, allowed, {
+    gasLimit: 2000000
+  });
+  await tx.wait();
+  console.log(`[OverlayerReferral_setTeamWhitelist] tx=${tx.hash}`);
+}
+
+export async function OverlayerReferral_batchSetTeamWhitelist(
+  addr: string,
+  members: string[],
+  allowed: boolean,
+  signer: Signer
+): Promise<void> {
+  if (!ethers.isAddress(addr)) {
+    throw new Error(`${addr} is not a valid address`);
+  }
+  for (const m of members) {
+    if (!ethers.isAddress(m)) {
+      throw new Error(`${m} is not a valid address`);
+    }
+  }
+  const contract = new ethers.Contract(
+    addr,
+    OVERLAYER_REFERRAL_ABI.abi,
+    signer
+  );
+  console.log(
+    `[OverlayerReferral_batchSetTeamWhitelist] signer=${await signer.getAddress()} count=${
+      members.length
+    } allowed=${allowed}`
+  );
+  const tx = await (contract as Contract).batchSetTeamWhitelist(
+    members,
+    allowed,
+    { gasLimit: 5_000_000 }
+  );
+  await tx.wait();
+  console.log(`[OverlayerReferral_batchSetTeamWhitelist] tx=${tx.hash}`);
+}
+
+export async function OverlayerReferral_canJoinTeam(
+  addr: string,
+  owner: string,
+  consumer: string,
+  provider: any
+): Promise<boolean> {
+  if (
+    !ethers.isAddress(addr) ||
+    !ethers.isAddress(owner) ||
+    !ethers.isAddress(consumer)
+  ) {
+    throw new Error("invalid address");
+  }
+  const contract = new ethers.Contract(
+    addr,
+    OVERLAYER_REFERRAL_ABI.abi,
+    provider
+  );
+  return await contract.canJoinTeam(owner, consumer);
+}
+
+export async function OverlayerReferral_getTeamDashboard(
+  addr: string,
+  owner: string,
+  provider: any
+): Promise<{
+  owner: string;
+  code: string;
+  open: boolean;
+  points: bigint;
+}> {
+  if (!ethers.isAddress(addr) || !ethers.isAddress(owner)) {
+    throw new Error("invalid address");
+  }
+  const contract = new ethers.Contract(
+    addr,
+    OVERLAYER_REFERRAL_ABI.abi,
+    provider
+  );
+  // Full whitelist / member lists are not fetched here (unbounded); use
+  // isTeamWhitelisted / canJoinTeam / event indexing for membership UX.
+  const [code, open, points] = await Promise.all([
+    contract.referralCodesByType(owner, REFERRAL_TYPE_TEAM),
+    contract.isTeamOpen(owner),
+    contract.generatedPoints(owner)
+  ]);
+  const dashboard = {
+    owner,
+    code,
+    open,
+    points
+  };
+  console.log(
+    "[OverlayerReferral_getTeamDashboard]",
+    JSON.stringify(
+      {
+        ...dashboard,
+        points: points.toString()
+      },
+      null,
+      2
+    )
+  );
+  return dashboard;
+}
+
 export async function deploy_LiquidityAirdropReward(
   admin: string
 ): Promise<string> {

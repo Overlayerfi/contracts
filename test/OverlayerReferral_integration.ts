@@ -226,6 +226,7 @@ describe("CurveStableStake", function () {
         await tokenRewardOneOverlayerReferral
           .connect(owner)
           .addCode("2025", owner.address, 1);
+        await tokenRewardOneOverlayerReferral.connect(owner).setTeamOpen(true);
         expect(
           await tokenRewardOneOverlayerReferral.balanceOf(alice.address)
         ).to.be.equal(0);

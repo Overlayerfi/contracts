@@ -176,6 +176,8 @@ describe("Overlayer Referral System", function () {
           .connect(admin)
           .addCode("ALICE", await alice.getAddress(), ReferralType.Team)
       ).to.emit(overlayerReferral, "NewCode");
+      // Teams start closed; open so bob can join
+      await overlayerReferral.connect(alice).setTeamOpen(true);
       await expect(
         await overlayerReferral.connect(bob).consumeReferral("ALICE")
       ).to.emit(overlayerReferral, "Referral");
@@ -220,6 +222,7 @@ describe("Overlayer Referral System", function () {
           .connect(admin)
           .addCode("ALICE", await alice.getAddress(), ReferralType.Team)
       ).to.emit(overlayerReferral, "NewCode");
+      await overlayerReferral.connect(alice).setTeamOpen(true);
       await expect(
         await overlayerReferral.connect(bob).consumeReferral("ALICE")
       ).to.emit(overlayerReferral, "Referral");
@@ -285,6 +288,7 @@ describe("Overlayer Referral System", function () {
         .connect(admin)
         .addCode("BOB_REF", bob.address, ReferralType.Ref);
 
+      await overlayerReferral.connect(alice).setTeamOpen(true);
       await overlayerReferral.connect(carol).consumeReferral("ALICE_TEAM");
       await overlayerReferral.connect(carol).consumeReferral("BOB_REF");
 
@@ -329,6 +333,179 @@ describe("Overlayer Referral System", function () {
         overlayerReferral,
         "OverlayerReferralNotFresh"
       );
+    });
+  });
+
+  describe("Team open/closed and whitelist", function () {
+    it("Should start closed and reject non-whitelisted Team consume", async function () {
+      const { overlayerReferral, admin, bob, alice } = await loadFixture(
+        deployFixture
+      );
+      await overlayerReferral
+        .connect(admin)
+        .addCode("ALICE", alice.address, ReferralType.Team);
+
+      expect(await overlayerReferral.isTeamOpen(alice.address)).to.equal(false);
+      expect(
+        await overlayerReferral.canJoinTeam(alice.address, bob.address)
+      ).to.equal(false);
+
+      await expect(
+        overlayerReferral.connect(bob).consumeReferral("ALICE")
+      ).to.be.revertedWithCustomError(
+        overlayerReferral,
+        "OverlayerReferralNotWhitelisted"
+      );
+    });
+
+    it("Should allow Team consume after whitelist or open", async function () {
+      const { overlayerReferral, admin, bob, alice } = await loadFixture(
+        deployFixture
+      );
+      const [, , , , carol] = await ethers.getSigners();
+
+      await overlayerReferral
+        .connect(admin)
+        .addCode("ALICE", alice.address, ReferralType.Team);
+
+      await expect(
+        await overlayerReferral
+          .connect(alice)
+          .setTeamWhitelist(bob.address, true)
+      ).to.emit(overlayerReferral, "TeamWhitelistUpdated");
+
+      expect(
+        await overlayerReferral.isTeamWhitelisted(alice.address, bob.address)
+      ).to.equal(true);
+      expect(
+        await overlayerReferral.canJoinTeam(alice.address, bob.address)
+      ).to.equal(true);
+
+      await expect(
+        await overlayerReferral.connect(bob).consumeReferral("ALICE")
+      ).to.emit(overlayerReferral, "Referral");
+
+      // Open team allows anyone else without whitelist
+      await expect(
+        await overlayerReferral.connect(alice).setTeamOpen(true)
+      ).to.emit(overlayerReferral, "TeamOpenUpdated");
+      expect(await overlayerReferral.isTeamOpen(alice.address)).to.equal(true);
+      expect(
+        await overlayerReferral.canJoinTeam(alice.address, carol.address)
+      ).to.equal(true);
+
+      await expect(
+        await overlayerReferral.connect(carol).consumeReferral("ALICE")
+      ).to.emit(overlayerReferral, "Referral");
+      const referred = await overlayerReferral.seeReferredByType(
+        alice.address,
+        ReferralType.Team
+      );
+      expect(referred).to.deep.equal([bob.address, carol.address]);
+    });
+
+    it("Should support batch whitelist and restore closed gate", async function () {
+      const { overlayerReferral, admin, minter, bob, alice } =
+        await loadFixture(deployFixture);
+      const [, , , , carol] = await ethers.getSigners();
+
+      await overlayerReferral
+        .connect(admin)
+        .addCode("ALICE", alice.address, ReferralType.Team);
+
+      await overlayerReferral
+        .connect(alice)
+        .batchSetTeamWhitelist([bob.address, carol.address], true);
+
+      expect(
+        await overlayerReferral.isTeamWhitelisted(alice.address, bob.address)
+      ).to.equal(true);
+      expect(
+        await overlayerReferral.isTeamWhitelisted(alice.address, carol.address)
+      ).to.equal(true);
+
+      await overlayerReferral.connect(bob).consumeReferral("ALICE");
+
+      // Close remains default; unwhitelisted minter cannot join
+      await expect(
+        overlayerReferral.connect(minter).consumeReferral("ALICE")
+      ).to.be.revertedWithCustomError(
+        overlayerReferral,
+        "OverlayerReferralNotWhitelisted"
+      );
+
+      // Open then close restores whitelist gate
+      await overlayerReferral.connect(alice).setTeamOpen(true);
+      await overlayerReferral.connect(alice).setTeamOpen(false);
+      await expect(
+        overlayerReferral.connect(minter).consumeReferral("ALICE")
+      ).to.be.revertedWithCustomError(
+        overlayerReferral,
+        "OverlayerReferralNotWhitelisted"
+      );
+      await overlayerReferral
+        .connect(alice)
+        .setTeamWhitelist(minter.address, true);
+      await expect(
+        await overlayerReferral.connect(minter).consumeReferral("ALICE")
+      ).to.emit(overlayerReferral, "Referral");
+    });
+
+    it("Should reject non-owner team management and keep joined after unwhitelist", async function () {
+      const { overlayerReferral, admin, bob, alice } = await loadFixture(
+        deployFixture
+      );
+
+      await overlayerReferral
+        .connect(admin)
+        .addCode("ALICE", alice.address, ReferralType.Team);
+
+      await expect(
+        overlayerReferral.connect(bob).setTeamOpen(true)
+      ).to.be.revertedWithCustomError(
+        overlayerReferral,
+        "OverlayerReferralNotTeamOwner"
+      );
+      await expect(
+        overlayerReferral.connect(bob).setTeamWhitelist(bob.address, true)
+      ).to.be.revertedWithCustomError(
+        overlayerReferral,
+        "OverlayerReferralNotTeamOwner"
+      );
+
+      await overlayerReferral
+        .connect(alice)
+        .setTeamWhitelist(bob.address, true);
+      await overlayerReferral.connect(bob).consumeReferral("ALICE");
+
+      await overlayerReferral
+        .connect(alice)
+        .setTeamWhitelist(bob.address, false);
+      await overlayerReferral.connect(alice).setTeamOpen(false);
+
+      expect(
+        await overlayerReferral.referredFromByType(
+          bob.address,
+          ReferralType.Team
+        )
+      ).to.equal(alice.address);
+      expect(
+        await overlayerReferral.isTeamWhitelisted(alice.address, bob.address)
+      ).to.equal(false);
+    });
+
+    it("Should ignore team open/whitelist for Ref consume", async function () {
+      const { overlayerReferral, admin, bob, alice } = await loadFixture(
+        deployFixture
+      );
+      await overlayerReferral
+        .connect(admin)
+        .addCode("BOB_REF", bob.address, ReferralType.Ref);
+
+      // No team open/whitelist needed for Ref
+      await expect(
+        await overlayerReferral.connect(alice).consumeReferral("BOB_REF")
+      ).to.emit(overlayerReferral, "Referral");
     });
   });
 

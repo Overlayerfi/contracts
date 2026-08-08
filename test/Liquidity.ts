@@ -496,6 +496,7 @@ describe("Liquidity", function () {
       await tokenRewardOneOverlayerReferral
         .connect(owner)
         .addCode("BOB", bob.address, 1);
+      await tokenRewardOneOverlayerReferral.connect(bob).setTeamOpen(true);
 
       // Consume referral code
       await tokenRewardOneOverlayerReferral
@@ -637,6 +638,7 @@ describe("Liquidity", function () {
       await tokenRewardOneOverlayerReferral
         .connect(owner)
         .addCode("BOB_REF", bob.address, ReferralTypeRef);
+      await tokenRewardOneOverlayerReferral.connect(bob).setTeamOpen(true);
 
       await tokenRewardOneOverlayerReferral
         .connect(alice)
@@ -1767,6 +1769,7 @@ describe("Liquidity", function () {
       await tokenRewardOneOverlayerReferral
         .connect(owner)
         .addCode("BOB", bob.address, 1); // ReferralType.Team
+      await tokenRewardOneOverlayerReferral.connect(bob).setTeamOpen(true);
       await tokenRewardOneOverlayerReferral
         .connect(alice)
         .consumeReferral("BOB");
@@ -2646,6 +2649,7 @@ describe("Liquidity", function () {
       await tokenRewardOneOverlayerReferral
         .connect(owner)
         .addCode("BOB", bob.address, 1); // ReferralType.Team
+      await tokenRewardOneOverlayerReferral.connect(bob).setTeamOpen(true);
       await tokenRewardOneOverlayerReferral
         .connect(alice)
         .consumeReferral("BOB");
@@ -2726,6 +2730,7 @@ describe("Liquidity", function () {
       await tokenRewardOneOverlayerReferral
         .connect(owner)
         .addCode("BOB", bob.address, ReferralTypeRef);
+      await tokenRewardOneOverlayerReferral.connect(rob).setTeamOpen(true);
       await tokenRewardOneOverlayerReferral
         .connect(alice)
         .consumeReferral("ROB");
@@ -2820,6 +2825,7 @@ describe("Liquidity", function () {
       await tokenRewardOneOverlayerReferral
         .connect(owner)
         .addCode("BOB", bob.address, ReferralTypeRef);
+      await tokenRewardOneOverlayerReferral.connect(rob).setTeamOpen(true);
 
       await expect(
         tokenRewardOneOverlayerReferral.connect(alice).consumeReferral("BOB")
@@ -2871,6 +2877,7 @@ describe("Liquidity", function () {
       await tokenRewardOneOverlayerReferral
         .connect(owner)
         .addCode("BOB", bob.address, ReferralTypeRef);
+      await tokenRewardOneOverlayerReferral.connect(rob).setTeamOpen(true);
 
       // --- Phase 0: bind Ref while fresh, then deposit ---
       await tokenRewardOneOverlayerReferral

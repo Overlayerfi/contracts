@@ -10,6 +10,7 @@ import {ILiquidityDefs} from "../liquidity/interfaces/ILiquidityDefs.sol";
  * @title OverlayerReferral
  * @notice This token tracks the referral points for the Overlayer airdrop.
  * @dev Referral types Team and Ref are independent. Create/consume exclusivity is per type only.
+ * @dev Team codes start closed: only whitelisted members can join until the owner opens the team.
  */
 contract OverlayerReferral is
     MintableTokenBase,
@@ -46,6 +47,12 @@ contract OverlayerReferral is
     /// @notice All staking pools where this token is emitted from
     address[] public stakingPools;
 
+    /// @notice Team owner => whether anyone can join without whitelist
+    mapping(address => bool) public teamOpen;
+
+    /// @notice Team owner => member => whether whitelisted to join while closed
+    mapping(address => mapping(address => bool)) public teamWhitelist;
+
     event Referral(
         address indexed source,
         address consumer,
@@ -55,6 +62,12 @@ contract OverlayerReferral is
     event AddTracker(address tracker);
     event RemoveTracker(address tracker);
     event StakingPoolSet(address[] pools);
+    event TeamOpenUpdated(address indexed owner, bool open);
+    event TeamWhitelistUpdated(
+        address indexed owner,
+        address indexed member,
+        bool allowed
+    );
 
     error OverlayerReferralAlreadyReferred();
     error OverlayerReferralZeroAddress();
@@ -66,6 +79,10 @@ contract OverlayerReferral is
     error OverlayerReferralInvalidType();
     /// @notice Ref codes may only be consumed by users with no reward balance and no deposits
     error OverlayerReferralNotFresh();
+    /// @notice Team is closed and consumer is not on the team whitelist
+    error OverlayerReferralNotWhitelisted();
+    /// @notice Caller does not own a Team referral code
+    error OverlayerReferralNotTeamOwner();
 
     modifier onlyTracker() {
         if (!allowedPointsTrackers[msg.sender] && msg.sender != address(this)) {
@@ -89,9 +106,43 @@ contract OverlayerReferral is
         emit StakingPoolSet(pools_);
     }
 
+    /// @notice Open or close the caller's Team for joining
+    /// @dev Team codes start closed. Opening does not clear the whitelist.
+    /// @param open_ True to allow anyone to join; false to require whitelist
+    function setTeamOpen(bool open_) external {
+        _requireTeamOwner(msg.sender);
+        teamOpen[msg.sender] = open_;
+        emit TeamOpenUpdated(msg.sender, open_);
+    }
+
+    /// @notice Add or remove a member from the caller's Team whitelist
+    /// @param member_ The member address
+    /// @param allowed_ True to whitelist; false to remove
+    function setTeamWhitelist(address member_, bool allowed_) external {
+        _requireTeamOwner(msg.sender);
+        _setTeamWhitelist(msg.sender, member_, allowed_);
+    }
+
+    /// @notice Batch add or remove members from the caller's Team whitelist
+    /// @param members_ The member addresses
+    /// @param allowed_ True to whitelist; false to remove
+    function batchSetTeamWhitelist(
+        address[] calldata members_,
+        bool allowed_
+    ) external {
+        _requireTeamOwner(msg.sender);
+        for (uint256 i = 0; i < members_.length; ) {
+            _setTeamWhitelist(msg.sender, members_[i], allowed_);
+            unchecked {
+                i++;
+            }
+        }
+    }
+
     /// @notice Consume a referral code
     /// @dev Create/consume exclusivity is enforced per type only. Staking pools must be set.
-    /// @dev Team: harvests all open positions first so bonuses apply only to future accrual.
+    /// @dev Team: closed by default — consumer must be whitelisted unless the team is open.
+    ///      Harvests all open positions first so bonuses apply only to future accrual.
     /// @dev Ref: consumer must be fresh — zero reward-token balance and zero deposits in all pools.
     ///      Pending rewards are not checked separately: with amount == 0 they are always zero.
     /// @param code_ The referral code
@@ -121,6 +172,15 @@ contract OverlayerReferral is
 
         if (stakingPools.length == 0) {
             revert OverlayerReferralStakingPoolsNotSet();
+        }
+
+        // Team join gate: open teams allow anyone; closed require whitelist
+        if (
+            type_ == ReferralType.Team &&
+            !teamOpen[source] &&
+            !teamWhitelist[source][consumer]
+        ) {
+            revert OverlayerReferralNotWhitelisted();
         }
 
         // Ref also requires no already-claimed reward tokens
@@ -219,6 +279,27 @@ contract OverlayerReferral is
         return referredUsersByType[source][type_];
     }
 
+    /// @inheritdoc IOverlayerReferral
+    function isTeamOpen(address owner_) external view override returns (bool) {
+        return teamOpen[owner_];
+    }
+
+    /// @inheritdoc IOverlayerReferral
+    function isTeamWhitelisted(
+        address owner_,
+        address member_
+    ) external view override returns (bool) {
+        return teamWhitelist[owner_][member_];
+    }
+
+    /// @inheritdoc IOverlayerReferral
+    function canJoinTeam(
+        address owner_,
+        address consumer_
+    ) external view override returns (bool) {
+        return teamOpen[owner_] || teamWhitelist[owner_][consumer_];
+    }
+
     /// @notice Retrieve all points earned by a given code
     /// @param code_ The referral code
     /// @return The total points
@@ -269,7 +350,30 @@ contract OverlayerReferral is
         referralCodeTypes[code_] = type_;
         referralCodesByType[holder_][type_] = code_;
         codes.push(code_);
+        // Team codes start closed (teamOpen[holder_] defaults to false)
         emit NewCode(code_, holder_, type_);
+    }
+
+    function _requireTeamOwner(address owner_) internal view {
+        if (bytes(referralCodesByType[owner_][ReferralType.Team]).length == 0) {
+            revert OverlayerReferralNotTeamOwner();
+        }
+    }
+
+    function _setTeamWhitelist(
+        address owner_,
+        address member_,
+        bool allowed_
+    ) internal {
+        if (member_ == address(0)) {
+            revert OverlayerReferralZeroAddress();
+        }
+        bool currently = teamWhitelist[owner_][member_];
+        if (allowed_ == currently) {
+            return;
+        }
+        teamWhitelist[owner_][member_] = allowed_;
+        emit TeamWhitelistUpdated(owner_, member_, allowed_);
     }
 
     function _isValidType(ReferralType type_) internal pure returns (bool) {

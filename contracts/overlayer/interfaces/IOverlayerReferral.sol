@@ -55,6 +55,29 @@ interface IOverlayerReferral {
     /// @return The total number of points generated
     function generatedPoints(address user) external view returns (uint256);
 
+    /// @notice Whether a team is open for anyone to join
+    /// @param owner_ The team owner
+    /// @return True if the team is open
+    function isTeamOpen(address owner_) external view returns (bool);
+
+    /// @notice Whether a member is on a team's whitelist
+    /// @param owner_ The team owner
+    /// @param member_ The candidate member
+    /// @return True if whitelisted
+    function isTeamWhitelisted(
+        address owner_,
+        address member_
+    ) external view returns (bool);
+
+    /// @notice Whether a consumer can join a team (open or whitelisted)
+    /// @param owner_ The team owner
+    /// @param consumer_ The candidate consumer
+    /// @return True if join is allowed
+    function canJoinTeam(
+        address owner_,
+        address consumer_
+    ) external view returns (bool);
+
     /// @notice Track points for a referral action
     /// @param user The address to track points for
     /// @param amount The amount of points to add
