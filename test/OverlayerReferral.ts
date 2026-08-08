@@ -9,6 +9,68 @@ const ReferralType = {
   Ref: 2n
 } as const;
 
+function pointsMerkleLeaf(account: string, amount: bigint): string {
+  const encoded = ethers.AbiCoder.defaultAbiCoder().encode(
+    ["address", "uint256"],
+    [account, amount]
+  );
+  return ethers.keccak256(ethers.keccak256(encoded));
+}
+
+function hashPair(first: string, second: string): string {
+  return ethers.keccak256(
+    BigInt(first) < BigInt(second)
+      ? ethers.concat([first, second])
+      : ethers.concat([second, first])
+  );
+}
+
+function buildPointsMerkleTree(entries: { account: string; amount: bigint }[]) {
+  const sorted = [...entries].sort((a, b) => {
+    const byAddr = a.account
+      .toLowerCase()
+      .localeCompare(b.account.toLowerCase());
+    if (byAddr !== 0) return byAddr;
+    return a.amount < b.amount ? -1 : a.amount > b.amount ? 1 : 0;
+  });
+  const leaves = sorted.map((e) => pointsMerkleLeaf(e.account, e.amount));
+  const layers: string[][] = [leaves];
+  let currentLayer = layers[0];
+
+  while (currentLayer.length > 1) {
+    const nextLayer: string[] = [];
+    for (let index = 0; index < currentLayer.length; index += 2) {
+      const left = currentLayer[index];
+      const right = currentLayer[index + 1] ?? left;
+      nextLayer.push(hashPair(left, right));
+    }
+    layers.push(nextLayer);
+    currentLayer = nextLayer;
+  }
+
+  return {
+    root: currentLayer[0],
+    proofFor(account: string, amount: bigint): string[] {
+      let index = sorted.findIndex(
+        (e) =>
+          e.account.toLowerCase() === account.toLowerCase() &&
+          e.amount === amount
+      );
+      if (index === -1) {
+        throw new Error("Entry is not in the Merkle tree");
+      }
+      const proof: string[] = [];
+      for (let layerIndex = 0; layerIndex < layers.length - 1; ++layerIndex) {
+        const layer = layers[layerIndex];
+        const siblingIndex = index % 2 === 0 ? index + 1 : index - 1;
+        proof.push(layer[siblingIndex] ?? layer[index]);
+        index = Math.floor(index / 2);
+      }
+      return proof;
+    }
+  };
+}
+
 describe("Overlayer Referral System", function () {
   async function deployFixture() {
     const [admin, minter, bob, alice] = await ethers.getSigners();
@@ -104,6 +166,137 @@ describe("Overlayer Referral System", function () {
         "Transfer"
       );
       expect(await overlayerReferral.balanceOf(bob.address)).to.equal(0);
+    });
+
+    it("Should let users claim OVERP via Merkle allocation proofs", async function () {
+      const { overlayerReferral, admin, bob, alice } = await loadFixture(
+        deployFixture
+      );
+      const bobAmt = ethers.parseEther("5");
+      const aliceAmt = ethers.parseEther("12");
+      const tree = buildPointsMerkleTree([
+        { account: bob.address, amount: bobAmt },
+        { account: alice.address, amount: aliceAmt }
+      ]);
+
+      await expect(
+        overlayerReferral.connect(admin).setPointsMerkleRoot(tree.root)
+      )
+        .to.emit(overlayerReferral, "PointsMerkleRootUpdated")
+        .withArgs(tree.root);
+
+      const bobProof = tree.proofFor(bob.address, bobAmt);
+      expect(
+        await overlayerReferral.canClaimPoints(bob.address, bobAmt, bobProof)
+      ).to.equal(true);
+
+      await expect(overlayerReferral.connect(bob).claimPoints(bobAmt, bobProof))
+        .to.emit(overlayerReferral, "PointsClaimed")
+        .withArgs(bob.address, bobAmt, tree.root);
+      expect(await overlayerReferral.balanceOf(bob.address)).to.equal(bobAmt);
+      expect(
+        await overlayerReferral.hasClaimedPoints(tree.root, bob.address)
+      ).to.equal(true);
+
+      await expect(
+        overlayerReferral.connect(bob).claimPoints(bobAmt, bobProof)
+      ).to.be.revertedWithCustomError(
+        overlayerReferral,
+        "OverlayerReferralAlreadyClaimed"
+      );
+
+      await expect(
+        overlayerReferral
+          .connect(alice)
+          .claimPoints(bobAmt, tree.proofFor(alice.address, aliceAmt))
+      ).to.be.revertedWithCustomError(
+        overlayerReferral,
+        "OverlayerReferralInvalidMerkleProof"
+      );
+
+      await overlayerReferral
+        .connect(alice)
+        .claimPoints(aliceAmt, tree.proofFor(alice.address, aliceAmt));
+      expect(await overlayerReferral.balanceOf(alice.address)).to.equal(
+        aliceAmt
+      );
+      expect(
+        await overlayerReferral.canClaimPoints(
+          alice.address,
+          aliceAmt,
+          tree.proofFor(alice.address, aliceAmt)
+        )
+      ).to.equal(false);
+    });
+
+    it("Should enforce Merkle claim edge cases and root rotation", async function () {
+      const { overlayerReferral, admin, bob, alice } = await loadFixture(
+        deployFixture
+      );
+      const amount = ethers.parseEther("3");
+      const tree = buildPointsMerkleTree([{ account: bob.address, amount }]);
+      const proof = tree.proofFor(bob.address, amount);
+
+      // Unset root
+      await expect(
+        overlayerReferral.connect(bob).claimPoints(amount, proof)
+      ).to.be.revertedWithCustomError(
+        overlayerReferral,
+        "OverlayerReferralInvalidMerkleProof"
+      );
+      expect(
+        await overlayerReferral.canClaimPoints(bob.address, amount, proof)
+      ).to.equal(false);
+
+      // Non-owner cannot set root
+      await expect(
+        overlayerReferral.connect(bob).setPointsMerkleRoot(tree.root)
+      ).to.be.rejected;
+
+      await overlayerReferral.connect(admin).setPointsMerkleRoot(tree.root);
+
+      // Zero amount
+      await expect(
+        overlayerReferral.connect(bob).claimPoints(0n, proof)
+      ).to.be.revertedWithCustomError(
+        overlayerReferral,
+        "OverlayerReferralZeroAmount"
+      );
+
+      // Leaf parity with on-chain helper
+      expect(
+        await overlayerReferral.pointsMerkleLeaf(bob.address, amount)
+      ).to.equal(pointsMerkleLeaf(bob.address, amount));
+
+      // Single-leaf tree (empty proof) claim
+      await overlayerReferral.connect(bob).claimPoints(amount, proof);
+      expect(await overlayerReferral.balanceOf(bob.address)).to.equal(amount);
+
+      // New root campaign allows a fresh claim for another allocation
+      const aliceAmt = ethers.parseEther("7");
+      const nextTree = buildPointsMerkleTree([
+        { account: alice.address, amount: aliceAmt }
+      ]);
+      await overlayerReferral.connect(admin).setPointsMerkleRoot(nextTree.root);
+      await overlayerReferral
+        .connect(alice)
+        .claimPoints(aliceAmt, nextTree.proofFor(alice.address, aliceAmt));
+      expect(await overlayerReferral.balanceOf(alice.address)).to.equal(
+        aliceAmt
+      );
+
+      // Clearing root disables claims
+      await overlayerReferral
+        .connect(admin)
+        .setPointsMerkleRoot(ethers.ZeroHash);
+      await expect(
+        overlayerReferral
+          .connect(alice)
+          .claimPoints(aliceAmt, nextTree.proofFor(alice.address, aliceAmt))
+      ).to.be.revertedWithCustomError(
+        overlayerReferral,
+        "OverlayerReferralInvalidMerkleProof"
+      );
     });
   });
 

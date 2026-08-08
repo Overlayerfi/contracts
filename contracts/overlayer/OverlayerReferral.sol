@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "./MintableTokenBase.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "./interfaces/IOverlayerReferral.sol";
 import {ILiquidityDefs} from "../liquidity/interfaces/ILiquidityDefs.sol";
 
@@ -11,7 +12,7 @@ import {ILiquidityDefs} from "../liquidity/interfaces/ILiquidityDefs.sol";
  * @notice This token tracks the referral points for the Overlayer airdrop.
  * @dev Referral types Team and Ref are independent. Create/consume exclusivity is per type only.
  * @dev Team codes start closed: only whitelisted members can join until the owner opens the team.
- * @dev AOVER is non-transferable: only mint (from zero) and burn (to zero) may change balances.
+ * @dev OVERP is non-transferable: only mint (from zero) and burn (to zero) may change balances.
  */
 contract OverlayerReferral is
     MintableTokenBase,
@@ -55,6 +56,12 @@ contract OverlayerReferral is
     /// @notice Team owner => member => whether whitelisted to join while closed
     mapping(address => mapping(address => bool)) public teamWhitelist;
 
+    /// @notice Merkle root for off-chain OVERP allocations (address + amount leaves)
+    bytes32 public pointsMerkleRoot;
+
+    /// @notice Whether an account has claimed against a given points Merkle root
+    mapping(bytes32 => mapping(address => bool)) public hasClaimedPoints;
+
     event Referral(
         address indexed source,
         address consumer,
@@ -70,6 +77,8 @@ contract OverlayerReferral is
         address indexed member,
         bool allowed
     );
+    event PointsMerkleRootUpdated(bytes32 indexed merkleRoot);
+    event PointsClaimed(address indexed user, uint256 amount, bytes32 root);
 
     error OverlayerReferralAlreadyReferred();
     error OverlayerReferralZeroAddress();
@@ -85,8 +94,14 @@ contract OverlayerReferral is
     error OverlayerReferralNotWhitelisted();
     /// @notice Caller does not own a Team referral code
     error OverlayerReferralNotTeamOwner();
-    /// @notice AOVER cannot be transferred between accounts
+    /// @notice OVERP cannot be transferred between accounts
     error OverlayerReferralNonTransferable();
+    /// @notice Merkle proof is invalid or root is unset
+    error OverlayerReferralInvalidMerkleProof();
+    /// @notice Caller already claimed against the current points Merkle root
+    error OverlayerReferralAlreadyClaimed();
+    /// @notice Claim amount must be non-zero
+    error OverlayerReferralZeroAmount();
 
     modifier onlyTracker() {
         if (!allowedPointsTrackers[msg.sender] && msg.sender != address(this)) {
@@ -99,7 +114,7 @@ contract OverlayerReferral is
     ///@param admin_ The contract admin
     constructor(
         address admin_
-    ) MintableTokenBase(admin_, "Airdrop Overlayer", "AOVER") {}
+    ) MintableTokenBase(admin_, "OverlayerPoints", "OVERP") {}
 
     /// @dev Allow only mint (from == 0) and burn (to == 0); block peer transfers.
     function _update(
@@ -120,6 +135,78 @@ contract OverlayerReferral is
     function setStakingPools(address[] memory pools_) external onlyOwner {
         stakingPools = pools_;
         emit StakingPoolSet(pools_);
+    }
+
+    /// @notice Set the Merkle root for off-chain OVERP allocations
+    /// @dev Leaf is double-hashed `abi.encode(account, amount)` (same style as Origin NFT).
+    ///      Replacing the root enables a new campaign; claims are tracked per root.
+    /// @param merkleRoot_ Root of (address, amount) leaves; zero disables claims
+    function setPointsMerkleRoot(bytes32 merkleRoot_) external onlyOwner {
+        pointsMerkleRoot = merkleRoot_;
+        emit PointsMerkleRootUpdated(merkleRoot_);
+    }
+
+    /// @notice Claim OVERP via Merkle proof; mints `amount_` to the caller
+    /// @param amount_ Allocation amount encoded in the caller's leaf
+    /// @param proof_ Sorted Merkle sibling hashes
+    function claimPoints(
+        uint256 amount_,
+        bytes32[] calldata proof_
+    ) external override nonReentrant {
+        if (amount_ == 0) {
+            revert OverlayerReferralZeroAmount();
+        }
+        bytes32 root = pointsMerkleRoot;
+        if (root == bytes32(0)) {
+            revert OverlayerReferralInvalidMerkleProof();
+        }
+        if (hasClaimedPoints[root][msg.sender]) {
+            revert OverlayerReferralAlreadyClaimed();
+        }
+        if (
+            !MerkleProof.verifyCalldata(
+                proof_,
+                root,
+                pointsMerkleLeaf(msg.sender, amount_)
+            )
+        ) {
+            revert OverlayerReferralInvalidMerkleProof();
+        }
+        hasClaimedPoints[root][msg.sender] = true;
+        _mint(msg.sender, amount_);
+        emit PointsClaimed(msg.sender, amount_, root);
+    }
+
+    /// @notice Double-hashed leaf for an (account, amount) allocation
+    /// @param account_ Claimant address
+    /// @param amount_ OVERP amount (wei)
+    function pointsMerkleLeaf(
+        address account_,
+        uint256 amount_
+    ) public pure override returns (bytes32) {
+        return
+            keccak256(bytes.concat(keccak256(abi.encode(account_, amount_))));
+    }
+
+    /// @notice Whether an account can claim `amount_` with the given proof
+    function canClaimPoints(
+        address account_,
+        uint256 amount_,
+        bytes32[] calldata proof_
+    ) external view override returns (bool) {
+        bytes32 root = pointsMerkleRoot;
+        if (root == bytes32(0) || amount_ == 0) {
+            return false;
+        }
+        if (hasClaimedPoints[root][account_]) {
+            return false;
+        }
+        return
+            MerkleProof.verifyCalldata(
+                proof_,
+                root,
+                pointsMerkleLeaf(account_, amount_)
+            );
     }
 
     /// @notice Open or close the caller's Team for joining

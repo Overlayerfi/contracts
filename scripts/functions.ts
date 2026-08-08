@@ -257,6 +257,54 @@ export async function OverlayerReferral_addTrackers(
 /** ReferralType.Team */
 const REFERRAL_TYPE_TEAM = 1;
 
+export async function OverlayerReferral_setPointsMerkleRoot(
+  addr: string,
+  root: string,
+  signer: Signer
+): Promise<string> {
+  if (!ethers.isAddress(addr)) {
+    throw new Error(`${addr} is not a valid address`);
+  }
+  const contract = new ethers.Contract(
+    addr,
+    OVERLAYER_REFERRAL_ABI.abi,
+    signer
+  );
+  console.log(
+    `[OverlayerReferral_setPointsMerkleRoot] signer=${await signer.getAddress()} root=${root}`
+  );
+  const tx = await (contract as Contract).setPointsMerkleRoot(root, {
+    gasLimit: 200_000
+  });
+  await tx.wait();
+  console.log(`[OverlayerReferral_setPointsMerkleRoot] tx=${tx.hash}`);
+  return tx.hash as string;
+}
+
+export async function OverlayerReferral_claimPoints(
+  addr: string,
+  amount: bigint,
+  proof: string[],
+  signer: Signer
+): Promise<void> {
+  if (!ethers.isAddress(addr)) {
+    throw new Error(`${addr} is not a valid address`);
+  }
+  const contract = new ethers.Contract(
+    addr,
+    OVERLAYER_REFERRAL_ABI.abi,
+    signer
+  );
+  console.log(
+    `[OverlayerReferral_claimPoints] signer=${await signer.getAddress()} amount=${amount}`
+  );
+  const tx = await (contract as Contract).claimPoints(amount, proof, {
+    gasLimit: 500_000
+  });
+  await tx.wait();
+  console.log(`[OverlayerReferral_claimPoints] tx=${tx.hash}`);
+}
+
 export async function OverlayerReferral_setTeamOpen(
   addr: string,
   open: boolean,

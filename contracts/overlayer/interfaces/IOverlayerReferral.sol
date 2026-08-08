@@ -87,6 +87,38 @@ interface IOverlayerReferral {
         address consumer_
     ) external view returns (bool);
 
+    /// @notice Merkle root for off-chain OVERP allocations
+    function pointsMerkleRoot() external view returns (bytes32);
+
+    /// @notice Whether a user has claimed against a given points Merkle root
+    function hasClaimedPoints(
+        bytes32 root,
+        address user
+    ) external view returns (bool);
+
+    /// @notice Double-hashed leaf for an (account, amount) allocation
+    /// @param account Claimant address
+    /// @param amount OVERP amount (wei)
+    function pointsMerkleLeaf(
+        address account,
+        uint256 amount
+    ) external pure returns (bytes32);
+
+    /// @notice Whether an account can claim `amount` with the given proof
+    /// @param account Claimant address
+    /// @param amount Allocation amount encoded in the leaf
+    /// @param proof Sorted Merkle sibling hashes
+    function canClaimPoints(
+        address account,
+        uint256 amount,
+        bytes32[] calldata proof
+    ) external view returns (bool);
+
+    /// @notice Claim OVERP via Merkle proof (mints to caller)
+    /// @param amount Allocation amount encoded in the leaf
+    /// @param proof Sorted Merkle sibling hashes
+    function claimPoints(uint256 amount, bytes32[] calldata proof) external;
+
     /// @notice Track points for a referral action of a given type
     /// @param user The address to track points for
     /// @param amount The amount of points to add
