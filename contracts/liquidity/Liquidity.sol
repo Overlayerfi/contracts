@@ -65,16 +65,26 @@ contract Liquidity is
     uint256 public bonusMultiplier = 1;
 
     /**
-     * @notice Referral bonus percentage.
+     * @notice Referral bonus percentage for type Team.
      * @dev 5%
      */
-    uint8 public referralBonus = 5;
+    uint8 public referralBonusTeam = 5;
 
     /**
-     * @notice Referral bonus percentage.
+     * @notice Referral bonus percentage for type Ref.
+     */
+    uint8 public referralBonusRef = 0;
+
+    /**
+     * @notice Self referral bonus percentage for type Team.
      * @dev 2.5%
      */
-    uint16 public selfReferralBonus = 25;
+    uint16 public selfReferralBonusTeam = 25;
+
+    /**
+     * @notice Self referral bonus percentage for type Ref.
+     */
+    uint16 public selfReferralBonusRef = 0;
 
     /**
      * @notice Referral contract.
@@ -176,28 +186,54 @@ contract Liquidity is
     }
 
     /**
-     * @notice Update the referral bonus amount.
+     * @notice Update the referral bonus amount for a given type.
      * @dev It can not be over 100 (100%).
+     * @param type_ the referral type.
      * @param referralBonus_ the bonus amount.
      */
-    function updateReferralBonus(uint8 referralBonus_) external onlyOwner {
+    function updateReferralBonus(
+        IOverlayerReferral.ReferralType type_,
+        uint8 referralBonus_
+    ) external onlyOwner {
+        if (
+            type_ != IOverlayerReferral.ReferralType.Team &&
+            type_ != IOverlayerReferral.ReferralType.Ref
+        ) {
+            revert InvalidReferralType();
+        }
         if (referralBonus_ <= 100) {
-            referralBonus = referralBonus_;
-            emit NewReferralBonus(referralBonus_);
+            if (type_ == IOverlayerReferral.ReferralType.Team) {
+                referralBonusTeam = referralBonus_;
+            } else {
+                referralBonusRef = referralBonus_;
+            }
+            emit NewReferralBonus(type_, referralBonus_);
         }
     }
 
     /**
-     * @notice Update the referral bonus amount.
+     * @notice Update the self referral bonus amount for a given type.
      * @dev It can not be over 1000 (100%).
+     * @param type_ the referral type.
      * @param selfReferralBonus_ the bonus amount.
      */
     function updateSelfReferralBonus(
+        IOverlayerReferral.ReferralType type_,
         uint16 selfReferralBonus_
     ) external onlyOwner {
+        if (
+            type_ != IOverlayerReferral.ReferralType.Team &&
+            type_ != IOverlayerReferral.ReferralType.Ref
+        ) {
+            revert InvalidReferralType();
+        }
         if (selfReferralBonus_ <= 1000) {
-            selfReferralBonus = selfReferralBonus_;
-            emit NewSelfReferralBonus(selfReferralBonus_);
+            if (type_ == IOverlayerReferral.ReferralType.Team) {
+                selfReferralBonusTeam = selfReferralBonus_;
+            } else {
+                selfReferralBonusRef = selfReferralBonus_;
+            }
+            emit NewSelfReferralBonus(type_, selfReferralBonus_);
         }
     }
 
@@ -829,7 +865,11 @@ contract Liquidity is
             return 0;
         }
         address refSource = referral.referralCodes(code);
-        address[] memory referredUsers = referral.seeReferred(refSource);
+        IOverlayerReferral.ReferralType type_ = referral.referralCodeTypes(code);
+        address[] memory referredUsers = referral.seeReferredByType(
+            refSource,
+            type_
+        );
         if (startIndex == 0 && endIndex == 0) {
             endIndex = referredUsers.length;
         }
@@ -913,7 +953,7 @@ contract Liquidity is
 
     /**
      * @notice Pay referral and NFT bonus tokens.
-     * @dev Self referral is paid only if the current user is referred.
+     * @dev Referral self bonus is paid per type only if the user is referred under that type.
      * @dev NFT bonus is paid for every staked Origin and whitelisted NFT.
      * @param originalAmount the original amount.
      * @param asset the reward asset.
@@ -929,27 +969,57 @@ contract Liquidity is
         }
 
         if (address(referral) != address(0)) {
-            uint256 bonus = originalAmount.mulDiv(referralBonus, 100);
-            address recipient = referral.referredFrom(source);
-            if (bonus > 0 && recipient != address(0)) {
-                _payReward(asset, recipient, bonus);
-                referral.track(recipient, bonus);
-                emit BonusPayed(recipient, bonus);
-
-                // Pay also the self referral bonus (for having consumed a referral)
-                uint256 selfBonus = originalAmount.mulDiv(
-                    selfReferralBonus,
-                    1000
-                );
-                _payReward(asset, source, selfBonus);
-                emit SelfBonusPayed(source, selfBonus);
-            }
+            _payBonusForType(
+                originalAmount,
+                asset,
+                source,
+                IOverlayerReferral.ReferralType.Team,
+                referralBonusTeam,
+                selfReferralBonusTeam
+            );
+            _payBonusForType(
+                originalAmount,
+                asset,
+                source,
+                IOverlayerReferral.ReferralType.Ref,
+                referralBonusRef,
+                selfReferralBonusRef
+            );
         }
 
         uint256 nftExtra = _nftBonusAmount(originalAmount, source);
         if (nftExtra > 0) {
             _payReward(asset, source, nftExtra);
             emit NftBonusPayed(source, nftExtra);
+        }
+    }
+
+    /**
+     * @notice Pay bonus for a single referral type.
+     */
+    function _payBonusForType(
+        uint256 originalAmount,
+        IERC20 asset,
+        address source,
+        IOverlayerReferral.ReferralType type_,
+        uint8 referralBonus_,
+        uint16 selfReferralBonus_
+    ) internal {
+        address recipient = referral.referredFromByType(source, type_);
+        if (recipient == address(0)) {
+            return;
+        }
+        uint256 bonus = originalAmount.mulDiv(referralBonus_, 100);
+        if (bonus > 0) {
+            _payReward(asset, recipient, bonus);
+            referral.track(recipient, bonus);
+            emit BonusPayed(recipient, bonus, type_);
+        }
+
+        uint256 selfBonus = originalAmount.mulDiv(selfReferralBonus_, 1000);
+        if (selfBonus > 0) {
+            _payReward(asset, source, selfBonus);
+            emit SelfBonusPayed(source, selfBonus, type_);
         }
     }
 

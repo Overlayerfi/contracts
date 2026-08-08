@@ -2,6 +2,13 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 
+// IOverlayerReferral.ReferralType
+const ReferralType = {
+  None: 0n,
+  Team: 1n,
+  Ref: 2n
+} as const;
+
 describe("Overlayer Referral System", function () {
   async function deployFixture() {
     const [admin, minter, bob, alice] = await ethers.getSigners();
@@ -87,47 +94,73 @@ describe("Overlayer Referral System", function () {
       await expect(
         await overlayerReferral
           .connect(admin)
-          .addCode("CODE", await alice.getAddress())
+          .addCode("CODE", await alice.getAddress(), ReferralType.Team)
       ).to.emit(overlayerReferral, "NewCode");
       expect(await overlayerReferral.referralCodes("CODE")).to.be.equal(
         await alice.getAddress()
       );
       expect(
-        await overlayerReferral.referralCodesRev(await alice.getAddress())
+        await overlayerReferral.referralCodesByType(
+          await alice.getAddress(),
+          ReferralType.Team
+        )
       ).to.be.equal("CODE");
+      expect(await overlayerReferral.referralCodeTypes("CODE")).to.equal(
+        ReferralType.Team
+      );
 
+      // Same type again for same holder is rejected
       await expect(
         overlayerReferral
           .connect(admin)
-          .addCode("CODE2", await alice.getAddress())
+          .addCode("CODE2", await alice.getAddress(), ReferralType.Team)
       ).to.be.eventually.rejected;
 
+      // Duplicate code string is rejected
       await expect(
         overlayerReferral
           .connect(admin)
-          .addCode("CODE", await alice.getAddress())
+          .addCode("CODE", await alice.getAddress(), ReferralType.Ref)
       ).to.be.eventually.rejected;
+
+      // Other type for same holder is allowed
+      await expect(
+        await overlayerReferral
+          .connect(admin)
+          .addCode("CODE_REF", await alice.getAddress(), ReferralType.Ref)
+      ).to.emit(overlayerReferral, "NewCode");
 
       expect((await overlayerReferral.allCodes())[0]).to.be.equal("CODE");
     });
 
-    it("Should reject empty referral codes", async function () {
+    it("Should reject empty and invalid referral types", async function () {
       const { overlayerReferral, admin, alice, bob } = await loadFixture(
         deployFixture
       );
 
       await expect(
-        overlayerReferral.connect(admin).addCode("", await alice.getAddress())
+        overlayerReferral
+          .connect(admin)
+          .addCode("", await alice.getAddress(), ReferralType.Team)
       ).to.be.revertedWithCustomError(
         overlayerReferral,
         "OverlayerReferralCodeNotValid"
       );
 
       await expect(
-        overlayerReferral.connect(bob).addCodeSelf("")
+        overlayerReferral.connect(bob).addCodeSelf("", ReferralType.Team)
       ).to.be.revertedWithCustomError(
         overlayerReferral,
         "OverlayerReferralCodeNotValid"
+      );
+
+      await expect(
+        overlayerReferral
+          .connect(admin)
+          .addCode("X", await alice.getAddress(), ReferralType.None)
+      ).to.be.revertedWithCustomError(
+        overlayerReferral,
+        "OverlayerReferralInvalidType"
       );
     });
   });
@@ -141,7 +174,7 @@ describe("Overlayer Referral System", function () {
       await expect(
         await overlayerReferral
           .connect(admin)
-          .addCode("ALICE", await alice.getAddress())
+          .addCode("ALICE", await alice.getAddress(), ReferralType.Team)
       ).to.emit(overlayerReferral, "NewCode");
       await expect(
         await overlayerReferral.connect(bob).consumeReferral("ALICE")
@@ -151,19 +184,28 @@ describe("Overlayer Referral System", function () {
       await expect(overlayerReferral.connect(alice).consumeReferral("ALICE")).to
         .be.eventually.rejected;
 
-      expect(await overlayerReferral.referredFrom(bob.address)).to.be.equal(
-        alice.address
+      expect(
+        await overlayerReferral.referredFromByType(bob.address, ReferralType.Team)
+      ).to.be.equal(alice.address);
+      const referred = await overlayerReferral.seeReferredByType(
+        alice.address,
+        ReferralType.Team
       );
-      const referred = await overlayerReferral.seeReferred(alice.address);
       expect(referred.length).to.be.equal(1);
       expect(referred[0]).to.be.equal(bob.address);
 
-      // Add self code
-      await expect(overlayerReferral.connect(bob).addCodeSelf("BOB")).to.be
-        .eventually.rejected;
+      // Cannot create same type after consuming it
+      await expect(
+        overlayerReferral.connect(bob).addCodeSelf("BOB", ReferralType.Team)
+      ).to.be.eventually.rejected;
+
+      // Can create the other type
+      await expect(
+        await overlayerReferral.connect(bob).addCodeSelf("BOB_REF", ReferralType.Ref)
+      ).to.emit(overlayerReferral, "NewCode");
     });
 
-    it("Should prevent duplicate referral registrations", async function () {
+    it("Should prevent duplicate referral registrations for the same type", async function () {
       const { overlayerReferral, admin, bob, alice } = await loadFixture(
         deployFixture
       );
@@ -171,7 +213,7 @@ describe("Overlayer Referral System", function () {
       await expect(
         await overlayerReferral
           .connect(admin)
-          .addCode("ALICE", await alice.getAddress())
+          .addCode("ALICE", await alice.getAddress(), ReferralType.Team)
       ).to.emit(overlayerReferral, "NewCode");
       await expect(
         await overlayerReferral.connect(bob).consumeReferral("ALICE")
@@ -180,7 +222,7 @@ describe("Overlayer Referral System", function () {
         .be.eventually.rejected;
     });
 
-    it("Should enforce single referral per address", async function () {
+    it("Should enforce create/consume exclusivity per type only", async function () {
       const { overlayerReferral, admin, bob, alice } = await loadFixture(
         deployFixture
       );
@@ -188,22 +230,81 @@ describe("Overlayer Referral System", function () {
       await expect(
         await overlayerReferral
           .connect(admin)
-          .addCode("ALICE", await alice.getAddress())
+          .addCode("ALICE_TEAM", await alice.getAddress(), ReferralType.Team)
       ).to.emit(overlayerReferral, "NewCode");
       await expect(
         await overlayerReferral
           .connect(admin)
-          .addCode("BOB", await bob.getAddress())
+          .addCode("BOB_TEAM", await bob.getAddress(), ReferralType.Team)
       ).to.emit(overlayerReferral, "NewCode");
-      await expect(overlayerReferral.connect(alice).consumeReferral("BOB")).to
-        .be.eventually.rejected;
+      await expect(
+        await overlayerReferral
+          .connect(admin)
+          .addCode("BOB_REF", await bob.getAddress(), ReferralType.Ref)
+      ).to.emit(overlayerReferral, "NewCode");
+
+      // Alice created A, cannot consume A
+      await expect(
+        overlayerReferral.connect(alice).consumeReferral("BOB_TEAM")
+      ).to.be.eventually.rejected;
+
+      // Alice can consume B
+      await expect(
+        await overlayerReferral.connect(alice).consumeReferral("BOB_REF")
+      ).to.emit(overlayerReferral, "Referral");
+      expect(
+        await overlayerReferral.referredFromByType(
+          alice.address,
+          ReferralType.Ref
+        )
+      ).to.equal(bob.address);
+
+      // Alice cannot create B after consuming B
+      await expect(
+        overlayerReferral
+          .connect(admin)
+          .addCode("ALICE_REF", await alice.getAddress(), ReferralType.Ref)
+      ).to.be.eventually.rejected;
+    });
+
+    it("Should allow independent A and B relationships for the same user", async function () {
+      const { overlayerReferral, admin, bob, alice } = await loadFixture(
+        deployFixture
+      );
+      const [, , , , carol] = await ethers.getSigners();
+      await overlayerReferral.connect(admin).addPointsTracker(admin.address);
+
+      await overlayerReferral
+        .connect(admin)
+        .addCode("ALICE_TEAM", alice.address, ReferralType.Team);
+      await overlayerReferral
+        .connect(admin)
+        .addCode("BOB_REF", bob.address, ReferralType.Ref);
+
+      await overlayerReferral.connect(carol).consumeReferral("ALICE_TEAM");
+      await overlayerReferral.connect(carol).consumeReferral("BOB_REF");
+
+      expect(
+        await overlayerReferral.referredFromByType(
+          carol.address,
+          ReferralType.Team
+        )
+      ).to.equal(alice.address);
+      expect(
+        await overlayerReferral.referredFromByType(
+          carol.address,
+          ReferralType.Ref
+        )
+      ).to.equal(bob.address);
     });
 
     it("Should validate referral source address", async function () {
       const { overlayerReferral, admin } = await loadFixture(deployFixture);
       await overlayerReferral.connect(admin).addPointsTracker(admin.address);
       await expect(
-        overlayerReferral.connect(admin).addCode("ALICE", ethers.ZeroAddress)
+        overlayerReferral
+          .connect(admin)
+          .addCode("ALICE", ethers.ZeroAddress, ReferralType.Team)
       ).to.be.eventually.rejected;
     });
   });

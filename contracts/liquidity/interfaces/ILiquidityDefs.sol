@@ -53,15 +53,31 @@ interface ILiquidityDefs {
 
     event NewBonusMultiplier(uint256 multiplier);
 
-    event NewReferralBonus(uint8 bonus);
+    event NewReferralBonus(
+        IOverlayerReferral.ReferralType referralType,
+        uint8 bonus
+    );
 
-    event NewSelfReferralBonus(uint16 bonus);
+    event NewSelfReferralBonus(
+        IOverlayerReferral.ReferralType referralType,
+        uint16 bonus
+    );
 
     event NewReferral(IOverlayerReferral referral);
 
-    event BonusPayed(address indexed recipient, uint256 amount);
+    event BonusPayed(
+        address indexed recipient,
+        uint256 amount,
+        IOverlayerReferral.ReferralType referralType
+    );
 
-    event SelfBonusPayed(address indexed recipient, uint256 amount);
+    event SelfBonusPayed(
+        address indexed recipient,
+        uint256 amount,
+        IOverlayerReferral.ReferralType referralType
+    );
+
+    error InvalidReferralType();
 
     event NftBonusPayed(address indexed recipient, uint256 amount);
 

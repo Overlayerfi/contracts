@@ -75,7 +75,7 @@ async function main() {
     for (let i = 0; i < codesNum; i++) {
       let tx = await overlayerReferralContract
         .connect(signers[i])
-        .addCodeSelf(codes[i]);
+        .addCodeSelf(codes[i], 1); // ReferralType.Team
       console.log("Transaction sent! Waiting for confirmation...");
       console.log(`Transaction Hash: ${tx.hash}`);
       tx = await tx.wait();
@@ -87,7 +87,7 @@ async function main() {
     for (let i = 0; i < codesNum; i++) {
       let tx = await overlayerReferralContract
         .connect(signers[i + codesNum])
-        .consumeReferral(codes[i], signers[i + codesNum]);
+        .consumeReferral(codes[i]);
       console.log("Transaction sent! Waiting for confirmation...");
       console.log(`Transaction Hash: ${tx.hash}`);
       tx = await tx.wait();

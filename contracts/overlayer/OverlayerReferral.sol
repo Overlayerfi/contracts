@@ -9,17 +9,30 @@ import {ILiquidityDefs} from "../liquidity/interfaces/ILiquidityDefs.sol";
 /**
  * @title OverlayerReferral
  * @notice This token tracks the referral points for the Overlayer airdrop.
+ * @dev Referral types Team and Ref are independent. Create/consume exclusivity is per type only.
  */
 contract OverlayerReferral is
     MintableTokenBase,
     ReentrancyGuard,
     IOverlayerReferral
 {
-    /// @notice Track the referral source for given address
-    mapping(address => address) public referredFrom;
+    /// @notice Referral code to its creator address
+    mapping(string => address) public referralCodes;
 
-    /// @notice Track all the referred users for a given address
-    mapping(address => address[]) public referredUsers;
+    /// @notice Referral code to its type
+    mapping(string => ReferralType) public referralCodeTypes;
+
+    /// @notice Holder + type to their referral code
+    mapping(address => mapping(ReferralType => string))
+        public referralCodesByType;
+
+    /// @notice Consumer + type to the address that referred them
+    mapping(address => mapping(ReferralType => address))
+        public referredFromByType;
+
+    /// @notice Referrer + type to all referred users
+    mapping(address => mapping(ReferralType => address[]))
+        private referredUsersByType;
 
     /// @notice Track all the generated referral points for given address
     mapping(address => uint256) public generatedPoints;
@@ -27,20 +40,18 @@ contract OverlayerReferral is
     /// @notice External entities who can control the points tracking
     mapping(address => bool) public allowedPointsTrackers;
 
-    /// @notice Referral code to its creator address
-    mapping(string => address) public referralCodes;
-
-    /// @notice Referral code creator address to code
-    mapping(address => string) public referralCodesRev;
-
     /// @notice All the referral codes
     string[] public codes;
 
     /// @notice All staking pools where this token is emitted from
     address[] public stakingPools;
 
-    event Referral(address indexed source, address consumer);
-    event NewCode(string code, address holder);
+    event Referral(
+        address indexed source,
+        address consumer,
+        ReferralType referralType
+    );
+    event NewCode(string code, address holder, ReferralType referralType);
     event AddTracker(address tracker);
     event RemoveTracker(address tracker);
     event StakingPoolSet(address[] pools);
@@ -52,6 +63,7 @@ contract OverlayerReferral is
     error OverlayerReferralCodeAlreadyUsed();
     error OverlayerReferralAlreadyCreatedACode();
     error OverlayerReferralStakingPoolsNotSet();
+    error OverlayerReferralInvalidType();
 
     modifier onlyTracker() {
         if (!allowedPointsTrackers[msg.sender] && msg.sender != address(this)) {
@@ -76,30 +88,31 @@ contract OverlayerReferral is
     }
 
     /// @notice Consume a referral code. This action will harvest all the user positions in the staking pools
-    /// @dev Code holders can not use any code
+    /// @dev Create/consume exclusivity is enforced per type only
     /// @dev Staking pools must be set
     /// @param code_ The referral code
     function consumeReferral(
         string memory code_
     ) external override nonReentrant {
         address consumer = msg.sender;
-        if (referredFrom[consumer] != address(0)) {
-            revert OverlayerReferralAlreadyReferred();
-        }
-        if (referralCodes[code_] == address(0)) {
+        ReferralType type_ = referralCodeTypes[code_];
+        if (!_isValidType(type_)) {
             revert OverlayerReferralCodeNotValid();
         }
-        // Code providers can not use any referral
-        if (bytes(referralCodesRev[consumer]).length > 0) {
+        if (referredFromByType[consumer][type_] != address(0)) {
+            revert OverlayerReferralAlreadyReferred();
+        }
+        // Cannot consume a type for which the user already created a code
+        if (bytes(referralCodesByType[consumer][type_]).length > 0) {
             revert OverlayerReferralNotAllowed();
         }
         address source = referralCodes[code_];
+        if (source == address(0)) {
+            revert OverlayerReferralCodeNotValid();
+        }
         // Can not refer self
         if (source == consumer) {
             revert OverlayerReferralNotAllowed();
-        }
-        if (source == address(0)) {
-            revert OverlayerReferralZeroAddress();
         }
 
         if (stakingPools.length == 0) {
@@ -122,10 +135,10 @@ contract OverlayerReferral is
             }
         }
 
-        referredFrom[consumer] = source;
-        referredUsers[source].push(consumer);
+        referredFromByType[consumer][type_] = source;
+        referredUsersByType[source][type_].push(consumer);
 
-        emit Referral(source, consumer);
+        emit Referral(source, consumer, type_);
     }
 
     /// @notice Track a new points update
@@ -146,55 +159,22 @@ contract OverlayerReferral is
     }
 
     /// @notice Add a new referral code
-    /// @param code_ The tracker address
+    /// @param code_ The referral code
     /// @param holder_ The code owner
-    function addCode(string memory code_, address holder_) external onlyOwner {
-        if (bytes(code_).length == 0) {
-            revert OverlayerReferralCodeNotValid();
-        }
-        if (holder_ == address(0)) {
-            revert OverlayerReferralZeroAddress();
-        }
-        // Code users can not create codes
-        if (referredFrom[holder_] != address(0)) {
-            revert OverlayerReferralAlreadyReferred();
-        }
-        if (referralCodes[code_] != address(0)) {
-            revert OverlayerReferralCodeAlreadyUsed();
-        }
-        if (bytes(referralCodesRev[holder_]).length > 0) {
-            revert OverlayerReferralAlreadyCreatedACode();
-        }
-        referralCodes[code_] = holder_;
-        referralCodesRev[holder_] = code_;
-        codes.push(code_);
-        emit NewCode(code_, holder_);
+    /// @param type_ The referral type
+    function addCode(
+        string memory code_,
+        address holder_,
+        ReferralType type_
+    ) external onlyOwner {
+        _addCode(code_, holder_, type_);
     }
 
     /// @notice Add a new referral code for the caller
-    /// @param code_ The tracker address
-    function addCodeSelf(string memory code_) external {
-        if (bytes(code_).length == 0) {
-            revert OverlayerReferralCodeNotValid();
-        }
-        address holder = msg.sender;
-        if (holder == address(0)) {
-            revert OverlayerReferralZeroAddress();
-        }
-        // Code users can not create codes
-        if (referredFrom[holder] != address(0)) {
-            revert OverlayerReferralAlreadyReferred();
-        }
-        if (referralCodes[code_] != address(0)) {
-            revert OverlayerReferralCodeAlreadyUsed();
-        }
-        if (bytes(referralCodesRev[holder]).length > 0) {
-            revert OverlayerReferralAlreadyCreatedACode();
-        }
-        referralCodes[code_] = holder;
-        referralCodesRev[holder] = code_;
-        codes.push(code_);
-        emit NewCode(code_, holder);
+    /// @param code_ The referral code
+    /// @param type_ The referral type
+    function addCodeSelf(string memory code_, ReferralType type_) external {
+        _addCode(code_, msg.sender, type_);
     }
 
     /// @notice Remove a points tracker
@@ -204,23 +184,26 @@ contract OverlayerReferral is
         emit RemoveTracker(tracker_);
     }
 
-    /// @notice Retrieve all the referred user for a given address
-    /// @param source_ The query key
-    /// @return All the referred user addresses
-    function seeReferred(
-        address source_
+    /// @notice Retrieve all the referred users for a given address and type
+    /// @param source_ The referrer
+    /// @param type_ The referral type
+    /// @return All the referred user addresses for that type
+    function seeReferredByType(
+        address source_,
+        ReferralType type_
     ) external view override returns (address[] memory) {
-        return referredUsers[source_];
+        return referredUsersByType[source_][type_];
     }
 
-    /// @notice Retrieve all the referred user for a given address
-    /// @param code_ The query key
-    /// @return All the referred user addresses
+    /// @notice Retrieve all the referred users for a given code
+    /// @param code_ The referral code
+    /// @return All the referred user addresses for that code's type
     function seeReferredByCode(
         string memory code_
     ) external view returns (address[] memory) {
         address source = referralCodes[code_];
-        return referredUsers[source];
+        ReferralType type_ = referralCodeTypes[code_];
+        return referredUsersByType[source][type_];
     }
 
     /// @notice Retrieve all points earned by a given code
@@ -243,5 +226,40 @@ contract OverlayerReferral is
     /// @return The active referral codes count
     function totalCodes() external view returns (uint256) {
         return codes.length;
+    }
+
+    function _addCode(
+        string memory code_,
+        address holder_,
+        ReferralType type_
+    ) internal {
+        if (!_isValidType(type_)) {
+            revert OverlayerReferralInvalidType();
+        }
+        if (bytes(code_).length == 0) {
+            revert OverlayerReferralCodeNotValid();
+        }
+        if (holder_ == address(0)) {
+            revert OverlayerReferralZeroAddress();
+        }
+        // Cannot create a type for which the user already consumed a referral
+        if (referredFromByType[holder_][type_] != address(0)) {
+            revert OverlayerReferralAlreadyReferred();
+        }
+        if (referralCodes[code_] != address(0)) {
+            revert OverlayerReferralCodeAlreadyUsed();
+        }
+        if (bytes(referralCodesByType[holder_][type_]).length > 0) {
+            revert OverlayerReferralAlreadyCreatedACode();
+        }
+        referralCodes[code_] = holder_;
+        referralCodeTypes[code_] = type_;
+        referralCodesByType[holder_][type_] = code_;
+        codes.push(code_);
+        emit NewCode(code_, holder_, type_);
+    }
+
+    function _isValidType(ReferralType type_) internal pure returns (bool) {
+        return type_ == ReferralType.Team || type_ == ReferralType.Ref;
     }
 }

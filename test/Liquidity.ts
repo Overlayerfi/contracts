@@ -492,9 +492,10 @@ describe("Liquidity", function () {
         .addPointsTracker(await liquidity.getAddress());
       await liquidity.connect(owner).updateReferral(referral);
 
+      // ReferralType.Team = 1
       await tokenRewardOneOverlayerReferral
         .connect(owner)
-        .addCode("BOB", bob.address);
+        .addCode("BOB", bob.address, 1);
 
       // Consume referral code
       await tokenRewardOneOverlayerReferral
@@ -579,6 +580,122 @@ describe("Liquidity", function () {
       expect(
         await tokenRewardOneOverlayerReferral.balanceOf(bob.address)
       ).to.be.greaterThan(bobBonus);
+    });
+
+    it("Should pay different referrer and self bonuses for type Team vs Ref", async function () {
+      const {
+        liquidity,
+        stakedAsset,
+        tokenRewardOneOverlayerReferral,
+        owner,
+        alice,
+        bob
+      } = await loadFixture(deployFixture);
+      const [, , , , carol] = await ethers.getSigners();
+
+      const ReferralTypeTeam = 1;
+      const ReferralTypeRef = 2;
+
+      await stakedAsset.transfer(alice.getAddress(), ethers.parseEther("10"));
+      await stakedAsset.transfer(carol.getAddress(), ethers.parseEther("10"));
+      await stakedAsset
+        .connect(alice)
+        .approve(liquidity.getAddress(), ethers.parseEther("10"));
+      await stakedAsset
+        .connect(carol)
+        .approve(liquidity.getAddress(), ethers.parseEther("10"));
+
+      await liquidity.setReward(
+        tokenRewardOneOverlayerReferral.getAddress(),
+        1
+      );
+      await liquidity.add(
+        stakedAsset.getAddress(),
+        tokenRewardOneOverlayerReferral.getAddress(),
+        1,
+        0,
+        false,
+        true
+      );
+
+      await tokenRewardOneOverlayerReferral
+        .connect(owner)
+        .addPointsTracker(await liquidity.getAddress());
+      await liquidity
+        .connect(owner)
+        .updateReferral(await tokenRewardOneOverlayerReferral.getAddress());
+
+      // Team: 5% referrer / 2.5% self (defaults). Ref: 10% referrer / 5% self.
+      await liquidity
+        .connect(owner)
+        .updateReferralBonus(ReferralTypeRef, 10);
+      await liquidity
+        .connect(owner)
+        .updateSelfReferralBonus(ReferralTypeRef, 50);
+
+      await tokenRewardOneOverlayerReferral
+        .connect(owner)
+        .addCode("BOB_TEAM", bob.address, ReferralTypeTeam);
+      await tokenRewardOneOverlayerReferral
+        .connect(owner)
+        .addCode("BOB_REF", bob.address, ReferralTypeRef);
+
+      await tokenRewardOneOverlayerReferral
+        .connect(alice)
+        .consumeReferral("BOB_TEAM");
+      await tokenRewardOneOverlayerReferral
+        .connect(carol)
+        .consumeReferral("BOB_REF");
+
+      await liquidity.connect(alice).deposit(0, ethers.parseEther("5"));
+      await liquidity.connect(carol).deposit(0, ethers.parseEther("5"));
+
+      await time.increaseTo((await time.latest()) + 60 * 60 * 24);
+
+      const pendingAlice = await liquidity.pendingReward(0, alice.address);
+      const pendingCarol = await liquidity.pendingReward(0, carol.address);
+      // Equal stake / time => equal pending base rewards
+      expect(pendingAlice).to.equal(pendingCarol);
+
+      const bobBefore = await tokenRewardOneOverlayerReferral.balanceOf(
+        bob.address
+      );
+      const aliceBefore = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const carolBefore = await tokenRewardOneOverlayerReferral.balanceOf(
+        carol.address
+      );
+
+      await liquidity.connect(alice).harvest(0);
+      const bobAfterA = await tokenRewardOneOverlayerReferral.balanceOf(
+        bob.address
+      );
+      const aliceAfter = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const bobGainA = bobAfterA - bobBefore;
+      const aliceSelfGain = aliceAfter - aliceBefore - pendingAlice;
+
+      await liquidity.connect(carol).harvest(0);
+      const bobAfterB = await tokenRewardOneOverlayerReferral.balanceOf(
+        bob.address
+      );
+      const carolAfter = await tokenRewardOneOverlayerReferral.balanceOf(
+        carol.address
+      );
+      const bobGainB = bobAfterB - bobAfterA;
+      const carolSelfGain = carolAfter - carolBefore - pendingCarol;
+
+      // Referrer: Ref (10%) > Team (5%)
+      expect(bobGainB).to.be.greaterThan(bobGainA);
+      expect(bobGainA).to.equal((pendingAlice * 5n) / 100n);
+      expect(bobGainB).to.equal((pendingCarol * 10n) / 100n);
+
+      // Self: Ref (5%) > Team (2.5%)
+      expect(carolSelfGain).to.be.greaterThan(aliceSelfGain);
+      expect(aliceSelfGain).to.equal((pendingAlice * 25n) / 1000n);
+      expect(carolSelfGain).to.equal((pendingCarol * 50n) / 1000n);
     });
 
     it("Should calculate pending rewards accurately over time", async function () {
@@ -1651,7 +1768,7 @@ describe("Liquidity", function () {
         .updateReferral(await tokenRewardOneOverlayerReferral.getAddress());
       await tokenRewardOneOverlayerReferral
         .connect(owner)
-        .addCode("BOB", bob.address);
+        .addCode("BOB", bob.address, 1); // ReferralType.Team
       await tokenRewardOneOverlayerReferral
         .connect(alice)
         .consumeReferral("BOB");
@@ -1894,6 +2011,27 @@ describe("Liquidity", function () {
     ): bigint | undefined {
       const found = parsedLogs.find((p) => p.name === name);
       return found ? (found.args.amount as bigint) : undefined;
+    }
+
+    function eventAmountForType(
+      parsedLogs: any[],
+      name: string,
+      referralType: bigint
+    ): bigint {
+      const found = parsedLogs.find(
+        (p) =>
+          p.name === name && BigInt(p.args.referralType) === referralType
+      );
+      expect(found, `missing event ${name} type ${referralType}`).to.not.equal(
+        undefined
+      );
+      return found.args.amount as bigint;
+    }
+
+    function sumEventAmounts(parsedLogs: any[], name: string): bigint {
+      return parsedLogs
+        .filter((p) => p.name === name)
+        .reduce((acc, p) => acc + (p.args.amount as bigint), 0n);
     }
 
     async function deployAccountingFixture() {
@@ -2508,7 +2646,7 @@ describe("Liquidity", function () {
         .updateReferral(await tokenRewardOneOverlayerReferral.getAddress());
       await tokenRewardOneOverlayerReferral
         .connect(owner)
-        .addCode("BOB", bob.address);
+        .addCode("BOB", bob.address, 1); // ReferralType.Team
       await tokenRewardOneOverlayerReferral
         .connect(alice)
         .consumeReferral("BOB");
@@ -2554,6 +2692,328 @@ describe("Liquidity", function () {
         (await tokenRewardOneOverlayerReferral.balanceOf(bob.address)) -
           bobBefore
       ).to.equal(referrerBonus);
+    });
+
+    it("sums Team self, Ref self and NFT on the same base P", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        tokenRewardOneOverlayerReferral,
+        owner,
+        alice,
+        bob,
+        shrimpTokenId
+      } = fixture;
+      const [, , , , rob] = await ethers.getSigners();
+      await setupSoleStakerPool(fixture);
+
+      const ReferralTypeTeam = 1n;
+      const ReferralTypeRef = 2n;
+
+      await liquidity
+        .connect(owner)
+        .updateReferral(await tokenRewardOneOverlayerReferral.getAddress());
+      // Team defaults: 5% referrer / 2.5% self. Ref: 10% / 5%.
+      await liquidity.connect(owner).updateReferralBonus(ReferralTypeRef, 10);
+      await liquidity
+        .connect(owner)
+        .updateSelfReferralBonus(ReferralTypeRef, 50);
+
+      await tokenRewardOneOverlayerReferral
+        .connect(owner)
+        .addCode("ROB", rob.address, ReferralTypeTeam);
+      await tokenRewardOneOverlayerReferral
+        .connect(owner)
+        .addCode("BOB", bob.address, ReferralTypeRef);
+      await tokenRewardOneOverlayerReferral
+        .connect(alice)
+        .consumeReferral("ROB");
+      await tokenRewardOneOverlayerReferral
+        .connect(alice)
+        .consumeReferral("BOB");
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+
+      await time.increase(800);
+
+      const aliceBefore = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const robBefore = await tokenRewardOneOverlayerReferral.balanceOf(
+        rob.address
+      );
+      const bobBefore = await tokenRewardOneOverlayerReferral.balanceOf(
+        bob.address
+      );
+
+      const tx = await liquidity.connect(alice).harvest(0);
+      const logs = parseLiquidityLogs(liquidity, await tx.wait());
+      const base = eventAmount(logs, "Harvest");
+      const selfTeam = eventAmountForType(
+        logs,
+        "SelfBonusPayed",
+        ReferralTypeTeam
+      );
+      const selfRef = eventAmountForType(
+        logs,
+        "SelfBonusPayed",
+        ReferralTypeRef
+      );
+      const nftBonus = eventAmount(logs, "NftBonusPayed");
+      const referrerTeam = eventAmountForType(
+        logs,
+        "BonusPayed",
+        ReferralTypeTeam
+      );
+      const referrerRef = eventAmountForType(
+        logs,
+        "BonusPayed",
+        ReferralTypeRef
+      );
+
+      expect(selfTeam).to.equal(mulDiv(base, 25n, 1000n));
+      expect(selfRef).to.equal(mulDiv(base, 50n, 1000n));
+      expect(nftBonus).to.equal(mulDiv(base, 2n, 100n)); // shrimp 2%
+      expect(referrerTeam).to.equal(mulDiv(base, 5n, 100n));
+      expect(referrerRef).to.equal(mulDiv(base, 10n, 100n));
+
+      // Alice: P + Team self + Ref self + NFT (all off the same P)
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(alice.address)) -
+          aliceBefore
+      ).to.equal(base + selfTeam + selfRef + nftBonus);
+      expect(sumEventAmounts(logs, "SelfBonusPayed")).to.equal(
+        selfTeam + selfRef
+      );
+
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(rob.address)) -
+          robBefore
+      ).to.equal(referrerTeam);
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(bob.address)) -
+          bobBefore
+      ).to.equal(referrerRef);
+    });
+
+    it("applies referral then NFT only to accrual after each bind/stake", async function () {
+      // Expected timing:
+      // 1) Accrue T1, consume referrals -> harvest T1 with base only (bind happens after harvest).
+      // 2) Accrue T2, stake NFT -> harvest T2 with Team+Ref bonuses, no NFT (stake after harvest).
+      // 3) Accrue T3, harvest -> T3 with Team+Ref self/referrer + NFT on the same base.
+      const fixture = await loadFixture(deployAccountingFixture);
+      const {
+        liquidity,
+        shrimpNft,
+        tokenRewardOneOverlayerReferral,
+        owner,
+        alice,
+        bob,
+        shrimpTokenId
+      } = fixture;
+      const [, , , , rob] = await ethers.getSigners();
+      await setupSoleStakerPool(fixture);
+
+      const ReferralTypeTeam = 1n;
+      const ReferralTypeRef = 2n;
+
+      await liquidity
+        .connect(owner)
+        .updateReferral(await tokenRewardOneOverlayerReferral.getAddress());
+      await liquidity.connect(owner).updateReferralBonus(ReferralTypeRef, 10);
+      await liquidity
+        .connect(owner)
+        .updateSelfReferralBonus(ReferralTypeRef, 50);
+
+      await tokenRewardOneOverlayerReferral
+        .connect(owner)
+        .addCode("ROB", rob.address, ReferralTypeTeam);
+      await tokenRewardOneOverlayerReferral
+        .connect(owner)
+        .addCode("BOB", bob.address, ReferralTypeRef);
+
+      // --- Phase 1: accrue T1, then consume both referrals ---
+      await time.increase(500);
+      const alice0 = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const rob0 = await tokenRewardOneOverlayerReferral.balanceOf(rob.address);
+      const bob0 = await tokenRewardOneOverlayerReferral.balanceOf(bob.address);
+
+      // First consume harvests accrued T1 before Team is bound -> base only
+      await tokenRewardOneOverlayerReferral
+        .connect(alice)
+        .consumeReferral("ROB");
+      const aliceAfterTeamConsume =
+        await tokenRewardOneOverlayerReferral.balanceOf(alice.address);
+      const phase1Alice = aliceAfterTeamConsume - alice0;
+      expect(phase1Alice).to.be.greaterThan(0n);
+      // No referral bonuses paid during the bind-time harvest
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(rob.address)) - rob0
+      ).to.equal(0n);
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(bob.address)) - bob0
+      ).to.equal(0n);
+
+      // Second consume binds Ref. Any dust accrued since Team bind pays Team
+      // bonuses only (Ref is still unbound during that harvest).
+      const robAfterTeam = await tokenRewardOneOverlayerReferral.balanceOf(
+        rob.address
+      );
+      const refConsumeTx = await tokenRewardOneOverlayerReferral
+        .connect(alice)
+        .consumeReferral("BOB");
+      const refConsumeLogs = parseLiquidityLogs(
+        liquidity,
+        await refConsumeTx.wait()
+      );
+      const dustBase = optionalEventAmount(refConsumeLogs, "Harvest");
+      if (dustBase !== undefined && dustBase > 0n) {
+        expect(
+          eventAmountForType(refConsumeLogs, "SelfBonusPayed", ReferralTypeTeam)
+        ).to.equal(mulDiv(dustBase, 25n, 1000n));
+        expect(
+          eventAmountForType(refConsumeLogs, "BonusPayed", ReferralTypeTeam)
+        ).to.equal(mulDiv(dustBase, 5n, 100n));
+        // Ref not bound yet during this harvest
+        expect(
+          refConsumeLogs.some(
+            (p) =>
+              (p.name === "SelfBonusPayed" || p.name === "BonusPayed") &&
+              BigInt(p.args.referralType) === ReferralTypeRef
+          )
+        ).to.equal(false);
+        expect(
+          (await tokenRewardOneOverlayerReferral.balanceOf(rob.address)) -
+            robAfterTeam
+        ).to.equal(mulDiv(dustBase, 5n, 100n));
+      }
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(bob.address)) - bob0
+      ).to.equal(0n);
+      expect(
+        await tokenRewardOneOverlayerReferral.referredFromByType(
+          alice.address,
+          ReferralTypeRef
+        )
+      ).to.equal(bob.address);
+
+      // --- Phase 2: accrue T2 with referrals, stake NFT (harvests without NFT) ---
+      await time.increase(700);
+      const alice1 = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const rob1 = await tokenRewardOneOverlayerReferral.balanceOf(rob.address);
+      const bob1 = await tokenRewardOneOverlayerReferral.balanceOf(bob.address);
+
+      await shrimpNft
+        .connect(alice)
+        .approve(await liquidity.getAddress(), shrimpTokenId);
+      const stakeTx = await liquidity
+        .connect(alice)
+        .stakeOriginNft(await shrimpNft.getAddress(), shrimpTokenId);
+      const stakeLogs = parseLiquidityLogs(liquidity, await stakeTx.wait());
+
+      const phase2Base = eventAmount(stakeLogs, "Harvest");
+      const phase2SelfTeam = eventAmountForType(
+        stakeLogs,
+        "SelfBonusPayed",
+        ReferralTypeTeam
+      );
+      const phase2SelfRef = eventAmountForType(
+        stakeLogs,
+        "SelfBonusPayed",
+        ReferralTypeRef
+      );
+      const phase2RefTeam = eventAmountForType(
+        stakeLogs,
+        "BonusPayed",
+        ReferralTypeTeam
+      );
+      const phase2RefRef = eventAmountForType(
+        stakeLogs,
+        "BonusPayed",
+        ReferralTypeRef
+      );
+
+      expect(optionalEventAmount(stakeLogs, "NftBonusPayed")).to.equal(
+        undefined
+      );
+      expect(phase2SelfTeam).to.equal(mulDiv(phase2Base, 25n, 1000n));
+      expect(phase2SelfRef).to.equal(mulDiv(phase2Base, 50n, 1000n));
+      expect(phase2RefTeam).to.equal(mulDiv(phase2Base, 5n, 100n));
+      expect(phase2RefRef).to.equal(mulDiv(phase2Base, 10n, 100n));
+
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(alice.address)) -
+          alice1
+      ).to.equal(phase2Base + phase2SelfTeam + phase2SelfRef);
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(rob.address)) - rob1
+      ).to.equal(phase2RefTeam);
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(bob.address)) - bob1
+      ).to.equal(phase2RefRef);
+
+      // --- Phase 3: accrue T3 with referrals + NFT, then harvest ---
+      await time.increase(900);
+      const alice2 = await tokenRewardOneOverlayerReferral.balanceOf(
+        alice.address
+      );
+      const rob2 = await tokenRewardOneOverlayerReferral.balanceOf(rob.address);
+      const bob2 = await tokenRewardOneOverlayerReferral.balanceOf(bob.address);
+
+      const harvestTx = await liquidity.connect(alice).harvest(0);
+      const harvestLogs = parseLiquidityLogs(
+        liquidity,
+        await harvestTx.wait()
+      );
+      const phase3Base = eventAmount(harvestLogs, "Harvest");
+      const phase3SelfTeam = eventAmountForType(
+        harvestLogs,
+        "SelfBonusPayed",
+        ReferralTypeTeam
+      );
+      const phase3SelfRef = eventAmountForType(
+        harvestLogs,
+        "SelfBonusPayed",
+        ReferralTypeRef
+      );
+      const phase3Nft = eventAmount(harvestLogs, "NftBonusPayed");
+      const phase3RefTeam = eventAmountForType(
+        harvestLogs,
+        "BonusPayed",
+        ReferralTypeTeam
+      );
+      const phase3RefRef = eventAmountForType(
+        harvestLogs,
+        "BonusPayed",
+        ReferralTypeRef
+      );
+
+      expect(phase3SelfTeam).to.equal(mulDiv(phase3Base, 25n, 1000n));
+      expect(phase3SelfRef).to.equal(mulDiv(phase3Base, 50n, 1000n));
+      expect(phase3Nft).to.equal(mulDiv(phase3Base, 2n, 100n));
+      expect(phase3RefTeam).to.equal(mulDiv(phase3Base, 5n, 100n));
+      expect(phase3RefRef).to.equal(mulDiv(phase3Base, 10n, 100n));
+
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(alice.address)) -
+          alice2
+      ).to.equal(phase3Base + phase3SelfTeam + phase3SelfRef + phase3Nft);
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(rob.address)) - rob2
+      ).to.equal(phase3RefTeam);
+      expect(
+        (await tokenRewardOneOverlayerReferral.balanceOf(bob.address)) - bob2
+      ).to.equal(phase3RefRef);
     });
 
     it("harvestFor pays NFT bonus based on target stake, not caller", async function () {
