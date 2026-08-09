@@ -221,9 +221,13 @@ export async function OverlayerReferral_setStakingPools(
     OVERLAYER_REFERRAL_ABI.abi,
     deployer
   );
-  await (contract.connect(deployer) as Contract).setStakingPools(pools, {
-    gasLimit: 2000000
-  });
+  const tx = await (contract.connect(deployer) as Contract).setStakingPools(
+    pools,
+    {
+      gasLimit: 2000000
+    }
+  );
+  await tx.wait();
 
   console.log("[OverlayerReferral_setStakingPools] Operation passed");
 }
@@ -247,11 +251,223 @@ export async function OverlayerReferral_addTrackers(
     deployer
   );
   for (const t of trackers) {
-    await (contract.connect(deployer) as Contract).addPointsTracker(t, {
-      gasLimit: 2000000
-    });
+    const tx = await (contract.connect(deployer) as Contract).addPointsTracker(
+      t,
+      {
+        gasLimit: 2000000
+      }
+    );
+    await tx.wait();
   }
   console.log("[OverlayerReferral_addTrackers] Operation passed");
+}
+
+/** ReferralType.Team */
+const REFERRAL_TYPE_TEAM = 1;
+
+export async function OverlayerReferral_setPointsMerkleRoot(
+  addr: string,
+  root: string,
+  signer: Signer
+): Promise<string> {
+  if (!ethers.isAddress(addr)) {
+    throw new Error(`${addr} is not a valid address`);
+  }
+  const contract = new ethers.Contract(
+    addr,
+    OVERLAYER_REFERRAL_ABI.abi,
+    signer
+  );
+  console.log(
+    `[OverlayerReferral_setPointsMerkleRoot] signer=${await signer.getAddress()} root=${root}`
+  );
+  const tx = await (contract as Contract).setPointsMerkleRoot(root, {
+    gasLimit: 200_000
+  });
+  await tx.wait();
+  console.log(`[OverlayerReferral_setPointsMerkleRoot] tx=${tx.hash}`);
+  return tx.hash as string;
+}
+
+export async function OverlayerReferral_claimPoints(
+  addr: string,
+  amount: bigint,
+  proof: string[],
+  signer: Signer
+): Promise<void> {
+  if (!ethers.isAddress(addr)) {
+    throw new Error(`${addr} is not a valid address`);
+  }
+  const contract = new ethers.Contract(
+    addr,
+    OVERLAYER_REFERRAL_ABI.abi,
+    signer
+  );
+  console.log(
+    `[OverlayerReferral_claimPoints] signer=${await signer.getAddress()} amount=${amount}`
+  );
+  const tx = await (contract as Contract).claimPoints(amount, proof, {
+    gasLimit: 500_000
+  });
+  await tx.wait();
+  console.log(`[OverlayerReferral_claimPoints] tx=${tx.hash}`);
+}
+
+export async function OverlayerReferral_setTeamOpen(
+  addr: string,
+  open: boolean,
+  signer: Signer
+): Promise<void> {
+  if (!ethers.isAddress(addr)) {
+    throw new Error(`${addr} is not a valid address`);
+  }
+  const contract = new ethers.Contract(
+    addr,
+    OVERLAYER_REFERRAL_ABI.abi,
+    signer
+  );
+  console.log(
+    `[OverlayerReferral_setTeamOpen] signer=${await signer.getAddress()} open=${open}`
+  );
+  const tx = await (contract as Contract).setTeamOpen(open, {
+    gasLimit: 2000000
+  });
+  await tx.wait();
+  console.log(`[OverlayerReferral_setTeamOpen] tx=${tx.hash}`);
+}
+
+export async function OverlayerReferral_setTeamWhitelist(
+  addr: string,
+  member: string,
+  allowed: boolean,
+  signer: Signer
+): Promise<void> {
+  if (!ethers.isAddress(addr) || !ethers.isAddress(member)) {
+    throw new Error("invalid address");
+  }
+  const contract = new ethers.Contract(
+    addr,
+    OVERLAYER_REFERRAL_ABI.abi,
+    signer
+  );
+  console.log(
+    `[OverlayerReferral_setTeamWhitelist] signer=${await signer.getAddress()} member=${member} allowed=${allowed}`
+  );
+  const tx = await (contract as Contract).setTeamWhitelist(member, allowed, {
+    gasLimit: 2000000
+  });
+  await tx.wait();
+  console.log(`[OverlayerReferral_setTeamWhitelist] tx=${tx.hash}`);
+}
+
+export async function OverlayerReferral_batchSetTeamWhitelist(
+  addr: string,
+  members: string[],
+  allowed: boolean,
+  signer: Signer
+): Promise<void> {
+  if (!ethers.isAddress(addr)) {
+    throw new Error(`${addr} is not a valid address`);
+  }
+  for (const m of members) {
+    if (!ethers.isAddress(m)) {
+      throw new Error(`${m} is not a valid address`);
+    }
+  }
+  const contract = new ethers.Contract(
+    addr,
+    OVERLAYER_REFERRAL_ABI.abi,
+    signer
+  );
+  console.log(
+    `[OverlayerReferral_batchSetTeamWhitelist] signer=${await signer.getAddress()} count=${
+      members.length
+    } allowed=${allowed}`
+  );
+  const tx = await (contract as Contract).batchSetTeamWhitelist(
+    members,
+    allowed,
+    { gasLimit: 5_000_000 }
+  );
+  await tx.wait();
+  console.log(`[OverlayerReferral_batchSetTeamWhitelist] tx=${tx.hash}`);
+}
+
+export async function OverlayerReferral_canJoinTeam(
+  addr: string,
+  owner: string,
+  consumer: string,
+  provider: any
+): Promise<boolean> {
+  if (
+    !ethers.isAddress(addr) ||
+    !ethers.isAddress(owner) ||
+    !ethers.isAddress(consumer)
+  ) {
+    throw new Error("invalid address");
+  }
+  const contract = new ethers.Contract(
+    addr,
+    OVERLAYER_REFERRAL_ABI.abi,
+    provider
+  );
+  return await contract.canJoinTeam(owner, consumer);
+}
+
+/** ReferralType.Ref */
+const REFERRAL_TYPE_REF = 2;
+
+export async function OverlayerReferral_getTeamDashboard(
+  addr: string,
+  owner: string,
+  provider: any
+): Promise<{
+  owner: string;
+  code: string;
+  open: boolean;
+  pointsTeam: bigint;
+  pointsRef: bigint;
+  pointsTotal: bigint;
+}> {
+  if (!ethers.isAddress(addr) || !ethers.isAddress(owner)) {
+    throw new Error("invalid address");
+  }
+  const contract = new ethers.Contract(
+    addr,
+    OVERLAYER_REFERRAL_ABI.abi,
+    provider
+  );
+  // Full whitelist / member lists are not fetched here (unbounded); use
+  // isTeamWhitelisted / canJoinTeam / event indexing for membership UX.
+  const [code, open, pointsTeam, pointsRef, pointsTotal] = await Promise.all([
+    contract.referralCodesByType(owner, REFERRAL_TYPE_TEAM),
+    contract.isTeamOpen(owner),
+    contract.generatedPointsByType(owner, REFERRAL_TYPE_TEAM),
+    contract.generatedPointsByType(owner, REFERRAL_TYPE_REF),
+    contract.generatedPoints(owner)
+  ]);
+  const dashboard = {
+    owner,
+    code,
+    open,
+    pointsTeam,
+    pointsRef,
+    pointsTotal
+  };
+  console.log(
+    "[OverlayerReferral_getTeamDashboard]",
+    JSON.stringify(
+      {
+        ...dashboard,
+        pointsTeam: pointsTeam.toString(),
+        pointsRef: pointsRef.toString(),
+        pointsTotal: pointsTotal.toString()
+      },
+      null,
+      2
+    )
+  );
+  return dashboard;
 }
 
 export async function deploy_LiquidityAirdropReward(
@@ -430,11 +646,55 @@ export async function Liquidity_updateReferral(
   );
 
   const contract = new ethers.Contract(addr, LIQUIDITY_ABI.abi, deployer);
-  await (contract.connect(deployer) as Contract).updateReferral(ref, {
-    gasLimit: 2000000
-  });
+  const tx = await (contract.connect(deployer) as Contract).updateReferral(
+    ref,
+    {
+      gasLimit: 2000000
+    }
+  );
+  await tx.wait();
 
   console.log("[Liquidity_updateReferral] Operation passed");
+}
+
+export async function Liquidity_setOriginNfts(
+  addr: string,
+  shrimp: string,
+  dolphin: string,
+  whale: string
+): Promise<void> {
+  const [deployer] = await ethers.getSigners();
+
+  if (!ethers.isAddress(addr)) {
+    throw new Error("addr is not ad address");
+  }
+  if (!ethers.isAddress(shrimp)) {
+    throw new Error("shrimp is not ad address");
+  }
+  if (!ethers.isAddress(dolphin)) {
+    throw new Error("dolphin is not ad address");
+  }
+  if (!ethers.isAddress(whale)) {
+    throw new Error("whale is not ad address");
+  }
+
+  console.log(
+    "[Liquidity_setOriginNfts] Setting origin NFTs on Liquidity with signer:",
+    deployer.address
+  );
+
+  const contract = new ethers.Contract(addr, LIQUIDITY_ABI.abi, deployer);
+  const tx = await (contract.connect(deployer) as Contract).setOriginNfts(
+    shrimp,
+    dolphin,
+    whale,
+    {
+      gasLimit: 2000000
+    }
+  );
+  await tx.wait();
+
+  console.log("[Liquidity_setOriginNfts] Operation passed");
 }
 
 export async function deploy_OVA(admin: string): Promise<string> {
@@ -504,7 +764,7 @@ export async function SingleStableStake_setRewardForStakedAssets(
     .setRewardForStakedAssets(rewardAddr, rateNum, rateDen, {
       gasLimit: 2000000
     });
-  const receipt = await tx.hash;
+  await tx.wait();
   console.log(
     "[SingleStableStake_setRewardForStakedAssets] Airdrop::SingleStableStake reward added hash =",
     tx.hash

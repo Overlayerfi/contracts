@@ -52,7 +52,9 @@ function loadBackingAddresses(): { product: string; address: string }[] {
     "mainnet-deployment",
     "mainnet-omnichain-manifest.json"
   );
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as Manifest;
+  const manifest = JSON.parse(
+    fs.readFileSync(manifestPath, "utf8")
+  ) as Manifest;
   const repo = manifest.chains?.["eth-mainnet"]?.contractsRepo;
   if (!repo) {
     throw new Error(`Missing eth-mainnet.contractsRepo in ${manifestPath}`);
@@ -125,7 +127,9 @@ async function main(): Promise<void> {
   console.log(`${LOG} tx=${tx.hash}`);
   const receipt = await tx.wait();
   console.log(
-    `${LOG} confirmed status=${receipt?.status} gasUsed=${receipt?.gasUsed?.toString()}`
+    `${LOG} confirmed status=${
+      receipt?.status
+    } gasUsed=${receipt?.gasUsed?.toString()}`
   );
 }
 

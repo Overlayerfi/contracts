@@ -222,9 +222,11 @@ describe("CurveStableStake", function () {
           await singleLiquidity.pendingReward(0, alice.address)
         ).to.be.greaterThan(0);
 
+        // ReferralType.Team = 1
         await tokenRewardOneOverlayerReferral
           .connect(owner)
-          .addCode("2025", owner.address);
+          .addCode("2025", owner.address, 1);
+        await tokenRewardOneOverlayerReferral.connect(owner).setTeamOpen(true);
         expect(
           await tokenRewardOneOverlayerReferral.balanceOf(alice.address)
         ).to.be.equal(0);

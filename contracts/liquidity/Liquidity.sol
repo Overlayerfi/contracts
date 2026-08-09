@@ -65,16 +65,11 @@ contract Liquidity is
     uint256 public bonusMultiplier = 1;
 
     /**
-     * @notice Referral bonus percentage.
-     * @dev 5%
+     * @notice Per-type referral and self-referral bonus rates.
+     * @dev Both rates use denom 1000. Team: 5% / 2.5%. Ref: 10% / 2.5%.
      */
-    uint8 public referralBonus = 5;
-
-    /**
-     * @notice Referral bonus percentage.
-     * @dev 2.5%
-     */
-    uint16 public selfReferralBonus = 25;
+    mapping(IOverlayerReferral.ReferralType => ReferralBonusConfig)
+        public referralBonusConfig;
 
     /**
      * @notice Referral contract.
@@ -97,7 +92,25 @@ contract Liquidity is
     address public whale;
 
     /**
-     * @notice Overlayer OG NFT collection. Holders get an extra 2.5% when an Origin NFT is staked.
+     * @notice Upgraded Overlayer Origin Shrimp NFT collection.
+     * @dev Optional; may be set after deploy via {setOriginNftsUpgraded}.
+     */
+    address public shrimpUpgraded;
+
+    /**
+     * @notice Upgraded Overlayer Origin Dolphin NFT collection.
+     * @dev Optional; may be set after deploy via {setOriginNftsUpgraded}.
+     */
+    address public dolphinUpgraded;
+
+    /**
+     * @notice Upgraded Overlayer Origin Whale NFT collection.
+     * @dev Optional; may be set after deploy via {setOriginNftsUpgraded}.
+     */
+    address public whaleUpgraded;
+
+    /**
+     * @notice Overlayer OG NFT collection. Holders get an extra 2.5% via balanceOf, independent of Origin stake.
      */
     address public ogNft;
 
@@ -133,15 +146,11 @@ contract Liquidity is
     mapping(address => uint256) private whitelistedNftListIndex;
 
     /**
-     * @notice Per-user list of staked whitelisted NFTs.
+     * @notice Per-user whitelisted (Special) NFT stake (at most one).
+     * @dev `collection == address(0)` means no whitelisted NFT is staked.
+     *      Mirrors {originNftStaked} single-slot exclusivity.
      */
-    mapping(address => NftStake[]) private whitelistedNftStakes;
-
-    /**
-     * @notice 1-based index of a user's staked whitelisted NFT.
-     */
-    mapping(address => mapping(address => mapping(uint256 => uint256)))
-        private whitelistedNftStakeIndex;
+    mapping(address => NftStake) public whitelistedNftStaked;
 
     /**
      * @notice Contract constructor.
@@ -152,6 +161,12 @@ contract Liquidity is
             revert InvalidZeroAddress();
         }
         startTime = block.timestamp;
+        referralBonusConfig[
+            IOverlayerReferral.ReferralType.Team
+        ] = ReferralBonusConfig({referralBonus: 50, selfReferralBonus: 25});
+        referralBonusConfig[
+            IOverlayerReferral.ReferralType.Ref
+        ] = ReferralBonusConfig({referralBonus: 100, selfReferralBonus: 25});
     }
 
     /// @inheritdoc IERC721Receiver
@@ -176,29 +191,35 @@ contract Liquidity is
     }
 
     /**
-     * @notice Update the referral bonus amount.
-     * @dev It can not be over 100 (100%).
-     * @param referralBonus_ the bonus amount.
+     * @notice Update referral and self-referral bonus rates for a given type.
+     * @dev Both numerators use denom 1000 (max 1000 = 100%).
+     * @param type_ the referral type.
+     * @param referralBonus_ referrer bonus numerator.
+     * @param selfReferralBonus_ self bonus numerator.
      */
-    function updateReferralBonus(uint8 referralBonus_) external onlyOwner {
-        if (referralBonus_ <= 100) {
-            referralBonus = referralBonus_;
-            emit NewReferralBonus(referralBonus_);
-        }
-    }
-
-    /**
-     * @notice Update the referral bonus amount.
-     * @dev It can not be over 1000 (100%).
-     * @param selfReferralBonus_ the bonus amount.
-     */
-    function updateSelfReferralBonus(
+    function updateReferralBonusConfig(
+        IOverlayerReferral.ReferralType type_,
+        uint16 referralBonus_,
         uint16 selfReferralBonus_
     ) external onlyOwner {
-        if (selfReferralBonus_ <= 1000) {
-            selfReferralBonus = selfReferralBonus_;
-            emit NewSelfReferralBonus(selfReferralBonus_);
+        if (
+            type_ != IOverlayerReferral.ReferralType.Team &&
+            type_ != IOverlayerReferral.ReferralType.Ref
+        ) {
+            revert InvalidReferralType();
         }
+        if (referralBonus_ > 1000) {
+            revert InvalidReferralBonus();
+        }
+        if (selfReferralBonus_ > 1000) {
+            revert InvalidSelfReferralBonus();
+        }
+        referralBonusConfig[type_] = ReferralBonusConfig({
+            referralBonus: referralBonus_,
+            selfReferralBonus: selfReferralBonus_
+        });
+        emit NewReferralBonus(type_, referralBonus_);
+        emit NewSelfReferralBonus(type_, selfReferralBonus_);
     }
 
     /**
@@ -245,8 +266,35 @@ contract Liquidity is
     }
 
     /**
-     * @notice Set the Overlayer OG NFT collection used for the Origin holder boost.
-     * @dev Pass the zero address to disable the OG boost. Holders are detected via balanceOf.
+     * @notice Set upgraded Origin NFT collections used for exclusive Origin staking.
+     * @dev Zero addresses are allowed so slots can be configured after deploy.
+     *      Non-zero collections must expose a non-zero {IBonusNFT.bonusDenominator}.
+     * @param shrimpUpgraded_ Upgraded Shrimp collection (or zero).
+     * @param dolphinUpgraded_ Upgraded Dolphin collection (or zero).
+     * @param whaleUpgraded_ Upgraded Whale collection (or zero).
+     */
+    function setOriginNftsUpgraded(
+        address shrimpUpgraded_,
+        address dolphinUpgraded_,
+        address whaleUpgraded_
+    ) external onlyOwner {
+        _requireValidUpgradedOriginNft(shrimpUpgraded_);
+        _requireValidUpgradedOriginNft(dolphinUpgraded_);
+        _requireValidUpgradedOriginNft(whaleUpgraded_);
+        shrimpUpgraded = shrimpUpgraded_;
+        dolphinUpgraded = dolphinUpgraded_;
+        whaleUpgraded = whaleUpgraded_;
+        emit OriginNftsUpgradedUpdated(
+            shrimpUpgraded_,
+            dolphinUpgraded_,
+            whaleUpgraded_
+        );
+    }
+
+    /**
+     * @notice Set the Overlayer OG NFT collection used for the OG holder boost.
+     * @dev Pass the zero address to disable the OG boost. Holders are detected via balanceOf,
+     *      independent of whether an Origin NFT is staked.
      * @param ogNft_ OG collection address.
      */
     function setOgNft(address ogNft_) external onlyOwner {
@@ -295,7 +343,7 @@ contract Liquidity is
     }
 
     /**
-     * @notice Stake an Overlayer Origin NFT (shrimp, dolphin, or whale). Only one at a time.
+     * @notice Stake an Overlayer Origin NFT (base or upgraded shrimp/dolphin/whale). Only one at a time.
      * @dev Harvests all pools first so the new bonus applies only to newly farmed points.
      * @param collection Origin collection address.
      * @param tokenId Token ID to stake.
@@ -355,8 +403,9 @@ contract Liquidity is
     }
 
     /**
-     * @notice Stake a dynamically whitelisted bonus NFT.
+     * @notice Stake a dynamically whitelisted (Special) bonus NFT. Only one whitelisted NFT at a time.
      * @dev Harvests all pools first so the new bonus applies only to newly farmed points.
+     *      Mirrors Origin single-slot exclusivity across all whitelisted collections.
      * @param collection Whitelisted collection address.
      * @param tokenId Token ID to stake.
      */
@@ -367,11 +416,11 @@ contract Liquidity is
         if (!whitelistedNft[collection]) {
             revert NftNotWhitelisted();
         }
+        if (whitelistedNftStaked[msg.sender].collection != address(0)) {
+            revert WhitelistedAlreadyStaked();
+        }
         if (IERC721(collection).ownerOf(tokenId) != msg.sender) {
             revert NotNftOwner();
-        }
-        if (whitelistedNftStakeIndex[msg.sender][collection][tokenId] != 0) {
-            revert DuplicateWhitelistedNft();
         }
         if (IBonusNFT(collection).bonusDenominator() == 0) {
             revert InvalidBonusDenominator();
@@ -379,13 +428,10 @@ contract Liquidity is
 
         _harvestAllPools(msg.sender);
 
-        whitelistedNftStakes[msg.sender].push(
-            NftStake({collection: collection, tokenId: tokenId})
-        );
-        whitelistedNftStakeIndex[msg.sender][collection][
-            tokenId
-        ] = whitelistedNftStakes[msg.sender].length;
-
+        whitelistedNftStaked[msg.sender] = NftStake({
+            collection: collection,
+            tokenId: tokenId
+        });
         IERC721(collection).safeTransferFrom(
             msg.sender,
             address(this),
@@ -396,43 +442,30 @@ contract Liquidity is
     }
 
     /**
-     * @notice Unstake a previously staked whitelisted bonus NFT.
-     * @dev Harvests all pools first. Unstake is allowed even if the collection was later delisted.
-     * @param collection Collection address.
-     * @param tokenId Token ID to unstake.
+     * @notice Unstake the caller's whitelisted (Special) bonus NFT.
+     * @dev Harvests all pools first so the removed bonus stops applying only after payout.
+     *      Unstake is allowed even if the collection was later delisted.
      */
-    function unstakeWhitelistedNft(
-        address collection,
-        uint256 tokenId
-    ) external nonReentrant {
-        uint256 index = whitelistedNftStakeIndex[msg.sender][collection][
-            tokenId
-        ];
-        if (index == 0) {
+    function unstakeWhitelistedNft() external nonReentrant {
+        NftStake memory stake = whitelistedNftStaked[msg.sender];
+        if (stake.collection == address(0)) {
             revert NftNotStaked();
         }
 
         _harvestAllPools(msg.sender);
 
-        NftStake[] storage stakes = whitelistedNftStakes[msg.sender];
-        uint256 lastIndex = stakes.length;
-        NftStake memory lastStake = stakes[lastIndex - 1];
-        if (index != lastIndex) {
-            stakes[index - 1] = lastStake;
-            whitelistedNftStakeIndex[msg.sender][lastStake.collection][
-                lastStake.tokenId
-            ] = index;
-        }
-        stakes.pop();
-        delete whitelistedNftStakeIndex[msg.sender][collection][tokenId];
-
-        IERC721(collection).safeTransferFrom(
+        delete whitelistedNftStaked[msg.sender];
+        IERC721(stake.collection).safeTransferFrom(
             address(this),
             msg.sender,
-            tokenId
+            stake.tokenId
         );
 
-        emit WhitelistedNftUnstaked(msg.sender, collection, tokenId);
+        emit WhitelistedNftUnstaked(
+            msg.sender,
+            stake.collection,
+            stake.tokenId
+        );
     }
 
     /**
@@ -553,6 +586,16 @@ contract Liquidity is
     }
 
     /**
+     * @notice Harvest every pool for an account.
+     * @dev Same auth model as `harvestFor` (unrestricted external). Used by Team
+     *      referral bind to settle before bonuses apply to future accrual.
+     * @param target the user to be harvested.
+     */
+    function harvestAllFor(address target) external override nonReentrant {
+        _harvestAllPools(target);
+    }
+
+    /**
      * @notice Harvest reward.
      * @dev This is allowed both before and after the end of pool endTimeStamp
      * @param pid the pool identifier.
@@ -591,6 +634,21 @@ contract Liquidity is
     }
 
     /**
+     * @notice Whether the user has a non-zero deposit in any pool.
+     * @param user The account to query.
+     * @return True if any pid has `userInfo[pid][user].amount > 0`.
+     */
+    function hasAnyDeposit(address user) external view override returns (bool) {
+        uint256 length = poolInfo.length;
+        for (uint256 pid = 0; pid < length; ++pid) {
+            if (userInfo[pid][user].amount > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * @notice Get the total amount of tokens staked inside a pool.
      * @param pid the pool identifier.
      * @return the amount of token staked inside the given pool.
@@ -616,13 +674,16 @@ contract Liquidity is
     }
 
     /**
-     * @notice Return all whitelisted NFT stakes for a user.
+     * @notice Return the caller's whitelisted (Special) NFT stake.
      * @param user The account to query.
+     * @return collection Staked collection, or zero if none.
+     * @return tokenId Staked token ID.
      */
-    function whitelistedStakesOf(
+    function whitelistedStakeOf(
         address user
-    ) external view returns (NftStake[] memory) {
-        return whitelistedNftStakes[user];
+    ) external view returns (address collection, uint256 tokenId) {
+        NftStake memory stake = whitelistedNftStaked[user];
+        return (stake.collection, stake.tokenId);
     }
 
     /**
@@ -829,7 +890,13 @@ contract Liquidity is
             return 0;
         }
         address refSource = referral.referralCodes(code);
-        address[] memory referredUsers = referral.seeReferred(refSource);
+        IOverlayerReferral.ReferralType type_ = referral.referralCodeTypes(
+            code
+        );
+        address[] memory referredUsers = referral.seeReferredByType(
+            refSource,
+            type_
+        );
         if (startIndex == 0 && endIndex == 0) {
             endIndex = referredUsers.length;
         }
@@ -913,7 +980,7 @@ contract Liquidity is
 
     /**
      * @notice Pay referral and NFT bonus tokens.
-     * @dev Self referral is paid only if the current user is referred.
+     * @dev Referral self bonus is paid per type only if the user is referred under that type.
      * @dev NFT bonus is paid for every staked Origin and whitelisted NFT.
      * @param originalAmount the original amount.
      * @param asset the reward asset.
@@ -929,20 +996,20 @@ contract Liquidity is
         }
 
         if (address(referral) != address(0)) {
-            uint256 bonus = originalAmount.mulDiv(referralBonus, 100);
-            address recipient = referral.referredFrom(source);
-            if (bonus > 0 && recipient != address(0)) {
-                _payReward(asset, recipient, bonus);
-                referral.track(recipient, bonus);
-                emit BonusPayed(recipient, bonus);
-
-                // Pay also the self referral bonus (for having consumed a referral)
-                uint256 selfBonus = originalAmount.mulDiv(
-                    selfReferralBonus,
-                    1000
+            IOverlayerReferral.ReferralType[2] memory types = [
+                IOverlayerReferral.ReferralType.Team,
+                IOverlayerReferral.ReferralType.Ref
+            ];
+            for (uint256 i = 0; i < types.length; ++i) {
+                ReferralBonusConfig memory cfg = referralBonusConfig[types[i]];
+                _payBonusForType(
+                    originalAmount,
+                    asset,
+                    source,
+                    types[i],
+                    cfg.referralBonus,
+                    cfg.selfReferralBonus
                 );
-                _payReward(asset, source, selfBonus);
-                emit SelfBonusPayed(source, selfBonus);
             }
         }
 
@@ -954,9 +1021,38 @@ contract Liquidity is
     }
 
     /**
+     * @notice Pay bonus for a single referral type.
+     */
+    function _payBonusForType(
+        uint256 originalAmount,
+        IERC20 asset,
+        address source,
+        IOverlayerReferral.ReferralType type_,
+        uint16 referralBonus_,
+        uint16 selfReferralBonus_
+    ) internal {
+        address recipient = referral.referredFromByType(source, type_);
+        if (recipient == address(0)) {
+            return;
+        }
+        uint256 bonus = originalAmount.mulDiv(referralBonus_, 1000);
+        if (bonus > 0) {
+            _payReward(asset, recipient, bonus);
+            referral.track(recipient, bonus, type_);
+            emit BonusPayed(recipient, bonus, type_);
+        }
+
+        uint256 selfBonus = originalAmount.mulDiv(selfReferralBonus_, 1000);
+        if (selfBonus > 0) {
+            _payReward(asset, source, selfBonus);
+            emit SelfBonusPayed(source, selfBonus, type_);
+        }
+    }
+
+    /**
      * @notice Compute NFT bonus for a base amount and user stake set.
      * @param originalAmount Base pending reward.
-     * @param user Account whose NFTs are counted.
+     * @param user Account whose Origin / OG / whitelisted NFT stakes are counted.
      */
     function _nftBonusAmount(
         uint256 originalAmount,
@@ -972,19 +1068,22 @@ contract Liquidity is
                 originalAmount,
                 originStake.collection
             );
-            // OG holders get an extra 2.5% of base on top of the Origin bonus.
-            if (ogNft != address(0) && IERC721(ogNft).balanceOf(user) > 0) {
-                total += originalAmount.mulDiv(
-                    OG_BONUS_NUMERATOR,
-                    OG_BONUS_DENOMINATOR
-                );
-            }
         }
 
-        NftStake[] storage stakes = whitelistedNftStakes[user];
-        uint256 length = stakes.length;
-        for (uint256 i = 0; i < length; ++i) {
-            total += _bonusFromCollection(originalAmount, stakes[i].collection);
+        // OG holders get an extra 2.5% of base, independent of Origin stake.
+        if (ogNft != address(0) && IERC721(ogNft).balanceOf(user) > 0) {
+            total += originalAmount.mulDiv(
+                OG_BONUS_NUMERATOR,
+                OG_BONUS_DENOMINATOR
+            );
+        }
+
+        NftStake memory whitelistStake = whitelistedNftStaked[user];
+        if (whitelistStake.collection != address(0)) {
+            total += _bonusFromCollection(
+                originalAmount,
+                whitelistStake.collection
+            );
         }
     }
 
@@ -1014,7 +1113,23 @@ contract Liquidity is
             collection != address(0) &&
             (collection == shrimp ||
                 collection == dolphin ||
-                collection == whale);
+                collection == whale ||
+                collection == shrimpUpgraded ||
+                collection == dolphinUpgraded ||
+                collection == whaleUpgraded);
+    }
+
+    /**
+     * @notice Validate an optional upgraded Origin collection address.
+     * @dev Zero is allowed (unset). Non-zero must have a valid bonus denominator.
+     */
+    function _requireValidUpgradedOriginNft(address collection) internal view {
+        if (collection == address(0)) {
+            return;
+        }
+        if (IBonusNFT(collection).bonusDenominator() == 0) {
+            revert InvalidBonusDenominator();
+        }
     }
 
     /**

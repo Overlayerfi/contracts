@@ -339,13 +339,8 @@ describe("Single Stable Token Staking", function () {
     });
 
     it("Should handle staking reward distribution correctly", async function () {
-      const {
-        owner,
-        liquidity,
-        stakedAsset,
-        tokenRewardOneOverlayerReferral,
-        alice
-      } = await loadFixture(deployFixture);
+      const { liquidity, stakedAsset, tokenRewardOneOverlayerReferral, alice } =
+        await loadFixture(deployFixture);
 
       await stakedAsset.transfer(alice.getAddress(), ethers.parseEther("20"));
       await stakedAsset
@@ -426,14 +421,9 @@ describe("Single Stable Token Staking", function () {
 
       await time.increase(60 * 60 * 24); // 1 day
 
-      // clear reward balaance
-      await tokenRewardOneOverlayerReferral
-        .connect(alice)
-        .transfer(
-          await owner.getAddress(),
-          await tokenRewardOneOverlayerReferral.balanceOf(
-            await alice.getAddress()
-          )
+      const rewardBalanceBefore =
+        await tokenRewardOneOverlayerReferral.balanceOf(
+          await alice.getAddress()
         );
 
       await liquidity.connect(alice).deposit(0, ethers.parseEther("10"));
@@ -454,9 +444,9 @@ describe("Single Stable Token Staking", function () {
 
       // harvest on deposit
       rewardBalance = ethers.formatEther(
-        await tokenRewardOneOverlayerReferral.balanceOf(
+        (await tokenRewardOneOverlayerReferral.balanceOf(
           await alice.getAddress()
-        )
+        )) - rewardBalanceBefore
       );
       expect(+rewardBalance).to.be.greaterThanOrEqual(+expected * 0.95);
       expect(+rewardBalance).to.be.lessThanOrEqual(+expected * 1.05);

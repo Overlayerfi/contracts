@@ -1,0 +1,44 @@
+{
+  "recipient": "0x1b4b7eD919416550457d142E54e7f98583E4B018",
+  "mintPerCollection": 10,
+  "networks": {
+    "eth_sepolia": {
+      "chainId": 11155111,
+      "deployedAt": "2026-08-09T14:19:00.689Z",
+      "shrimp": {
+        "address": "0x4fa1cd40aD49386fD01dd6Ea8D897e0571a84078",
+        "bonusNumerator": 1,
+        "bonusDenominator": 100
+      },
+      "dolphin": {
+        "address": "0x8dAF6f015FeE6453808d476F960cc9088DaBba58",
+        "bonusNumerator": 5,
+        "bonusDenominator": 100
+      },
+      "whale": {
+        "address": "0xAD015A331e994cE8230F45b0Cbd31d4Aba0c5ba1",
+        "bonusNumerator": 10,
+        "bonusDenominator": 100
+      }
+    },
+    "base_sepolia": {
+      "chainId": 84532,
+      "deployedAt": "2026-08-09T14:19:56.599Z",
+      "shrimp": {
+        "address": "0xF9A0Af8BBFc4d7ebcE2b14F434E694B495061F14",
+        "bonusNumerator": 1,
+        "bonusDenominator": 100
+      },
+      "dolphin": {
+        "address": "0x27EE39D136F2Ea41f49abE83CaC6272c8C4cb017",
+        "bonusNumerator": 5,
+        "bonusDenominator": 100
+      },
+      "whale": {
+        "address": "0xaFB15c2C28247002733dabd3907ee634De4288fe",
+        "bonusNumerator": 10,
+        "bonusDenominator": 100
+      }
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "admin": "0x1b4b7eD919416550457d142E54e7f98583E4B018",
+  "rewardRate": {
+    "num": 1825,
+    "den": 1000,
+    "note": "5 OVERP per 1000 staked per day"
+  },
+  "poolDurationSeconds": 7776000,
+  "vested": false,
+  "networks": {
+    "eth_sepolia": {
+      "originNfts": {
+        "shrimp": "",
+        "dolphin": "",
+        "whale": ""
+      },
+      "farms": [
+        {
+          "key": "T+",
+          "stakedAsset": "0xe20534a32f9162488a90026F268a74fBE28d272D"
+        },
+        {
+          "key": "C+",
+          "stakedAsset": "0xE815718D44694ec4637CB775C468d87f6e15B538"
+        }
+      ]
+    },
+    "base_sepolia": {
+      "originNfts": {
+        "shrimp": "",
+        "dolphin": "",
+        "whale": ""
+      },
+      "farms": [
+        {
+          "key": "T+",
+          "stakedAsset": "0xdE287B4a0918102511b027d53688c169fb308762"
+        },
+        {
+          "key": "C+",
+          "stakedAsset": "0x92f36E427a9579fe1356f19c74eb5d64bEae8930"
+        }
+      ]
+    }
+  }
+}

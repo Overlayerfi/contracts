@@ -390,13 +390,8 @@ describe("CurveStableStake", function () {
     });
 
     it("Should calculate and distribute rewards accurately for staked assets", async function () {
-      const {
-        owner,
-        liquidity,
-        stakedAsset,
-        tokenRewardOneOverlayerReferral,
-        alice
-      } = await loadFixture(deployFixture);
+      const { liquidity, stakedAsset, tokenRewardOneOverlayerReferral, alice } =
+        await loadFixture(deployFixture);
 
       // The held liquidity is slight more than 20 as virtual price is > 1.0 but as we use a 5% error in our calculations the results will still be in the range
 
@@ -481,14 +476,9 @@ describe("CurveStableStake", function () {
 
       await time.increase(60 * 60 * 24); // 1 day
 
-      // clear reward balaance
-      await tokenRewardOneOverlayerReferral
-        .connect(alice)
-        .transfer(
-          await owner.getAddress(),
-          await tokenRewardOneOverlayerReferral.balanceOf(
-            await alice.getAddress()
-          )
+      const rewardBalanceBefore =
+        await tokenRewardOneOverlayerReferral.balanceOf(
+          await alice.getAddress()
         );
 
       await liquidity.connect(alice).deposit(0, ethers.parseEther("10"));
@@ -509,9 +499,9 @@ describe("CurveStableStake", function () {
 
       // harvest on deposit
       rewardBalance = ethers.formatEther(
-        await tokenRewardOneOverlayerReferral.balanceOf(
+        (await tokenRewardOneOverlayerReferral.balanceOf(
           await alice.getAddress()
-        )
+        )) - rewardBalanceBefore
       );
       expect(+rewardBalance).to.be.greaterThanOrEqual(+expected * 0.95);
       expect(+rewardBalance).to.be.lessThanOrEqual(+expected * 1.05);

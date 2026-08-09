@@ -53,19 +53,54 @@ interface ILiquidityDefs {
 
     event NewBonusMultiplier(uint256 multiplier);
 
-    event NewReferralBonus(uint8 bonus);
+    /**
+     * @notice Per-type referral bonus rates.
+     * @dev Both numerators use denominator 1000 (e.g. 50 = 5%, 25 = 2.5%).
+     */
+    struct ReferralBonusConfig {
+        uint16 referralBonus;
+        uint16 selfReferralBonus;
+    }
 
-    event NewSelfReferralBonus(uint16 bonus);
+    event NewReferralBonus(
+        IOverlayerReferral.ReferralType referralType,
+        uint16 bonus
+    );
+
+    event NewSelfReferralBonus(
+        IOverlayerReferral.ReferralType referralType,
+        uint16 bonus
+    );
 
     event NewReferral(IOverlayerReferral referral);
 
-    event BonusPayed(address indexed recipient, uint256 amount);
+    event BonusPayed(
+        address indexed recipient,
+        uint256 amount,
+        IOverlayerReferral.ReferralType referralType
+    );
 
-    event SelfBonusPayed(address indexed recipient, uint256 amount);
+    event SelfBonusPayed(
+        address indexed recipient,
+        uint256 amount,
+        IOverlayerReferral.ReferralType referralType
+    );
+
+    error InvalidReferralType();
+
+    error InvalidReferralBonus();
+
+    error InvalidSelfReferralBonus();
 
     event NftBonusPayed(address indexed recipient, uint256 amount);
 
     event OriginNftsUpdated(address shrimp, address dolphin, address whale);
+
+    event OriginNftsUpgradedUpdated(
+        address shrimpUpgraded,
+        address dolphinUpgraded,
+        address whaleUpgraded
+    );
 
     event OgNftUpdated(address indexed ogNft);
 
@@ -131,6 +166,8 @@ interface ILiquidityDefs {
 
     error NftNotWhitelisted();
 
+    error WhitelistedAlreadyStaked();
+
     error NftNotStaked();
 
     error NotNftOwner();
@@ -148,6 +185,10 @@ interface ILiquidityDefs {
     function harvest(uint256 pid) external;
 
     function harvestFor(uint256 pid, address target) external;
+
+    function harvestAllFor(address target) external;
+
+    function hasAnyDeposit(address user) external view returns (bool);
 
     function pendingReward(
         uint256 pid,

@@ -1,0 +1,66 @@
+{
+  "admin": "0x1b4b7eD919416550457d142E54e7f98583E4B018",
+  "rewardRate": {
+    "num": 1825,
+    "den": 1000,
+    "note": "5 OVERP per 1000 staked per day"
+  },
+  "networks": {
+    "eth_sepolia": {
+      "chainId": 11155111,
+      "deployedAt": "2026-08-09T13:28:13.248Z",
+      "startTime": 1786282020,
+      "endTime": 1794058020,
+      "overp": "0x9afE4b0c354c13325Db69eDDe883D907c4Df0Bf1",
+      "originNfts": {
+        "shrimp": "0x4fa1cd40aD49386fD01dd6Ea8D897e0571a84078",
+        "dolphin": "0x8dAF6f015FeE6453808d476F960cc9088DaBba58",
+        "whale": "0xAD015A331e994cE8230F45b0Cbd31d4Aba0c5ba1"
+      },
+      "farms": {
+        "T+": {
+          "liquidity": "0x40Bf43c6fb8acdAb056EbE46AB225540E60ea7c6",
+          "stakedAsset": "0xe20534a32f9162488a90026F268a74fBE28d272D",
+          "pid": 0,
+          "startTime": 1786282020,
+          "endTime": 1794058020
+        },
+        "C+": {
+          "liquidity": "0xBDad11e62077fcbb04486ccDCf8199F1aAAFAEF2",
+          "stakedAsset": "0xE815718D44694ec4637CB775C468d87f6e15B538",
+          "pid": 0,
+          "startTime": 1786282032,
+          "endTime": 1794058032
+        }
+      }
+    },
+    "base_sepolia": {
+      "chainId": 84532,
+      "deployedAt": "2026-08-09T13:32:24.251Z",
+      "startTime": 1786282176,
+      "endTime": 1794058176,
+      "overp": "0x504868AFbc53a6F811789647223Fea02d1Cf3C88",
+      "originNfts": {
+        "shrimp": "0xF9A0Af8BBFc4d7ebcE2b14F434E694B495061F14",
+        "dolphin": "0x27EE39D136F2Ea41f49abE83CaC6272c8C4cb017",
+        "whale": "0xaFB15c2C28247002733dabd3907ee634De4288fe"
+      },
+      "farms": {
+        "T+": {
+          "liquidity": "0xaB55545472325a47e09bcf79D9bDFD8CEC3AA20b",
+          "stakedAsset": "0xdE287B4a0918102511b027d53688c169fb308762",
+          "pid": 0,
+          "startTime": 1786282176,
+          "endTime": 1794058176
+        },
+        "C+": {
+          "liquidity": "0x5291E57095Ab6A9668233A7C0F9F1D68e1BF9797",
+          "stakedAsset": "0x92f36E427a9579fe1356f19c74eb5d64bEae8930",
+          "pid": 0,
+          "startTime": 1786282178,
+          "endTime": 1794058178
+        }
+      }
+    }
+  }
+}

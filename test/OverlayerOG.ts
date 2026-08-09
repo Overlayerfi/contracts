@@ -77,18 +77,27 @@ describe("Overlayer OG", function () {
     expect(await og.getApproved(1)).to.equal(buyer.address);
   });
 
-  it("allows an approved operator to burn a non-transferable OG NFT", async function () {
+  it("rejects burns from owner and approved operator", async function () {
     const { og, owner, minter, buyer } = await loadFixture(deployOgFixture);
 
     await og.connect(owner).setWhitelist(minter.address, true);
     await og.connect(minter).mint();
     await og.connect(minter).approve(buyer.address, 1);
 
-    await expect(og.connect(buyer).burn(1))
-      .to.emit(og, "Transfer")
-      .withArgs(minter.address, ethers.ZeroAddress, 1);
+    await expect(og.connect(minter).burn(1)).to.be.revertedWithCustomError(
+      og,
+      "NonBurnable"
+    );
+    await expect(og.connect(buyer).burn(1)).to.be.revertedWithCustomError(
+      og,
+      "NonBurnable"
+    );
+    await expect(og.connect(minter).burnBatch([1])).to.be.revertedWithCustomError(
+      og,
+      "NonBurnable"
+    );
 
-    expect(await og.hasMinted(minter.address)).to.equal(true);
-    await expect(og.ownerOf(1)).to.be.reverted;
+    expect(await og.ownerOf(1)).to.equal(minter.address);
+    expect(await og.balanceOf(minter.address)).to.equal(1);
   });
 });
