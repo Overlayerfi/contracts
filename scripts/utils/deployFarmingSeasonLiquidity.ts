@@ -1,5 +1,9 @@
 /**
- * Deploy farming-season Liquidity pools (OVERP + N× SingleStableStake) per network.
+ * Deploy farming-season Liquidity (OVERP + 1× SingleStableStake with N pools) per network.
+ *
+ * One Liquidity contract holds all configured farms as pid 0..N-1 so a single NFT stake
+ * applies to every pool. When all pools share the same per-TVL rate, the contract rate is
+ * set to N× the per-pool rate with equal allocPoints (undoes alloc dilution).
  *
  * Assets / farm keys are loaded from:
  *   scripts/config/farming-season-liquidity.config.json
@@ -14,8 +18,6 @@
  * Mainnet: add a network section with real Origin + staked assets in the config JSON;
  * do not run the mock NFT script.
  * Writes/merges `mainnet-deployment/liquidity.json` (testnet → `testnet-deployments/liquidity.json`).
- *
- * Skips: setOgNft / whitelist / upgraded Origin wiring (post-deploy).
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -34,6 +36,7 @@ import {
 } from "../functions";
 import SINGLE_STABLE_STAKE_ABI from "../../artifacts/contracts/liquidity/SingleStableStake.sol/SingleStableStake.json";
 import OVERLAYER_REFERRAL_ABI from "../../artifacts/contracts/overlayer/OverlayerReferral.sol/OverlayerReferral.json";
+import LIQUIDITY_ABI from "../../artifacts/contracts/liquidity/Liquidity.sol/Liquidity.json";
 
 //########################################## CONFIGURATION ##########################################
 
@@ -92,7 +95,14 @@ type LiquidityDeploymentFile = {
       startTime: number;
       endTime: number;
       overp: string;
+      liquidity: string;
       originNfts: OriginNftsConfig;
+      ogNft?: string;
+      appliedRewardRate: {
+        num: number;
+        den: number;
+        note: string;
+      };
       farms: Record<string, DeployedFarmRecord>;
     }
   >;
@@ -100,6 +110,34 @@ type LiquidityDeploymentFile = {
 
 function getTimestamp(): string {
   return new Date().toISOString();
+}
+
+async function sleep(ms: number) {
+  await new Promise((r) => setTimeout(r, ms));
+}
+
+async function withRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  for (let i = 1; i <= 10; i++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      const msg = String(err?.message ?? err);
+      if (
+        !msg.includes("in-flight transaction limit") &&
+        !msg.includes("replacement transaction underpriced") &&
+        !msg.includes("nonce")
+      ) {
+        throw err;
+      }
+      if (i === 10) throw err;
+      const waitMs = 10000 * i;
+      console.log(
+        `[${getTimestamp()}] ${label}: retry ${i}/10 after ${waitMs}ms`
+      );
+      await sleep(waitMs);
+    }
+  }
+  throw new Error("unreachable");
 }
 
 function isTestnetNetwork(name: string): boolean {
@@ -180,17 +218,9 @@ function addressFromField(value: unknown): string {
   return "";
 }
 
-/**
- * Load shrimp/dolphin/whale from mock-origin-nfts.json for the current network.
- * Supports:
- * - { networks: { [networkName]: { shrimp, dolphin, whale } } }  (deployMockOriginNfts.tmp.ts)
- * - { [networkName]: { shrimp, dolphin, whale } }
- * - top-level { shrimp, dolphin, whale } when file.network.name matches
- * Each of shrimp/dolphin/whale may be a string address or `{ address: string, ... }`.
- */
-function loadOriginNftsFromMockFile(
+function loadMockNetworkEntry(
   networkName: string
-): OriginNftsConfig | null {
+): Record<string, unknown> | null {
   if (!existsSync(MOCK_ORIGIN_NFTS_PATH)) {
     return null;
   }
@@ -200,10 +230,6 @@ function loadOriginNftsFromMockFile(
     unknown
   >;
 
-  let entry: Record<string, unknown> | undefined;
-
-  // Prefer nested `networks` (canonical mock manifest shape) over a top-level key
-  // that may collide with other fields.
   if (
     raw.networks &&
     typeof raw.networks === "object" &&
@@ -215,27 +241,37 @@ function loadOriginNftsFromMockFile(
       typeof networks[networkName] === "object" &&
       networks[networkName] !== null
     ) {
-      entry = networks[networkName] as Record<string, unknown>;
+      return networks[networkName] as Record<string, unknown>;
     }
   }
 
   if (
-    !entry &&
     raw[networkName] &&
     typeof raw[networkName] === "object" &&
     raw[networkName] !== null
   ) {
-    entry = raw[networkName] as Record<string, unknown>;
-  } else if (
-    !entry &&
+    return raw[networkName] as Record<string, unknown>;
+  }
+
+  if (
     raw.network &&
     typeof raw.network === "object" &&
     raw.network !== null &&
     (raw.network as { name?: string }).name === networkName
   ) {
-    entry = raw;
+    return raw;
   }
 
+  return null;
+}
+
+/**
+ * Load shrimp/dolphin/whale from mock-origin-nfts.json for the current network.
+ */
+function loadOriginNftsFromMockFile(
+  networkName: string
+): OriginNftsConfig | null {
+  const entry = loadMockNetworkEntry(networkName);
   if (!entry) {
     return null;
   }
@@ -253,6 +289,15 @@ function loadOriginNftsFromMockFile(
   }
 
   return { shrimp, dolphin, whale };
+}
+
+function loadOgNftFromMockFile(networkName: string): string | null {
+  const entry = loadMockNetworkEntry(networkName);
+  if (!entry) {
+    return null;
+  }
+  const og = addressFromField(entry.og);
+  return isNonEmptyAddress(og) ? og : null;
 }
 
 function resolveOriginNfts(
@@ -390,6 +435,7 @@ async function main() {
 
   const farmConfigs = resolveFarms(networkCfg, networkName);
   const originNfts = resolveOriginNfts(networkCfg, networkName);
+  const ogNft = loadOgNftFromMockFile(networkName);
 
   const admin = await ethers.getSigner(config.admin);
   console.log(`[${getTimestamp()}] Config:   ${configPath}`);
@@ -397,16 +443,27 @@ async function main() {
   console.log(`[${getTimestamp()}] Signer:   ${admin.address}`);
   console.log(
     `[${getTimestamp()}] Farms:    ${farmConfigs
-      .map((f) => `${f.key}=${f.stakedAsset}`)
+      .map((f, i) => `pid${i}:${f.key}=${f.stakedAsset}`)
       .join(", ")}`
   );
+  if (ogNft) {
+    console.log(`[${getTimestamp()}] OG NFT:   ${ogNft} (from mock manifest)`);
+  }
 
   for (const farm of farmConfigs) {
     await assertDecimals18(farm.stakedAsset, farm.key);
   }
 
   const defaultTransactionOptions = { gasLimit: 2000000 };
-  const { num: rateNum, den: rateDen } = config.rewardRate;
+  const poolCount = farmConfigs.length;
+  const { num: perPoolRateNum, den: rateDen } = config.rewardRate;
+  // Equal per-pool rates + equal allocPoints ⇒ contract rate = N × per-pool rate
+  const appliedRateNum = perPoolRateNum * poolCount;
+
+  console.log(
+    `[${getTimestamp()}] Reward:   per-pool ${perPoolRateNum}/${rateDen}; ` +
+      `applied ${appliedRateNum}/${rateDen} (${poolCount} pools × equal alloc)`
+  );
 
   // 1. Deploy OVERP (OverlayerReferral)
   const overpAddr = await deploy_OverlayerReferral(config.admin, 2);
@@ -416,142 +473,149 @@ async function main() {
     admin.provider
   );
 
-  // 2. Deploy one SingleStableStake per configured farm
-  type RuntimeFarm = {
-    key: string;
-    addr: string;
-    contract: Contract;
-    stakedAsset: string;
-    startTime: number;
-    endTime: number;
-  };
+  // 2. Deploy one SingleStableStake for all farms
+  console.log(
+    `[${getTimestamp()}] Deploying SingleStableStake (shared by ${poolCount} pools)...`
+  );
+  const liquidityAddr = await deploy_AirdropSingleStableStake(config.admin, 2);
+  const liquidity = new ethers.Contract(
+    liquidityAddr,
+    SINGLE_STABLE_STAKE_ABI.abi,
+    admin.provider
+  );
+  const startTime = Number(await liquidity.startTime());
+  const endTime = startTime + config.poolDurationSeconds;
+  console.log(
+    `[${getTimestamp()}] Liquidity=${liquidityAddr} startTime=${startTime} endTime=${endTime} (+${
+      config.poolDurationSeconds
+    }s)`
+  );
 
-  const farms: RuntimeFarm[] = [];
-  for (const farmCfg of farmConfigs) {
-    console.log(
-      `[${getTimestamp()}] Deploying SingleStableStake for ${farmCfg.key}...`
-    );
-    const addr = await deploy_AirdropSingleStableStake(config.admin, 2);
-    const contract = new ethers.Contract(
-      addr,
-      SINGLE_STABLE_STAKE_ABI.abi,
-      admin.provider
-    );
-    const startTime = Number(await contract.startTime());
-    const endTime = startTime + config.poolDurationSeconds;
-    farms.push({
-      key: farmCfg.key,
-      addr,
-      contract,
-      stakedAsset: farmCfg.stakedAsset,
-      startTime,
-      endTime
-    });
-    console.log(
-      `[${getTimestamp()}] ${
-        farmCfg.key
-      } pool window startTime=${startTime} (constructor) endTime=${endTime} (+${
-        config.poolDurationSeconds
-      }s)`
-    );
-  }
-
-  // 3. OVERP setMinter for each farm
-  for (const farm of farms) {
+  // 3. OVERP setMinter for the shared farm
+  {
     const tx = await (overp.connect(admin) as Contract).setMinter(
-      farm.addr,
+      liquidityAddr,
       defaultTransactionOptions
     );
     await tx.wait();
     console.log(
-      `[${getTimestamp()}] OVERP setMinter(${farm.key}) → ${farm.addr} hash=${
-        tx.hash
-      }`
+      `[${getTimestamp()}] OVERP setMinter → ${liquidityAddr} hash=${tx.hash}`
     );
   }
 
-  // 4. Reward rate + pool per farm
-  for (const farm of farms) {
-    await SingleStableStake_setRewardForStakedAssets(
-      farm.contract,
-      admin,
-      overpAddr,
-      rateNum,
-      rateDen,
-      2
-    );
+  // 4. Reward rate once, then add each farm as a pool (equal allocPoints = 1)
+  await SingleStableStake_setRewardForStakedAssets(
+    liquidity,
+    admin,
+    overpAddr,
+    appliedRateNum,
+    rateDen,
+    2
+  );
+
+  for (const [pid, farmCfg] of farmConfigs.entries()) {
     await SingleStableStake_addPool(
-      farm.contract,
+      liquidity,
       admin,
-      farm.stakedAsset,
+      farmCfg.stakedAsset,
       overpAddr,
-      1,
-      farm.endTime,
+      1, // equal allocPoints; dilution undone by appliedRateNum = N × per-pool
+      endTime,
       config.vested,
       true,
       2
     );
     console.log(
-      `[${getTimestamp()}] ${farm.key} pool added (staked=${
-        farm.stakedAsset
-      }, endTime=${farm.endTime})`
+      `[${getTimestamp()}] Added pid=${pid} key=${farmCfg.key} staked=${
+        farmCfg.stakedAsset
+      }`
     );
   }
 
-  // 5. Referral wiring
-  const farmAddrs = farms.map((f) => f.addr);
-  await OverlayerReferral_setStakingPools(overpAddr, farmAddrs);
-  await OverlayerReferral_addTrackers(overpAddr, farmAddrs);
+  // 5. Referral wiring (single staking pool address)
+  await OverlayerReferral_setStakingPools(overpAddr, [liquidityAddr]);
+  await OverlayerReferral_addTrackers(overpAddr, [liquidityAddr]);
 
-  // 6. Liquidity → referral + Origin NFTs
-  for (const farm of farms) {
-    await Liquidity_updateReferral(farm.addr, overpAddr);
-    await Liquidity_setOriginNfts(
-      farm.addr,
-      originNfts.shrimp,
-      originNfts.dolphin,
-      originNfts.whale
+  // 6. Liquidity → referral + Origin NFTs (+ OG if present)
+  await Liquidity_updateReferral(liquidityAddr, overpAddr);
+  await Liquidity_setOriginNfts(
+    liquidityAddr,
+    originNfts.shrimp,
+    originNfts.dolphin,
+    originNfts.whale
+  );
+  console.log(`[${getTimestamp()}] Referral + Origin NFTs configured`);
+
+  if (ogNft) {
+    const liqWithOg = new ethers.Contract(
+      liquidityAddr,
+      LIQUIDITY_ABI.abi,
+      admin
     );
-    console.log(
-      `[${getTimestamp()}] ${farm.key} referral + Origin NFTs configured`
-    );
+    await withRetry(`setOgNft ${ogNft}`, async () => {
+      const tx = await (liqWithOg as Contract).setOgNft(ogNft, {
+        gasLimit: 2000000
+      });
+      await tx.wait();
+      console.log(`[${getTimestamp()}] setOgNft → ${ogNft} hash=${tx.hash}`);
+    });
   }
 
   const providerNetwork = await ethers.provider.getNetwork();
   const outputPath = liquidityOutputPath(networkName);
   const farmsManifest: Record<string, DeployedFarmRecord> = {};
-  for (const farm of farms) {
-    farmsManifest[farm.key] = {
-      liquidity: farm.addr,
-      stakedAsset: farm.stakedAsset,
-      pid: 0,
-      startTime: farm.startTime,
-      endTime: farm.endTime
+  for (const [pid, farmCfg] of farmConfigs.entries()) {
+    farmsManifest[farmCfg.key] = {
+      liquidity: liquidityAddr,
+      stakedAsset: farmCfg.stakedAsset,
+      pid,
+      startTime,
+      endTime
     };
   }
 
-  mergeLiquidityJson(outputPath, config.admin, config.rewardRate, networkName, {
+  const networkEntry: LiquidityDeploymentFile["networks"][string] = {
     chainId: Number(providerNetwork.chainId),
     deployedAt: getTimestamp(),
-    // Network-level window mirrors the first farm (all use constructor now + duration)
-    startTime: farms[0].startTime,
-    endTime: farms[0].endTime,
+    startTime,
+    endTime,
     overp: overpAddr,
+    liquidity: liquidityAddr,
     originNfts,
+    appliedRewardRate: {
+      num: appliedRateNum,
+      den: rateDen,
+      note: `${poolCount}× per-pool rate with equal allocPoints (undoes dilution)`
+    },
     farms: farmsManifest
-  });
+  };
+  if (ogNft) {
+    networkEntry.ogNft = ogNft;
+  }
+
+  mergeLiquidityJson(
+    outputPath,
+    config.admin,
+    config.rewardRate,
+    networkName,
+    networkEntry
+  );
 
   console.log(
     `\n[${getTimestamp()}] Farming season Liquidity deploy complete.`
   );
-  console.log(`  OVERP:    ${overpAddr}`);
-  for (const farm of farms) {
-    console.log(`  Farm ${farm.key}: ${farm.addr} (asset ${farm.stakedAsset})`);
+  console.log(`  OVERP:     ${overpAddr}`);
+  console.log(`  Liquidity: ${liquidityAddr}`);
+  for (const [pid, farmCfg] of farmConfigs.entries()) {
+    console.log(`  Pool ${pid} ${farmCfg.key}: asset ${farmCfg.stakedAsset}`);
   }
   console.log(
-    `  Origin:   shrimp=${originNfts.shrimp} dolphin=${originNfts.dolphin} whale=${originNfts.whale}`
+    `  Origin:    shrimp=${originNfts.shrimp} dolphin=${originNfts.dolphin} whale=${originNfts.whale}`
   );
-  console.log(`  Manifest: ${outputPath}`);
+  if (ogNft) {
+    console.log(`  OG:        ${ogNft}`);
+  }
+  console.log(`  Manifest:  ${outputPath}`);
 }
 
 main().catch((err) => {

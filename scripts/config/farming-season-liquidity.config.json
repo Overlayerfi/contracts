@@ -3,7 +3,7 @@
   "rewardRate": {
     "num": 1825,
     "den": 1000,
-    "note": "5 OVERP per 1000 staked per day"
+    "note": "Per-pool target: 5 OVERP per 1000 staked per day. Deploy script applies N× this rate with equal allocPoints when N pools share one Liquidity."
   },
   "poolDurationSeconds": 7776000,
   "vested": false,
