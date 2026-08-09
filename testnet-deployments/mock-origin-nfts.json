@@ -4,7 +4,7 @@
   "networks": {
     "eth_sepolia": {
       "chainId": 11155111,
-      "deployedAt": "2026-08-09T14:19:00.689Z",
+      "deployedAt": "2026-08-09T14:44:48.614Z",
       "shrimp": {
         "address": "0x4fa1cd40aD49386fD01dd6Ea8D897e0571a84078",
         "bonusNumerator": 1,
@@ -19,11 +19,17 @@
         "address": "0xAD015A331e994cE8230F45b0Cbd31d4Aba0c5ba1",
         "bonusNumerator": 10,
         "bonusDenominator": 100
+      },
+      "og": {
+        "address": "0x34A7ced8CD387a7F487D382D1D90b47E6c858DB2",
+        "bonusNumerator": 25,
+        "bonusDenominator": 1000,
+        "note": "2.5% is hardcoded in Liquidity (OG_BONUS_*); NFT is balanceOf-gated only"
       }
     },
     "base_sepolia": {
       "chainId": 84532,
-      "deployedAt": "2026-08-09T14:19:56.599Z",
+      "deployedAt": "2026-08-09T14:45:20.294Z",
       "shrimp": {
         "address": "0xF9A0Af8BBFc4d7ebcE2b14F434E694B495061F14",
         "bonusNumerator": 1,
@@ -38,6 +44,12 @@
         "address": "0xaFB15c2C28247002733dabd3907ee634De4288fe",
         "bonusNumerator": 10,
         "bonusDenominator": 100
+      },
+      "og": {
+        "address": "0x87f22EDf12B23427e73C1C0280f12586220CDBB8",
+        "bonusNumerator": 25,
+        "bonusDenominator": 1000,
+        "note": "2.5% is hardcoded in Liquidity (OG_BONUS_*); NFT is balanceOf-gated only"
       }
     }
   }

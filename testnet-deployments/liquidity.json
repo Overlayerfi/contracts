@@ -32,7 +32,8 @@
           "startTime": 1786282032,
           "endTime": 1794058032
         }
-      }
+      },
+      "ogNft": "0x34A7ced8CD387a7F487D382D1D90b47E6c858DB2"
     },
     "base_sepolia": {
       "chainId": 84532,
@@ -60,7 +61,8 @@
           "startTime": 1786282178,
           "endTime": 1794058178
         }
-      }
+      },
+      "ogNft": "0x87f22EDf12B23427e73C1C0280f12586220CDBB8"
     }
   }
 }
