@@ -153,6 +153,17 @@ contract Liquidity is
     mapping(address => NftStake) public whitelistedNftStaked;
 
     /**
+     * @notice Cumulative NFT bonus OVERP minted to each user.
+     */
+    mapping(address => uint256) public nftBoostPoints;
+
+    /**
+     * @notice Cumulative self-referral bonus OVERP minted to each user, per type.
+     */
+    mapping(address => mapping(IOverlayerReferral.ReferralType => uint256))
+        public selfReferralBoostPointsByType;
+
+    /**
      * @notice Contract constructor.
      * @param admin The contract admin
      */
@@ -694,6 +705,36 @@ contract Liquidity is
     }
 
     /**
+     * @notice Cumulative self-referral bonus OVERP minted to `user` (Team + Ref).
+     */
+    function selfReferralBoostPoints(
+        address user
+    ) external view returns (uint256) {
+        return
+            selfReferralBoostPointsByType[user][
+                IOverlayerReferral.ReferralType.Team
+            ] +
+            selfReferralBoostPointsByType[user][
+                IOverlayerReferral.ReferralType.Ref
+            ];
+    }
+
+    /**
+     * @notice Cumulative boost OVERP minted to `user` (NFT + self-referral).
+     * @dev Does not include referrer-side bonuses (see OverlayerReferral.generatedPoints).
+     */
+    function boostPoints(address user) external view returns (uint256) {
+        return
+            nftBoostPoints[user] +
+            selfReferralBoostPointsByType[user][
+                IOverlayerReferral.ReferralType.Team
+            ] +
+            selfReferralBoostPointsByType[user][
+                IOverlayerReferral.ReferralType.Ref
+            ];
+    }
+
+    /**
      * @notice Compute the NFT bonus amount for a given base reward and user.
      * @param user The account whose staked NFTs are used.
      * @param amount The base pending reward amount.
@@ -1016,6 +1057,7 @@ contract Liquidity is
         uint256 nftExtra = _nftBonusAmount(originalAmount, source);
         if (nftExtra > 0) {
             _payReward(asset, source, nftExtra);
+            nftBoostPoints[source] += nftExtra;
             emit NftBonusPayed(source, nftExtra);
         }
     }
@@ -1045,6 +1087,7 @@ contract Liquidity is
         uint256 selfBonus = originalAmount.mulDiv(selfReferralBonus_, 1000);
         if (selfBonus > 0) {
             _payReward(asset, source, selfBonus);
+            selfReferralBoostPointsByType[source][type_] += selfBonus;
             emit SelfBonusPayed(source, selfBonus, type_);
         }
     }

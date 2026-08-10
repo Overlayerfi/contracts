@@ -1980,6 +1980,15 @@ describe("Liquidity", function () {
       const bobBefore = await tokenRewardOneOverlayerReferral.balanceOf(
         bob.address
       );
+      const nftBoostBefore = await liquidity.nftBoostPoints(alice.address);
+      const selfTeamBefore = await liquidity.selfReferralBoostPointsByType(
+        alice.address,
+        1
+      );
+      const selfBoostBefore = await liquidity.selfReferralBoostPoints(
+        alice.address
+      );
+      const boostBefore = await liquidity.boostPoints(alice.address);
 
       const tx = await liquidity.connect(alice).harvest(0);
       const receipt = await tx.wait();
@@ -2006,6 +2015,30 @@ describe("Liquidity", function () {
 
       expect(aliceAfter - aliceBefore).to.equal(pending + selfBonus + nftBonus);
       expect(bobAfter - bobBefore).to.equal(referrerBonus);
+
+      // Cumulative boost maps (self-referral + NFT; referrer uses generatedPoints)
+      expect(
+        (await liquidity.nftBoostPoints(alice.address)) - nftBoostBefore
+      ).to.equal(nftBonus);
+      expect(
+        (await liquidity.selfReferralBoostPointsByType(alice.address, 1)) -
+          selfTeamBefore
+      ).to.equal(selfBonus);
+      expect(
+        (await liquidity.selfReferralBoostPoints(alice.address)) -
+          selfBoostBefore
+      ).to.equal(selfBonus);
+      expect(
+        (await liquidity.boostPoints(alice.address)) - boostBefore
+      ).to.equal(selfBonus + nftBonus);
+      expect(await liquidity.boostPoints(bob.address)).to.equal(0n);
+
+      const boostAfterFirst = await liquidity.boostPoints(alice.address);
+      await time.increase(500);
+      await liquidity.connect(alice).harvest(0);
+      expect(await liquidity.boostPoints(alice.address)).to.be.greaterThan(
+        boostAfterFirst
+      );
     });
 
     it("Should apply one Origin stake across all pool ids", async function () {

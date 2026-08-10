@@ -200,6 +200,19 @@ interface ILiquidityDefs {
         address _user
     ) external view returns (uint256);
 
+    function nftBoostPoints(address user) external view returns (uint256);
+
+    function selfReferralBoostPointsByType(
+        address user,
+        IOverlayerReferral.ReferralType type_
+    ) external view returns (uint256);
+
+    function selfReferralBoostPoints(
+        address user
+    ) external view returns (uint256);
+
+    function boostPoints(address user) external view returns (uint256);
+
     function userInfo(
         uint256 pid,
         address _user
