@@ -74,7 +74,9 @@
           "endTime": 1794072530
         }
       },
-      "ogNft": "0x87f22EDf12B23427e73C1C0280f12586220CDBB8"
+      "ogNft": "0xE4b65d07Ad6C1ad9B08C1101143A7F5817F1389E",
+      "ogEntitlement": "0xE4b65d07Ad6C1ad9B08C1101143A7F5817F1389E",
+      "ogEntitlementNote": "Spoke OverlayerOGEntitlement; Eth hub syncs from Eth OG"
     }
   }
 }

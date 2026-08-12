@@ -1,0 +1,84 @@
+{
+  "deployedAt": "2026-08-01T20:07:05.354Z",
+  "network": {
+    "name": "robinhood",
+    "chainId": "4663"
+  },
+  "deployer": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
+  "schedule": {
+    "mintStartTime": "1784552400",
+    "publicMintStartTime": "1785762000",
+    "mintEndTime": "1786971600",
+    "note": "Aligned with eth/base public sale (Aug 3–17 2026 13:00 UTC)"
+  },
+  "constructorConfig": {
+    "shrimp": {
+      "initialOwner": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
+      "baseURI": "https://app.overlayer.fi/origin/shrimp.json",
+      "royaltyReceiver": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+      "royaltyFeeNumerator": "0",
+      "feeCollector": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+      "initialMintPrice": "4000000000000000",
+      "priceIncrement": "0",
+      "priceUnitDelta": "5000",
+      "maxSupply": "5000",
+      "bonusNumerator": "1",
+      "mintStartTime": "1784552400",
+      "pricing": {
+        "initialMintPriceEth": "0.004",
+        "priceIncrementEth": "0.0"
+      }
+    },
+    "dolphin": {
+      "initialOwner": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
+      "baseURI": "https://app.overlayer.fi/origin/dolphin.json",
+      "royaltyReceiver": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+      "royaltyFeeNumerator": "0",
+      "feeCollector": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+      "initialMintPrice": "13000000000000000",
+      "priceIncrement": "2600000000000000",
+      "priceUnitDelta": "300",
+      "maxSupply": "600",
+      "bonusNumerator": "5",
+      "mintStartTime": "1784552400",
+      "pricing": {
+        "initialMintPriceEth": "0.013",
+        "priceIncrementEth": "0.0026"
+      }
+    },
+    "whale": {
+      "initialOwner": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
+      "baseURI": "https://app.overlayer.fi/origin/whale.json",
+      "royaltyReceiver": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+      "royaltyFeeNumerator": "0",
+      "feeCollector": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+      "initialMintPrice": "130000000000000000",
+      "priceIncrement": "2600000000000000",
+      "priceUnitDelta": "100",
+      "maxSupply": "200",
+      "bonusNumerator": "10",
+      "mintStartTime": "1784552400",
+      "pricing": {
+        "initialMintPriceEth": "0.13",
+        "priceIncrementEth": "0.0026"
+      }
+    }
+  },
+  "contracts": [
+    {
+      "contractName": "OverlayerOriginShrimpRobinHood",
+      "address": "0xB17EE7D061e076ff1aD6bd2141888CFb39C0Ccdc",
+      "transactionHash": "0xc2c83ae9e4ba071fbef3377cd3feb1c51d205ecf7dfa0a33aca3e7a0fd20f99f"
+    },
+    {
+      "contractName": "OverlayerOriginDolphin",
+      "address": "0x143ec4D2Beddf44679C52639D720afAeD78eD83b",
+      "transactionHash": "0xd576514d01b8b106b5883f1e47a84d8b0881ed370efc5492c5300803250a7331"
+    },
+    {
+      "contractName": "OverlayerOriginWhale",
+      "address": "0x8aC6AD5D76D07B202832f323888B64286E944A9e",
+      "transactionHash": "0xe74d8718a7151914f1349f3692efc38442df104bbb06be90a6fb3e7226c07b24"
+    }
+  ]
+}
