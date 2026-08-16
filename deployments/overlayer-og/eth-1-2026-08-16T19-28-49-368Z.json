@@ -1,0 +1,35 @@
+{
+  "deployedAt": "2026-08-16T19:28:49.368Z",
+  "network": {
+    "name": "eth",
+    "chainId": "1"
+  },
+  "deployer": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
+  "constructorConfig": {
+    "og": {
+      "initialOwner": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
+      "baseURI": "https://app.overlayer.fi/origin/og.json",
+      "royalty": {
+        "receiver": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+        "feeNumerator": "0"
+      },
+      "feeCollector": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+      "mintStartTime": "1786971600",
+      "maxSupply": "2000",
+      "mintPriceEth": "0.005",
+      "bonus": {
+        "numerator": "0",
+        "denominator": "100"
+      },
+      "publicMintStartTime": "0",
+      "note": "Soulbound; 14-day whitelist-only window; max supply and price are contract constants"
+    }
+  },
+  "contracts": [
+    {
+      "contractName": "OverlayerOG",
+      "address": "0xb0468b8b650D5A3DDf0f96BD1AD8a9A6c4c02183",
+      "transactionHash": "0xa363b41f2fe85495af8b80c52776a80e62b326d6de541b8a0e73d680cc9ddb14"
+    }
+  ]
+}

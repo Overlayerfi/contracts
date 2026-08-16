@@ -11,7 +11,9 @@ import { ethers, network } from "hardhat";
  * - mint end:         2026-08-17 13:00:00 UTC (1786971600)
  *
  * Robinhood deploys all three tiers via OverlayerOriginShrimpRobinHood (flat
- * 0.004 ETH) plus Dolphin and Whale at eth/base pricing.
+ * 0.004 ETH) plus Dolphin and Whale at eth/base pricing. OverlayerOG is
+ * Eth-canonical (soulbound hub); do not deploy it here — spokes use
+ * OverlayerOGEntitlement instead.
  *
  * Run:
  *   npx hardhat run scripts/utils/deployOverlayerOriginNftsRobinhood.ts --network robinhood
