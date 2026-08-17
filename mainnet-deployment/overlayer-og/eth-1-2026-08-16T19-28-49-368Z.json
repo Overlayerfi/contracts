@@ -8,7 +8,7 @@
   "constructorConfig": {
     "og": {
       "initialOwner": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
-      "baseURI": "https://app.overlayer.fi/origin/og.json",
+      "baseURI": "https://api.overlayer.fi/api-nft/origin/og.json",
       "royalty": {
         "receiver": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
         "feeNumerator": "0"
@@ -25,6 +25,21 @@
       "note": "Soulbound; 14-day whitelist-only window; max supply and price are contract constants"
     }
   },
+  "baseURIUpdates": [
+    {
+      "updatedAt": "2026-08-17T08:03:26.286Z",
+      "note": "Aligned OG baseURI with eth/base api-nft Origin URIs",
+      "transactions": [
+        {
+          "contractName": "OverlayerOG",
+          "address": "0xb0468b8b650D5A3DDf0f96BD1AD8a9A6c4c02183",
+          "baseURI": "https://api.overlayer.fi/api-nft/origin/og.json",
+          "transactionHash": "0x9f0ca81b9c986859dad9e6d949374dbb2eddbfc98a09a23d17972cac53b2563e",
+          "blockNumber": 25773481
+        }
+      ]
+    }
+  ],
   "contracts": [
     {
       "contractName": "OverlayerOG",

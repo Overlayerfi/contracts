@@ -40,9 +40,9 @@ const ROYALTY_RECEIVER = "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75";
 const FEE_COLLECTOR = "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75";
 const ROYALTY_BPS = 0n;
 
-const SHRIMP_BASE_URI = "https://app.overlayer.fi/origin/shrimp.json";
-const DOLPHIN_BASE_URI = "https://app.overlayer.fi/origin/dolphin.json";
-const WHALE_BASE_URI = "https://app.overlayer.fi/origin/whale.json";
+const SHRIMP_BASE_URI = "https://api.overlayer.fi/api-nft/origin/shrimp.json";
+const DOLPHIN_BASE_URI = "https://api.overlayer.fi/api-nft/origin/dolphin.json";
+const WHALE_BASE_URI = "https://api.overlayer.fi/api-nft/origin/whale.json";
 
 const SHRIMP_MAX_SUPPLY = 5_000n;
 const SHRIMP_BONUS_NUMERATOR = 1n;

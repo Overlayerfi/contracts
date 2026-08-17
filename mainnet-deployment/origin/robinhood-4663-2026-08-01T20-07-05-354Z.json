@@ -14,7 +14,7 @@
   "constructorConfig": {
     "shrimp": {
       "initialOwner": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
-      "baseURI": "https://app.overlayer.fi/origin/shrimp.json",
+      "baseURI": "https://api.overlayer.fi/api-nft/origin/shrimp.json",
       "royaltyReceiver": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
       "royaltyFeeNumerator": "0",
       "feeCollector": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
@@ -31,7 +31,7 @@
     },
     "dolphin": {
       "initialOwner": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
-      "baseURI": "https://app.overlayer.fi/origin/dolphin.json",
+      "baseURI": "https://api.overlayer.fi/api-nft/origin/dolphin.json",
       "royaltyReceiver": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
       "royaltyFeeNumerator": "0",
       "feeCollector": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
@@ -48,7 +48,7 @@
     },
     "whale": {
       "initialOwner": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
-      "baseURI": "https://app.overlayer.fi/origin/whale.json",
+      "baseURI": "https://api.overlayer.fi/api-nft/origin/whale.json",
       "royaltyReceiver": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
       "royaltyFeeNumerator": "0",
       "feeCollector": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
@@ -64,6 +64,35 @@
       }
     }
   },
+  "baseURIUpdates": [
+    {
+      "updatedAt": "2026-08-16T20:37:00.000Z",
+      "note": "Aligned Robinhood baseURI with eth/base api-nft URIs",
+      "transactions": [
+        {
+          "contractName": "OverlayerOriginShrimpRobinHood",
+          "address": "0xB17EE7D061e076ff1aD6bd2141888CFb39C0Ccdc",
+          "baseURI": "https://api.overlayer.fi/api-nft/origin/shrimp.json",
+          "transactionHash": "0x5d0f41feb5e7de55f7fa02db7e4a71e4882525fa80aaabea5863969a807a08d0",
+          "blockNumber": 38268498
+        },
+        {
+          "contractName": "OverlayerOriginDolphin",
+          "address": "0x143ec4D2Beddf44679C52639D720afAeD78eD83b",
+          "baseURI": "https://api.overlayer.fi/api-nft/origin/dolphin.json",
+          "transactionHash": "0xad311c1bfb4e49edbc2ecfe627bab8964ce84830cc106df248927a730828a0f9",
+          "blockNumber": 38268576
+        },
+        {
+          "contractName": "OverlayerOriginWhale",
+          "address": "0x8aC6AD5D76D07B202832f323888B64286E944A9e",
+          "baseURI": "https://api.overlayer.fi/api-nft/origin/whale.json",
+          "transactionHash": "0xc3551d949b60ed3e35b6b89ecb794c808aa6afa411250bb24370359756df8310",
+          "blockNumber": 38268648
+        }
+      ]
+    }
+  ],
   "contracts": [
     {
       "contractName": "OverlayerOriginShrimpRobinHood",
