@@ -80,7 +80,7 @@ const OG_BONUS_DENOMINATOR = "100";
  *
  * Example:
  * ORIGIN_NFT_FEE_COLLECTOR=0x... \
- * ORIGIN_NFT_OG_BASE_URI=https://app.overlayer.fi/origin/og.json \
+ * ORIGIN_NFT_OG_BASE_URI=https://api.overlayer.fi/api-nft/origin/og.json \
  * ORIGIN_NFT_MINT_START_TIME=1786971600 \
  * npx hardhat run scripts/utils/deployOverlayerOG.ts --network eth
  *
