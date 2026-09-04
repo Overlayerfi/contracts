@@ -1,0 +1,115 @@
+{
+  "version": "1.0",
+  "chainId": "8453",
+  "createdAt": 1788380775988,
+  "meta": {
+    "name": "base Origin setRoyalty 10%",
+    "description": "Owner 0xABE9A7c88107C55283A211B847F747e26Edc09ED calls setRoyalty(0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75, 1000) on Origin Shrimp/Dolphin/Whale. 10% is MAX_ROYALTY_BPS. Send with OVERLAYER_HEAD_OP_KEY.",
+    "from": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
+    "receiver": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+    "feeNumerator": "1000",
+    "feePercent": "10",
+    "dryRun": false
+  },
+  "transactions": [
+    {
+      "collection": "shrimp",
+      "to": "0x03F82aeA7291c9919e911c194889fb65b4C75fF4",
+      "value": "0",
+      "data": "0x8f2fc60b00000000000000000000000045facbb6018637a43ec4b1ff7467dbc811d13d7500000000000000000000000000000000000000000000000000000000000003e8",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "receiver_",
+            "type": "address"
+          },
+          {
+            "internalType": "uint96",
+            "name": "feeNumerator_",
+            "type": "uint96"
+          }
+        ],
+        "name": "setRoyalty",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "receiver_": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+        "feeNumerator_": "1000"
+      },
+      "current": {
+        "owner": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
+        "receiver": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+        "royaltyBps": "0"
+      },
+      "transactionHash": "0x2df85fc8cd7594eee24ae9163b3035615d2868f35f2f18c587c1f1f6adc61f71",
+      "blockNumber": 50795716
+    },
+    {
+      "collection": "dolphin",
+      "to": "0x9C79D81D10633b3064c7195Da383c011Efc62272",
+      "value": "0",
+      "data": "0x8f2fc60b00000000000000000000000045facbb6018637a43ec4b1ff7467dbc811d13d7500000000000000000000000000000000000000000000000000000000000003e8",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "receiver_",
+            "type": "address"
+          },
+          {
+            "internalType": "uint96",
+            "name": "feeNumerator_",
+            "type": "uint96"
+          }
+        ],
+        "name": "setRoyalty",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "receiver_": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+        "feeNumerator_": "1000"
+      },
+      "current": {
+        "owner": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
+        "receiver": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+        "royaltyBps": "0"
+      },
+      "transactionHash": "0xfda85c8b55025db654a09744256a8a441995f866a3b8401b315da5f3b9674900",
+      "blockNumber": 50795717
+    },
+    {
+      "collection": "whale",
+      "to": "0x2380B05E26E67A9ECb2B51DF9881556C67D62Edd",
+      "value": "0",
+      "data": "0x8f2fc60b00000000000000000000000045facbb6018637a43ec4b1ff7467dbc811d13d7500000000000000000000000000000000000000000000000000000000000003e8",
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "receiver_",
+            "type": "address"
+          },
+          {
+            "internalType": "uint96",
+            "name": "feeNumerator_",
+            "type": "uint96"
+          }
+        ],
+        "name": "setRoyalty",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "receiver_": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+        "feeNumerator_": "1000"
+      },
+      "current": {
+        "owner": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
+        "receiver": "0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75",
+        "royaltyBps": "0"
+      },
+      "transactionHash": "0x3a554b6ec6e525a02309782b8df6b583c3931793ae57012d8d58910b4eac7a2e",
+      "blockNumber": 50795718
+    }
+  ]
+}

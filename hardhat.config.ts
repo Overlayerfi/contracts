@@ -138,6 +138,11 @@ const config: HardhatUserConfig = {
       accounts: testAccounts,
       allowUnlimitedContractSize: true,
     },
+    localhost: {
+      url: "http://127.0.0.1:8545",
+      accounts: [process.env.ADMIN_WALLET_KEY!, process.env.TEAM_WALLET_KEY!],
+      allowUnlimitedContractSize: true,
+    },
     ova: {
       url: OVA_BETA_RPC,
       chainId: 0x7A69,

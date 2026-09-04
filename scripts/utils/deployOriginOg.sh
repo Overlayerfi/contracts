@@ -12,5 +12,5 @@ ORIGIN_NFT_ROYALTY_RECEIVER=0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75 \
 ORIGIN_NFT_ROYALTY_BPS=0 \
 ORIGIN_NFT_FEE_COLLECTOR=0x45FaCBb6018637A43Ec4b1Ff7467DBc811d13d75 \
 ORIGIN_NFT_MINT_START_TIME=1786971600 \
-ORIGIN_NFT_OG_BASE_URI=https://app.overlayer.fi/origin/og.json \
+ORIGIN_NFT_OG_BASE_URI=https://api.overlayer.fi/api-nft/origin/og.json \
 npx hardhat run scripts/utils/deployOverlayerOG.ts --network eth
