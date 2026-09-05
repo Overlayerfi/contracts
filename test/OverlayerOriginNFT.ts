@@ -102,8 +102,11 @@ describe("Overlayer Origin NFT collections", function () {
     );
   }
 
-  function testAccount(index: number): string {
-    return ethers.getAddress(ethers.zeroPadValue(ethers.toBeHex(index), 20));
+  function testWallet(index: number) {
+    return new ethers.Wallet(
+      ethers.keccak256(ethers.toBeHex(index, 32)),
+      ethers.provider
+    );
   }
 
   function buildMerkleTree(accounts: string[]) {
@@ -805,36 +808,30 @@ describe("Overlayer Origin NFT collections", function () {
     );
     await dolphin.waitForDeployment();
 
-    const mintFrom = async (account: string, value: bigint) => {
+    const mintFrom = async (minter: ethers.Wallet, value: bigint) => {
       await ethers.provider.send("hardhat_setBalance", [
-        account,
+        minter.address,
         ethers.toBeHex(ethers.parseEther("1"))
       ]);
-      await ethers.provider.send("hardhat_impersonateAccount", [account]);
-
-      try {
-        const signer = await ethers.getSigner(account);
-        const transaction = await dolphin.connect(signer).mint({ value });
-        await transaction.wait();
-      } finally {
-        await ethers.provider.send("hardhat_stopImpersonatingAccount", [
-          account
-        ]);
-      }
+      const transaction = await dolphin.connect(minter).mint({ value });
+      await transaction.wait();
     };
 
     const whitelistMinters = Array.from(
       { length: PRICE_UNIT_DELTA },
-      (_, index) => testAccount(10_000 + index)
+      (_, index) => testWallet(10_000 + index)
     );
     const publicMinters = Array.from({ length: PRICE_UNIT_DELTA }, (_, index) =>
-      testAccount(20_000 + index)
+      testWallet(20_000 + index)
     );
-    const thirdTierMinter = testAccount(30_000);
+    const thirdTierMinter = testWallet(30_000);
     const secondTierPrice = DOLPHIN_INITIAL_PRICE + DOLPHIN_PRICE_INCREMENT;
     const thirdTierPrice = DOLPHIN_INITIAL_PRICE + DOLPHIN_PRICE_INCREMENT * 2n;
 
-    await dolphin.connect(owner).batchSetWhitelist(whitelistMinters, true);
+    await dolphin.connect(owner).batchSetWhitelist(
+      whitelistMinters.map((minter) => minter.address),
+      true
+    );
     const collectorBalanceBefore = await ethers.provider.getBalance(
       owner.address
     );
@@ -850,7 +847,7 @@ describe("Overlayer Origin NFT collections", function () {
       await mintFrom(minter, secondTierPrice);
     }
 
-    expect(await dolphin.ownerOf(26)).to.equal(publicMinters[0]);
+    expect(await dolphin.ownerOf(26)).to.equal(publicMinters[0].address);
     expect(await dolphin.nextTokenId()).to.equal(51);
     expect(await dolphin.mintPrice()).to.equal(thirdTierPrice);
     expect(await ethers.provider.getBalance(owner.address)).to.equal(
@@ -863,7 +860,7 @@ describe("Overlayer Origin NFT collections", function () {
       await ethers.provider.getBalance(owner.address);
     await mintFrom(thirdTierMinter, thirdTierPrice);
 
-    expect(await dolphin.ownerOf(51)).to.equal(thirdTierMinter);
+    expect(await dolphin.ownerOf(51)).to.equal(thirdTierMinter.address);
     expect(await ethers.provider.getBalance(owner.address)).to.equal(
       collectorBalanceBeforeThirdTierMint + thirdTierPrice
     );
