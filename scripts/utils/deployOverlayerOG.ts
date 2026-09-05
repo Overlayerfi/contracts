@@ -62,7 +62,8 @@ const OG_BONUS_DENOMINATOR = "100";
  *
  * Supply (2,000), mint price (0.005 ETH), and the 14-day whitelist-only window
  * are contract constants. This collection is mint-only (non-transferable,
- * non-burnable) and is the Eth hub NFT for spoke OG entitlement sync.
+ * non-burnable). Spoke farms recognize the fixed holder set via
+ * Liquidity `setOgMerkleRoot` / `setMerkleRoot`, not a LayerZero sync.
  *
  * Required:
  * - ORIGIN_NFT_OG_BASE_URI
@@ -150,7 +151,9 @@ function ogCollectionConfig(deployerAddress: string): OgConstructorConfig {
   );
 
   if (royaltyFeeNumerator > ROYALTY_BPS_MAX) {
-    throw new Error(`ORIGIN_NFT_OG_ROYALTY_BPS must not exceed ${ROYALTY_BPS_MAX}`);
+    throw new Error(
+      `ORIGIN_NFT_OG_ROYALTY_BPS must not exceed ${ROYALTY_BPS_MAX}`
+    );
   }
   if (royaltyFeeNumerator !== 0n && royaltyReceiver === ethers.ZeroAddress) {
     throw new Error(

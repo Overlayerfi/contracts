@@ -140,7 +140,7 @@ const config: HardhatUserConfig = {
     },
     localhost: {
       url: "http://127.0.0.1:8545",
-      accounts: [process.env.ADMIN_WALLET_KEY!, process.env.TEAM_WALLET_KEY!],
+      accounts: testAccounts.map((account) => account.privateKey),
       allowUnlimitedContractSize: true,
     },
     ova: {

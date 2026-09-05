@@ -12,8 +12,8 @@ import { ethers, network } from "hardhat";
  *
  * Robinhood deploys all three tiers via OverlayerOriginShrimpRobinHood (flat
  * 0.004 ETH) plus Dolphin and Whale at eth/base pricing. OverlayerOG is
- * Eth-canonical (soulbound hub); do not deploy it here — spokes use
- * OverlayerOGEntitlement instead.
+ * Eth-canonical (soulbound hub); do not deploy it here — spokes deploy
+ * Liquidity `setOgMerkleRoot` so the first farm interaction can activate OG.
  *
  * Run:
  *   npx hardhat run scripts/utils/deployOverlayerOriginNftsRobinhood.ts --network robinhood

@@ -7,6 +7,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "./interfaces/ILiquidityDefs.sol";
 import "./interfaces/IRewardAsset.sol";
@@ -111,8 +112,21 @@ contract Liquidity is
 
     /**
      * @notice Overlayer OG NFT collection. Holders get an extra 2.5% via balanceOf, independent of Origin stake.
+     * @dev Used on Eth. Spokes use {ogMerkleRoot} and activate on first farm interaction.
      */
     address public ogNft;
+
+    /**
+     * @notice Merkle root of fixed Eth OG holders. Same leaf as Origin / OG NFT tasks.
+     * @dev Zero disables proof activation. Owner sets this once per spoke.
+     */
+    bytes32 public ogMerkleRoot;
+
+    /**
+     * @notice Whether a user has been activated as an OG holder on this chain.
+     * @dev Set on the first farm interaction that supplies a valid holder proof.
+     */
+    mapping(address => bool) public ogActivated;
 
     /**
      * @notice OG holder bonus numerator (2.5%).
@@ -314,6 +328,63 @@ contract Liquidity is
     }
 
     /**
+     * @notice Set the OG holder Merkle root used on spoke chains.
+     * @dev Replacing the root never clears {ogActivated}. Set to zero to disable
+     *      further proof activations. Leaf encoding matches Origin / OG NFT tasks
+     *      so the same `setMerkleRoot` script can target this contract.
+     * @param merkleRoot_ Root of the fixed Eth OG holder list.
+     */
+    function setOgMerkleRoot(bytes32 merkleRoot_) external onlyOwner {
+        _setOgMerkleRoot(merkleRoot_);
+    }
+
+    /**
+     * @notice Alias of {setOgMerkleRoot} for the Origin / OG Merkle configure task.
+     */
+    function setMerkleRoot(bytes32 merkleRoot_) external onlyOwner {
+        _setOgMerkleRoot(merkleRoot_);
+    }
+
+    /**
+     * @notice Alias of {ogMerkleRoot} for the Origin / OG Merkle configure task.
+     */
+    function merkleRoot() external view returns (bytes32) {
+        return ogMerkleRoot;
+    }
+
+    /**
+     * @notice Double-hashed address leaf used by the OG holder Merkle tree.
+     * @dev Matches {OverlayerOriginNFT.merkleLeaf}.
+     */
+    function merkleLeaf(address account_) public pure returns (bytes32) {
+        return keccak256(bytes.concat(keccak256(abi.encode(account_))));
+    }
+
+    /**
+     * @notice Whether `account_` is in the active OG holder Merkle root.
+     */
+    function isMerkleWhitelisted(
+        address account_,
+        bytes32[] calldata proof_
+    ) public view returns (bool) {
+        return
+            ogMerkleRoot != bytes32(0) &&
+            MerkleProof.verifyCalldata(
+                proof_,
+                ogMerkleRoot,
+                merkleLeaf(account_)
+            );
+    }
+
+    /**
+     * @notice Activate OG for the caller if `proof_` is in {ogMerkleRoot}.
+     * @dev Optional; farm functions with a proof argument do this automatically.
+     */
+    function activateOg(bytes32[] calldata proof_) external {
+        _activateOgIfEligible(msg.sender, proof_);
+    }
+
+    /**
      * @notice Add or remove a dynamically whitelisted bonus NFT collection.
      * @param collection The NFT collection.
      * @param allowed Whether the collection is allowed for staking.
@@ -363,6 +434,22 @@ contract Liquidity is
         address collection,
         uint256 tokenId
     ) external nonReentrant {
+        _stakeOriginNft(collection, tokenId);
+    }
+
+    /**
+     * @notice Stake an Origin NFT and activate OG if `ogProof` matches {ogMerkleRoot}.
+     */
+    function stakeOriginNft(
+        address collection,
+        uint256 tokenId,
+        bytes32[] calldata ogProof
+    ) external nonReentrant {
+        _activateOgIfEligible(msg.sender, ogProof);
+        _stakeOriginNft(collection, tokenId);
+    }
+
+    function _stakeOriginNft(address collection, uint256 tokenId) internal {
         if (!_isOriginNft(collection)) {
             revert InvalidOriginNft();
         }
@@ -396,6 +483,20 @@ contract Liquidity is
      * @dev Harvests all pools first so the removed bonus stops applying only after payout.
      */
     function unstakeOriginNft() external nonReentrant {
+        _unstakeOriginNft();
+    }
+
+    /**
+     * @notice Unstake the Origin NFT and activate OG if `ogProof` matches {ogMerkleRoot}.
+     */
+    function unstakeOriginNft(
+        bytes32[] calldata ogProof
+    ) external nonReentrant {
+        _activateOgIfEligible(msg.sender, ogProof);
+        _unstakeOriginNft();
+    }
+
+    function _unstakeOriginNft() internal {
         NftStake memory stake = originNftStaked[msg.sender];
         if (stake.collection == address(0)) {
             revert NoOriginStaked();
@@ -424,6 +525,25 @@ contract Liquidity is
         address collection,
         uint256 tokenId
     ) external nonReentrant {
+        _stakeWhitelistedNft(collection, tokenId);
+    }
+
+    /**
+     * @notice Stake a Special NFT and activate OG if `ogProof` matches {ogMerkleRoot}.
+     */
+    function stakeWhitelistedNft(
+        address collection,
+        uint256 tokenId,
+        bytes32[] calldata ogProof
+    ) external nonReentrant {
+        _activateOgIfEligible(msg.sender, ogProof);
+        _stakeWhitelistedNft(collection, tokenId);
+    }
+
+    function _stakeWhitelistedNft(
+        address collection,
+        uint256 tokenId
+    ) internal {
         if (!whitelistedNft[collection]) {
             revert NftNotWhitelisted();
         }
@@ -458,6 +578,20 @@ contract Liquidity is
      *      Unstake is allowed even if the collection was later delisted.
      */
     function unstakeWhitelistedNft() external nonReentrant {
+        _unstakeWhitelistedNft();
+    }
+
+    /**
+     * @notice Unstake the Special NFT and activate OG if `ogProof` matches {ogMerkleRoot}.
+     */
+    function unstakeWhitelistedNft(
+        bytes32[] calldata ogProof
+    ) external nonReentrant {
+        _activateOgIfEligible(msg.sender, ogProof);
+        _unstakeWhitelistedNft();
+    }
+
+    function _unstakeWhitelistedNft() internal {
         NftStake memory stake = whitelistedNftStaked[msg.sender];
         if (stake.collection == address(0)) {
             revert NftNotStaked();
@@ -535,6 +669,22 @@ contract Liquidity is
         uint256 pid,
         uint256 amount
     ) external override nonReentrant {
+        _withdraw(pid, amount);
+    }
+
+    /**
+     * @notice Withdraw and activate OG if `ogProof` matches {ogMerkleRoot}.
+     */
+    function withdraw(
+        uint256 pid,
+        uint256 amount,
+        bytes32[] calldata ogProof
+    ) external nonReentrant {
+        _activateOgIfEligible(msg.sender, ogProof);
+        _withdraw(pid, amount);
+    }
+
+    function _withdraw(uint256 pid, uint256 amount) internal {
         if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
@@ -597,12 +747,38 @@ contract Liquidity is
     }
 
     /**
+     * @notice Harvest `target` and activate their OG if `ogProof` matches {ogMerkleRoot}.
+     */
+    function harvestFor(
+        uint256 pid,
+        address target,
+        bytes32[] calldata ogProof
+    ) external nonReentrant {
+        if (pid >= poolInfo.length) {
+            revert InvalidPid();
+        }
+        _activateOgIfEligible(target, ogProof);
+        _harvestPool(pid, target);
+    }
+
+    /**
      * @notice Harvest every pool for an account.
      * @dev Same auth model as `harvestFor` (unrestricted external). Used by Team
      *      referral bind to settle before bonuses apply to future accrual.
      * @param target the user to be harvested.
      */
     function harvestAllFor(address target) external override nonReentrant {
+        _harvestAllPools(target);
+    }
+
+    /**
+     * @notice Harvest every pool for `target` and activate OG if `ogProof` matches.
+     */
+    function harvestAllFor(
+        address target,
+        bytes32[] calldata ogProof
+    ) external nonReentrant {
+        _activateOgIfEligible(target, ogProof);
         _harvestAllPools(target);
     }
 
@@ -615,6 +791,20 @@ contract Liquidity is
         if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
+        _harvestPool(pid, msg.sender);
+    }
+
+    /**
+     * @notice Harvest and activate OG if `ogProof` matches {ogMerkleRoot}.
+     */
+    function harvest(
+        uint256 pid,
+        bytes32[] calldata ogProof
+    ) external nonReentrant {
+        if (pid >= poolInfo.length) {
+            revert InvalidPid();
+        }
+        _activateOgIfEligible(msg.sender, ogProof);
         _harvestPool(pid, msg.sender);
     }
 
@@ -767,6 +957,22 @@ contract Liquidity is
      * @param amount the amount to deposit.
      */
     function deposit(uint256 pid, uint256 amount) public override nonReentrant {
+        _deposit(pid, amount);
+    }
+
+    /**
+     * @notice Deposit and activate OG if `ogProof` matches {ogMerkleRoot}.
+     */
+    function deposit(
+        uint256 pid,
+        uint256 amount,
+        bytes32[] calldata ogProof
+    ) public nonReentrant {
+        _activateOgIfEligible(msg.sender, ogProof);
+        _deposit(pid, amount);
+    }
+
+    function _deposit(uint256 pid, uint256 amount) internal {
         if (pid >= poolInfo.length) {
             revert InvalidPid();
         }
@@ -1114,7 +1320,8 @@ contract Liquidity is
         }
 
         // OG holders get an extra 2.5% of base, independent of Origin stake.
-        if (ogNft != address(0) && IERC721(ogNft).balanceOf(user) > 0) {
+        // Eth: ogNft.balanceOf. Spokes: ogActivated after the first proofed interaction.
+        if (_isOgHolder(user)) {
             total += originalAmount.mulDiv(
                 OG_BONUS_NUMERATOR,
                 OG_BONUS_DENOMINATOR
@@ -1128,6 +1335,39 @@ contract Liquidity is
                 whitelistStake.collection
             );
         }
+    }
+
+    function _setOgMerkleRoot(bytes32 merkleRoot_) private {
+        ogMerkleRoot = merkleRoot_;
+        emit OgMerkleRootUpdated(merkleRoot_);
+    }
+
+    /**
+     * @dev Activate `user` when they first prove membership in {ogMerkleRoot}.
+     *      Failed proofs are ignored so non-holders can use the same farm
+     *      functions. An empty proof is valid for a single-leaf tree (root
+     *      equals the leaf).
+     */
+    function _activateOgIfEligible(
+        address user,
+        bytes32[] calldata proof_
+    ) internal {
+        if (ogActivated[user] || ogMerkleRoot == bytes32(0)) {
+            return;
+        }
+        if (
+            MerkleProof.verifyCalldata(proof_, ogMerkleRoot, merkleLeaf(user))
+        ) {
+            ogActivated[user] = true;
+            emit OgActivated(user);
+        }
+    }
+
+    function _isOgHolder(address user) internal view returns (bool) {
+        if (ogActivated[user]) {
+            return true;
+        }
+        return ogNft != address(0) && IERC721(ogNft).balanceOf(user) > 0;
     }
 
     /**

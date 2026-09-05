@@ -3850,5 +3850,194 @@ describe("Liquidity", function () {
       // Clearing OG address disables boost even if alice still holds old OG
       void ogNft;
     });
+
+    function merkleLeaf(account: string): string {
+      const encodedAccount = ethers.AbiCoder.defaultAbiCoder().encode(
+        ["address"],
+        [account]
+      );
+      return ethers.keccak256(ethers.keccak256(encodedAccount));
+    }
+
+    function hashPair(first: string, second: string): string {
+      return ethers.keccak256(
+        BigInt(first) < BigInt(second)
+          ? ethers.concat([first, second])
+          : ethers.concat([second, first])
+      );
+    }
+
+    function buildMerkleTree(accounts: string[]) {
+      const layers: string[][] = [accounts.map(merkleLeaf)];
+      let currentLayer = layers[0];
+
+      while (currentLayer.length > 1) {
+        const nextLayer: string[] = [];
+        for (let index = 0; index < currentLayer.length; index += 2) {
+          const left = currentLayer[index];
+          const right = currentLayer[index + 1] ?? left;
+          nextLayer.push(hashPair(left, right));
+        }
+        layers.push(nextLayer);
+        currentLayer = nextLayer;
+      }
+
+      return {
+        root: currentLayer[0],
+        proofFor(account: string): string[] {
+          let index = accounts.indexOf(account);
+          if (index === -1) {
+            throw new Error("Account is not in the Merkle tree");
+          }
+          const proof: string[] = [];
+          for (
+            let layerIndex = 0;
+            layerIndex < layers.length - 1;
+            ++layerIndex
+          ) {
+            const layer = layers[layerIndex];
+            const siblingIndex = index % 2 === 0 ? index + 1 : index - 1;
+            proof.push(layer[siblingIndex] ?? layer[index]);
+            index = Math.floor(index / 2);
+          }
+          return proof;
+        }
+      };
+    }
+
+    it("activates OG from a spoke Merkle proof on the first harvest", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const { liquidity, owner, ogNft, alice, bob } = fixture;
+      await setupSoleStakerPool(fixture);
+      await liquidity.connect(owner).setOgNft(ethers.ZeroAddress);
+
+      const tree = buildMerkleTree([alice.address, bob.address]);
+      await expect(liquidity.connect(owner).setOgMerkleRoot(tree.root))
+        .to.emit(liquidity, "OgMerkleRootUpdated")
+        .withArgs(tree.root);
+      expect(await liquidity.merkleRoot()).to.equal(tree.root);
+      expect(
+        await liquidity.isMerkleWhitelisted(
+          alice.address,
+          tree.proofFor(alice.address)
+        )
+      ).to.equal(true);
+
+      await time.increase(400);
+      const tx = await liquidity
+        .connect(alice)
+        ["harvest(uint256,bytes32[])"](0, tree.proofFor(alice.address));
+      await expect(tx)
+        .to.emit(liquidity, "OgActivated")
+        .withArgs(alice.address);
+      expect(await liquidity.ogActivated(alice.address)).to.equal(true);
+
+      const logs = parseLiquidityLogs(liquidity, await tx.wait());
+      const base = eventAmount(logs, "Harvest");
+      expect(eventAmount(logs, "NftBonusPayed")).to.equal(
+        mulDiv(base, 25n, 1000n)
+      );
+      void ogNft;
+    });
+
+    it("pays 2.5% on the first proofed harvest and keeps it afterwards without a proof", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const { liquidity, owner, alice, bob } = fixture;
+      await setupSoleStakerPool(fixture);
+      await liquidity.connect(owner).setOgNft(ethers.ZeroAddress);
+      const tree = buildMerkleTree([alice.address, bob.address]);
+      await liquidity.connect(owner).setMerkleRoot(tree.root);
+
+      await time.increase(400);
+      const first = await liquidity
+        .connect(alice)
+        ["harvest(uint256,bytes32[])"](0, tree.proofFor(alice.address));
+      const firstLogs = parseLiquidityLogs(liquidity, await first.wait());
+      const firstBase = eventAmount(firstLogs, "Harvest");
+      expect(eventAmount(firstLogs, "NftBonusPayed")).to.equal(
+        mulDiv(firstBase, 25n, 1000n)
+      );
+
+      await time.increase(300);
+      const second = await liquidity.connect(alice).harvest(0);
+      const secondLogs = parseLiquidityLogs(liquidity, await second.wait());
+      const secondBase = eventAmount(secondLogs, "Harvest");
+      expect(eventAmount(secondLogs, "NftBonusPayed")).to.equal(
+        mulDiv(secondBase, 25n, 1000n)
+      );
+    });
+
+    it("ignores an invalid OG proof and does not activate", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const { liquidity, owner, alice, bob } = fixture;
+      await setupSoleStakerPool(fixture);
+      await liquidity.connect(owner).setOgNft(ethers.ZeroAddress);
+      const tree = buildMerkleTree([alice.address, bob.address]);
+      await liquidity.connect(owner).setOgMerkleRoot(tree.root);
+
+      await time.increase(300);
+      await liquidity
+        .connect(alice)
+        ["harvest(uint256,bytes32[])"](0, tree.proofFor(bob.address));
+      expect(await liquidity.ogActivated(alice.address)).to.equal(false);
+
+      const logs = parseLiquidityLogs(
+        liquidity,
+        await (await liquidity.connect(alice).harvest(0)).wait()
+      );
+      expect(optionalEventAmount(logs, "NftBonusPayed")).to.equal(undefined);
+    });
+
+    it("does not activate a non-holder who submits an empty proof against a multi-leaf tree", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const { liquidity, owner, alice, bob } = fixture;
+      await setupSoleStakerPool(fixture);
+      await liquidity.connect(owner).setOgNft(ethers.ZeroAddress);
+      const tree = buildMerkleTree([alice.address, bob.address]);
+      await liquidity.connect(owner).setOgMerkleRoot(tree.root);
+
+      await liquidity.connect(alice)["harvest(uint256,bytes32[])"](0, []);
+      expect(await liquidity.ogActivated(alice.address)).to.equal(false);
+    });
+
+    it("activates the sole holder with an empty proof (single-leaf tree)", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const { liquidity, owner, alice } = fixture;
+      await setupSoleStakerPool(fixture);
+      await liquidity.connect(owner).setOgNft(ethers.ZeroAddress);
+      const tree = buildMerkleTree([alice.address]);
+      expect(tree.proofFor(alice.address)).to.deep.equal([]);
+      await liquidity.connect(owner).setOgMerkleRoot(tree.root);
+
+      await expect(
+        liquidity.connect(alice)["harvest(uint256,bytes32[])"](0, [])
+      )
+        .to.emit(liquidity, "OgActivated")
+        .withArgs(alice.address);
+      expect(await liquidity.ogActivated(alice.address)).to.equal(true);
+    });
+
+    it("activates OG on the first spoke deposit that carries a proof", async function () {
+      const fixture = await loadFixture(deployAccountingFixture);
+      const { liquidity, owner, alice, bob, stakedAsset } = fixture;
+      await setupSoleStakerPool(fixture);
+      await liquidity.connect(owner).setOgNft(ethers.ZeroAddress);
+      const tree = buildMerkleTree([alice.address, bob.address]);
+      await liquidity.connect(owner).setOgMerkleRoot(tree.root);
+
+      await expect(
+        liquidity
+          .connect(alice)
+          ["deposit(uint256,uint256,bytes32[])"](
+            0,
+            ethers.parseEther("1"),
+            tree.proofFor(alice.address)
+          )
+      )
+        .to.emit(liquidity, "OgActivated")
+        .withArgs(alice.address);
+      expect(await liquidity.ogActivated(alice.address)).to.equal(true);
+      void stakedAsset;
+    });
   });
 });

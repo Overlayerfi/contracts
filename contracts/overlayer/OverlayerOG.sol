@@ -7,8 +7,8 @@ import {OverlayerOriginNFT} from "./OverlayerOriginNFT.sol";
 /// @title OverlayerOG
 /// @notice An allowlisted Overlayer OG collection that is mint-only (non-transferable, non-burnable).
 /// @dev Paid Merkle mints cost {MINT_PRICE} during a 14-day window. A separate free-mint Merkle
-///      root allows zero-price claims. Permanent Eth holdings keep spoke OG entitlement badges
-///      in sync after a one-time `sync` per chain.
+///      root allows zero-price claims. After minting ends, the fixed holder set is loaded onto
+///      spoke Liquidity farms via the same `setMerkleRoot` task used for Origin NFTs.
 contract OverlayerOG is OverlayerOriginNFT {
     /// @notice Lifetime maximum number of OG NFTs that may be minted.
     uint256 public constant MAX_SUPPLY = 2_000;

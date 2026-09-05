@@ -104,6 +104,10 @@ interface ILiquidityDefs {
 
     event OgNftUpdated(address indexed ogNft);
 
+    event OgMerkleRootUpdated(bytes32 indexed merkleRoot);
+
+    event OgActivated(address indexed user);
+
     event WhitelistedNftUpdated(address indexed collection, bool allowed);
 
     event OriginNftStaked(

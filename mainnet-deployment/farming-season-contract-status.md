@@ -53,7 +53,7 @@ Last updated: 2026-08-09 (FS-15 whitelist ops = after-deploy; FS-16 feature doub
 | FS-07a | Leaderboard / VRF machinery  | Ranked + random selection contracts                                      | Missing                                                                   | `missing` | `after-deploy`                  | Separate contracts reading OVERP / scores                                                                                |
 | FS-07b | Prize pool funding           | 5% of OVER reward pool                                                   | Missing                                                                   | `missing` | `blocked-over`                  | Sized from OVER                                                                                                          |
 | FS-08  | Entropy upgrade path         | Burn 3 same-type Origin → 1 Entropy (2.5/15/25%)                         | Liquidity has upgraded **slots** only; no burn/mint Entropy NFT contracts | `partial` | `after-deploy`                  | Deploy Entropy NFTs → `setOriginNftsUpgraded`                                                                            |
-| FS-09  | Cross-chain OG               | Eth OG recognized on Base/RH                                             | Entitlement mirror OApp + soulbound spoke badge (root `overlayer-oft`)    | `done`    | `after-deploy`                  | Eth: `setOgNft(OverlayerOG)`. Spoke: deploy/wire hub↔entitlement → `setOgNft(OverlayerOGEntitlement)`; user `sync`     |
+| FS-09  | Cross-chain OG               | Eth OG recognized on Base/RH                                             | Spoke Liquidity `ogMerkleRoot`; first farm tx with proof activates OG     | `done`    | `after-deploy`                  | Eth: `setOgNft(OverlayerOG)`. Spoke: `setOgMerkleRoot` / `setMerkleRoot` (same task as Origin NFTs). User does nothing extra. |
 | FS-10  | VISION point rates           | Doc: 5 / 3 / 1 pts per $1k / day by product                              | Achievable via `setReward` / APR setters — staked Y is stablecoin (~$1)   | `done`    | `after-deploy`                  | Not a model mismatch; configure emission so X OVERP per Y capital matches target pts/$/day. Pending-at-finalize = FS-10b |
 | FS-10b | Pending included at finalize | Unharvested points must count at season end                              | Views + `harvestAllFor` exist; no forced global finalize                  | `partial` | `after-deploy`                  | Indexer and/or harvest pass at cutoff                                                                                    |
 | FS-11  | Additional Points cap        | ≤5% of total production, non-boostable stream                            | Merkle ingest exists; no on-chain cap                                     | `partial` | `after-deploy`                  | Ops/Merkle cap; `setPointsMerkleRoot` / `claimPoints`                                                                    |
@@ -77,13 +77,13 @@ FS-12 and FS-13 bytecode items are done; they still fall under **FS-16** verific
 
 **FS-13 done:** `_nftBonusAmount` applies OG +2.5% from `ogNft.balanceOf(user)` without requiring an Origin stake. Origin and whitelisted/Special bonuses remain independently gated; all three stack additively.
 
-**FS-09 done (contracts, ops remaining):** Cross-chain OG is an **entitlement mirror**, not ONFT relocate (OG stays soulbound on Eth). Root package `overlayer-oft`:
+**FS-09 done (contracts, ops remaining):** Cross-chain OG is a **fixed-holder Merkle root on Liquidity**. OG stays soulbound on Eth. Users do not claim or sync.
 
-- Hub: `OverlayerOGEntitlementHub` — user `sync(dstEid)` reads Eth `OverlayerOG.balanceOf` and LZ-sends `(user, balance)`
-- Spoke: `OverlayerOGEntitlement` — soulbound ERC721 badge (0/1); mint/burn only via `_lzReceive`
-- Wire: `layerzero.og.config.ts`; deploy tag `og-entitlement` (`OVERLAYER_OG_ADDRESS` on hub); task `syncOgEntitlement`
-- Tests: Foundry `test/og-sync` (sync/revoke + Liquidity-shaped +2.5% via `OgBonusProbe`)
-- Liquidity wiring: **Eth** `setOgNft(OverlayerOG)`; **Base/RH** `setOgNft(OverlayerOGEntitlement)` after deploy/wire. Add RH as another spoke peer when its LZ eid is configured.
+- Spoke Liquidity: `setOgMerkleRoot` / `setMerkleRoot` (same leaf as Origin / OG NFT tasks)
+- First `deposit` / `harvest` / `withdraw` / NFT stake that includes the proof sets `ogActivated[user]`
+- Snapshot: `snapshotOverlayerOGHolders.ts` dumps current Eth OG `ownerOf` addresses
+- Eth: `setOgNft(OverlayerOG)` still uses `balanceOf`. Spokes leave `ogNft` unset and set the root.
+- Configure: `configureOverlayerOGEntitlementMerkleRoot.ts` or the Origin merkle task against Liquidity.
 
 ---
 
@@ -94,7 +94,7 @@ FS-12 and FS-13 bytecode items are done; they still fall under **FS-16** verific
 | FS-08  | Entropy NFTs (2.5% / 15% / 25%)                | Deploy `IBonusNFT` collections → `setOriginNftsUpgraded` (slots already exist; also FS-C04)   |
 | FS-C01 | Wire Origin / OG / pools / rates / referral    | Existing owner setters (`setOriginNfts`, `setOgNft`, `setReward`, `add`, `updateReferral`, …) |
 | FS-15  | Allowlist wiring (OG / Special / Team)         | OG/Origin: `setMerkleRoot` / `setWhitelist`. Specials: `setWhitelistedNft`. Team: owner open/whitelist. All post-deploy. |
-| FS-09  | Cross-chain OG recognition                     | **Contracts done** in root `overlayer-oft`: hub + spoke entitlement. Ops: deploy/wire → spoke `setOgNft(entitlement)`; Eth keeps `setOgNft(OG)` |
+| FS-09  | Cross-chain OG recognition                     | **Contracts done:** spoke Liquidity merkle root. Ops: `setOgMerkleRoot` on Base/RH; Eth keeps `setOgNft(OG)`. Frontend attaches proof on the first farm tx. |
 | FS-11  | Additional Points (Galxe, events, …) + ≤5% cap | Merkle roots + ops cap; `setPointsMerkleRoot` / `claimPoints`                                 |
 | FS-S02 | Referral/Team “Additional Points” narrative    | Settlement/airdrop interprets OVERP + `generatedPointsByType` (rates already match)           |
 | FS-10  | VISION pts/$1k/day rates (config)              | `setReward` / SingleStable–Curve APR setters — Y ≈ $1 stablecoin                              |
@@ -158,7 +158,7 @@ Configure / wire; not greenfield. Timing: ready for deploy (`done`) or post-conf
 5. Leave upgraded Origin = `address(0)` until FS-08 Entropy exists
 6. After deploy (FS-15): OG/Origin mint Merkle/`setWhitelist`, Special `setWhitelistedNft`, Team open/whitelist as needed
 7. Whitelist Specials only on Liquidity that includes FS-12 single-slot enforcement
-8. Park FS-08, FS-11, FS-07a, FS-01–FS-05 until after deploy / OVER; FS-09 contracts ready — deploy/wire entitlement mesh when Base/RH farms go live
+8. Park FS-08, FS-11, FS-07a, FS-01–FS-05 until after deploy / OVER; FS-09 contracts ready — set `ogMerkleRoot` on Base/RH Liquidity when those farms go live
 
 ---
 
@@ -221,5 +221,6 @@ Configure / wire; not greenfield. Timing: ready for deploy (`done`) or post-conf
 | 2026-08-09 | **FS-12 follow-up:** collapse whitelist stake storage to Origin single-slot (`whitelistedNftStaked`); parameterless `unstakeWhitelistedNft()`; `whitelistedStakeOf` view; lifecycle test |
 | 2026-08-09 | **FS-13 done:** OG +2.5% from `ogNft.balanceOf` without Origin stake; tests + NatSpec updated; cleared from must-now                                                                     |
 | 2026-08-09 | **FS-09 done (contracts):** Eth `OverlayerOGEntitlementHub` + spoke `OverlayerOGEntitlement` soulbound badge via LZ; Foundry `test/og-sync`; deploy tag `og-entitlement` + `layerzero.og.config.ts` + `syncOgEntitlement`. Liquidity unchanged: Eth `setOgNft(OG)`, spoke `setOgNft(entitlement)`. Ops deploy/wire remaining. |
+| 2026-09-05 | **FS-09 Liquidity merkle:** dropped LZ hub/spoke sync and user claim. Spoke Liquidity `setOgMerkleRoot`; first farm interaction with a proof sets `ogActivated`. |
 | 2026-08-09 | **FS-15 / FS-16 open:** must support whitelisted addresses (confirm full product scope) and double-check all farming features before deploy; added Open actions + must-now rows                                                                                      |
 | 2026-08-09 | **FS-15 clarified:** not a must-now bytecode gap and not a missing OG whitelist feature — OG/Origin mint allowlists are post-deploy `setMerkleRoot` / `setWhitelist`; Specials via `setWhitelistedNft`; Team via owner ACL. FS-15 → `after-deploy`/`done`. Only FS-16 remains must-now. |

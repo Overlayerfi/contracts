@@ -76,7 +76,7 @@
       },
       "ogNft": "0xE4b65d07Ad6C1ad9B08C1101143A7F5817F1389E",
       "ogEntitlement": "0xE4b65d07Ad6C1ad9B08C1101143A7F5817F1389E",
-      "ogEntitlementNote": "Spoke OverlayerOGEntitlement; Eth hub syncs from Eth OG"
+      "ogEntitlementNote": "Legacy LZ spoke badge. Redeploy Liquidity with ogMerkleRoot; setOgNft(0) and setOgMerkleRoot(holder list)."
     }
   }
 }
