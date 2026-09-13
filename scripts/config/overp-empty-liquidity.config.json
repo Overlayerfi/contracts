@@ -1,0 +1,31 @@
+{
+  "admin": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
+  "note": "OVERP + empty SingleStableStake (Liquidity subclass, 0 pools). Origin NFTs from live mainnet manifests. Eth sets ogNft; Base/Robinhood leave OG unset until setOgMerkleRoot when farms go live. Pool start/end and reward rates are NOT set here — configure them when adding pools.",
+  "networks": {
+    "eth": {
+      "chainId": 1,
+      "originNfts": {
+        "shrimp": "0x0bEd281BdFc7Bf127cadCa5F77e05b20cFb4E100",
+        "dolphin": "0x92df135c27aB5A2080F5cbcBB0A693C07A283e9C",
+        "whale": "0x8D6EFCE9B824E748aBfec8cd66B32fc070a5f7cB"
+      },
+      "ogNft": "0xb0468b8b650D5A3DDf0f96BD1AD8a9A6c4c02183"
+    },
+    "base": {
+      "chainId": 8453,
+      "originNfts": {
+        "shrimp": "0x03F82aeA7291c9919e911c194889fb65b4C75fF4",
+        "dolphin": "0x9C79D81D10633b3064c7195Da383c011Efc62272",
+        "whale": "0x2380B05E26E67A9ECb2B51DF9881556C67D62Edd"
+      }
+    },
+    "robinhood": {
+      "chainId": 4663,
+      "originNfts": {
+        "shrimp": "0xB17EE7D061e076ff1aD6bd2141888CFb39C0Ccdc",
+        "dolphin": "0x143ec4D2Beddf44679C52639D720afAeD78eD83b",
+        "whale": "0x8aC6AD5D76D07B202832f323888B64286E944A9e"
+      }
+    }
+  }
+}

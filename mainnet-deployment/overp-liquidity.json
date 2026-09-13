@@ -1,0 +1,79 @@
+{
+  "admin": "0xABE9A7c88107C55283A211B847F747e26Edc09ED",
+  "note": "OVERP + empty SingleStableStake. Farms added later via setRewardForStakedAssets + add.",
+  "networks": {
+    "base": {
+      "chainId": 8453,
+      "deployedAt": "2026-09-13T18:34:09.441Z",
+      "overp": "0xA7731Cd8309427Aa2C96f2b8BA6Dce9589bAFb76",
+      "liquidity": "0x350aFD01A756D887cF3dc03Ae6Fa62626e1b961F",
+      "liquidityKind": "SingleStableStake",
+      "constructorStartTime": 1789324439,
+      "originNfts": {
+        "shrimp": "0x03F82aeA7291c9919e911c194889fb65b4C75fF4",
+        "dolphin": "0x9C79D81D10633b3064c7195Da383c011Efc62272",
+        "whale": "0x2380B05E26E67A9ECb2B51DF9881556C67D62Edd"
+      },
+      "wired": {
+        "setMinter": true,
+        "setStakingPools": true,
+        "addPointsTracker": true,
+        "updateReferral": true,
+        "setOriginNfts": true,
+        "setOgNft": false,
+        "setOgMerkleRoot": false,
+        "poolCount": 0
+      },
+      "farms": {}
+    },
+    "robinhood": {
+      "chainId": 4663,
+      "deployedAt": "2026-09-13T18:34:25.144Z",
+      "overp": "0x4cA2c40e00BB5C5cE17A67Ee7CEd84b6a194F9EC",
+      "liquidity": "0x257F9Eb86aF07700354F9a139529DA64A2313c39",
+      "liquidityKind": "SingleStableStake",
+      "constructorStartTime": 1789324461,
+      "originNfts": {
+        "shrimp": "0xB17EE7D061e076ff1aD6bd2141888CFb39C0Ccdc",
+        "dolphin": "0x143ec4D2Beddf44679C52639D720afAeD78eD83b",
+        "whale": "0x8aC6AD5D76D07B202832f323888B64286E944A9e"
+      },
+      "wired": {
+        "setMinter": true,
+        "setStakingPools": true,
+        "addPointsTracker": true,
+        "updateReferral": true,
+        "setOriginNfts": true,
+        "setOgNft": false,
+        "setOgMerkleRoot": false,
+        "poolCount": 0
+      },
+      "farms": {}
+    },
+    "eth": {
+      "chainId": 1,
+      "deployedAt": "2026-09-13T18:36:50.716Z",
+      "overp": "0xe6bCa854B4da6F49BA6757C3C8F40468d9F7eE06",
+      "liquidity": "0x25A8f5100760d0F8b27C837F4D9743D9E3bE9fE5",
+      "liquidityKind": "SingleStableStake",
+      "constructorStartTime": 1789324523,
+      "originNfts": {
+        "shrimp": "0x0bEd281BdFc7Bf127cadCa5F77e05b20cFb4E100",
+        "dolphin": "0x92df135c27aB5A2080F5cbcBB0A693C07A283e9C",
+        "whale": "0x8D6EFCE9B824E748aBfec8cd66B32fc070a5f7cB"
+      },
+      "wired": {
+        "setMinter": true,
+        "setStakingPools": true,
+        "addPointsTracker": true,
+        "updateReferral": true,
+        "setOriginNfts": true,
+        "setOgNft": true,
+        "setOgMerkleRoot": false,
+        "poolCount": 0
+      },
+      "farms": {},
+      "ogNft": "0xb0468b8b650D5A3DDf0f96BD1AD8a9A6c4c02183"
+    }
+  }
+}
