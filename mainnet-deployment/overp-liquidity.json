@@ -21,8 +21,20 @@
         "updateReferral": true,
         "setOriginNfts": true,
         "setOgNft": false,
-        "setOgMerkleRoot": false,
+        "setOgMerkleRoot": true,
         "poolCount": 0
+      },
+      "ogMerkleRoot": "0xa473b1a36ac45141529364f3e8b850f87c307e3780c0d0339ee79cc656332d7d",
+      "ogMerkleRootTx": "0x1801729fd1e77c9a44fc38181e85d7e817a7b3ab4152995ebf0157f9ccebafd8",
+      "ogMerkleRootBlock": 51309889,
+      "ogHolderSnapshot": {
+        "network": "eth",
+        "nft": "0xb0468b8b650D5A3DDf0f96BD1AD8a9A6c4c02183",
+        "tokens": 373,
+        "holders": 373,
+        "file": "mainnet-deployment/overlayer-og/og-holders-eth-1.txt",
+        "manifest": "mainnet-deployment/overlayer-og-entitlement/merkle-base-8453-2026-09-14T18-05-25-197Z.json",
+        "snapshottedAt": "2026-09-14T18:05:00.000Z"
       },
       "farms": {}
     },
@@ -45,8 +57,20 @@
         "updateReferral": true,
         "setOriginNfts": true,
         "setOgNft": false,
-        "setOgMerkleRoot": false,
+        "setOgMerkleRoot": true,
         "poolCount": 0
+      },
+      "ogMerkleRoot": "0xa473b1a36ac45141529364f3e8b850f87c307e3780c0d0339ee79cc656332d7d",
+      "ogMerkleRootTx": "0xc48d1b1282ff81a3b73e1ff810d90add8dcf571b8ff92f69cbf46059fc983a88",
+      "ogMerkleRootBlock": 63006649,
+      "ogHolderSnapshot": {
+        "network": "eth",
+        "nft": "0xb0468b8b650D5A3DDf0f96BD1AD8a9A6c4c02183",
+        "tokens": 373,
+        "holders": 373,
+        "file": "mainnet-deployment/overlayer-og/og-holders-eth-1.txt",
+        "manifest": "mainnet-deployment/overlayer-og-entitlement/merkle-robinhood-4663-2026-09-14T18-05-24-553Z.json",
+        "snapshottedAt": "2026-09-14T18:05:00.000Z"
       },
       "farms": {}
     },

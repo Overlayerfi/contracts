@@ -1,6 +1,6 @@
 # VISION points — OVERP + empty Liquidity (mainnet)
 
-Status as of 2026-09-13. OVERP and an empty farm contract are live on Ethereum, Base, and Robinhood. **No pools have been added yet.** Team / Ref create and join already work. Farming emissions start only after owner `add()`.
+Status as of 2026-09-14. OVERP and an empty farm contract are live on Ethereum, Base, and Robinhood. **No pools have been added yet.** Team / Ref create and join already work. Spoke OG merkle roots are set. Farming emissions start only after owner `add()`.
 
 Canonical addresses: [`mainnet-deployment/overp-liquidity.json`](../mainnet-deployment/overp-liquidity.json).
 
@@ -36,7 +36,7 @@ Each chain has its own `OverlayerReferral` (ERC-20 name **OverlayerPoints**, sym
 | `updateReferral(OVERP)`                 | yes                                                                                                                     | yes         | yes         |
 | `setOriginNfts(shrimp, dolphin, whale)` | live Origin                                                                                                             | live Origin | live Origin |
 | `setOgNft(OverlayerOG)`                 | [`0xb0468b8b650D5A3DDf0f96BD1AD8a9A6c4c02183`](https://etherscan.io/address/0xb0468b8b650D5A3DDf0f96BD1AD8a9A6c4c02183) | skip        | skip        |
-| `setOgMerkleRoot`                       | skip (`balanceOf` on Eth OG)                                                                                            | **not yet** | **not yet** |
+| `setOgMerkleRoot`                       | skip (`balanceOf` on Eth OG)                                                                                            | set         | set         |
 | Referral bonus config                   | constructor defaults                                                                                                    | same        | same        |
 | Pools / reward rate / start-end         | **not set**                                                                                                             | **not set** | **not set** |
 
@@ -122,16 +122,21 @@ These are **not** required for `add()` itself. Do them when farming should actua
 
 ### Must-have for farm go-live (spokes)
 
-**OG on Base and Robinhood.** Eth already uses `setOgNft(OverlayerOG)` + `balanceOf`. Spokes use a Merkle root of the **fixed Eth OG holder set**. Until this is set, spoke OG boost is off.
+**OG on Base and Robinhood — done 2026-09-14.** Eth uses `setOgNft(OverlayerOG)` + `balanceOf`. Spokes use a Merkle root of the **fixed Eth OG holder set**. The snapshot reads live Ethereum `ownerOf` for token IDs `1 .. nextTokenId-1` on OverlayerOG (`0xb0468b8b650D5A3DDf0f96BD1AD8a9A6c4c02183`). OG is mint-only / non-transferable, so that holder set is the current owners.
 
-1. Snapshot Eth OG holders:
+- Snapshot: 373 tokens, 373 unique holders — [`mainnet-deployment/overlayer-og/og-holders-eth-1.txt`](../mainnet-deployment/overlayer-og/og-holders-eth-1.txt)
+- Root: `0xa473b1a36ac45141529364f3e8b850f87c307e3780c0d0339ee79cc656332d7d`
+- Base Liquidity [`0x350aFD01A756D887cF3dc03Ae6Fa62626e1b961F`](https://basescan.org/tx/0x1801729fd1e77c9a44fc38181e85d7e817a7b3ab4152995ebf0157f9ccebafd8) (`setMerkleRoot`, block 51309889)
+- Robinhood Liquidity [`0x257F9Eb86aF07700354F9a139529DA64A2313c39`](https://robinhoodchain.blockscout.com/tx/0xc48d1b1282ff81a3b73e1ff810d90add8dcf571b8ff92f69cbf46059fc983a88) (`setMerkleRoot`, block 63006649)
+- Proofs: [`merkle-base-8453-…`](../mainnet-deployment/overlayer-og-entitlement/merkle-base-8453-2026-09-14T18-05-25-197Z.json), [`merkle-robinhood-4663-…`](../mainnet-deployment/overlayer-og-entitlement/merkle-robinhood-4663-2026-09-14T18-05-24-553Z.json)
+
+Commands used (do not rerun unless replacing the root):
 
 ```bash
 OG_NFT_ADDRESS=0xb0468b8b650D5A3DDf0f96BD1AD8a9A6c4c02183 \
+OG_HOLDER_SNAPSHOT_OUTPUT_PATH=./deployments/overlayer-og/og-holders.txt \
 npx hardhat run scripts/utils/snapshotOverlayerOGHolders.ts --network eth
 ```
-
-2. Set the root on each spoke Liquidity (`setOgMerkleRoot` / `setMerkleRoot`, same leaf as Origin / OG):
 
 ```bash
 OG_ENTITLEMENT_WHITELIST_FILE=./deployments/overlayer-og/og-holders.txt \
@@ -223,6 +228,7 @@ Season-end OVER settlement, claim options, leaderboard / VRF, and Entropy mint/b
 - [x] OVERP `setMinter` / `setStakingPools` / `addPointsTracker`
 - [x] Liquidity `updateReferral` + Origin NFTs
 - [x] Eth `setOgNft`
+- [x] Base + Robinhood `setOgMerkleRoot` from Eth OG `ownerOf` snapshot (373 holders)
 - [x] Team / Ref create + join live
 
 **When submitting pools**
@@ -235,7 +241,7 @@ Season-end OVER settlement, claim options, leaderboard / VRF, and Entropy mint/b
 
 **After pools (go-live extras)**
 
-- [ ] `setOgMerkleRoot` on Base + Robinhood from Eth OG holder snapshot
+- [x] `setOgMerkleRoot` on Base + Robinhood from Eth OG holder snapshot
 - [ ] Frontend: addresses, first-tx OG proof on spokes
 - [ ] `setPointsMerkleRoot` on each OVERP when an Additional Points campaign is ready (per-chain; blocks Ref for claimants)
 - [ ] Specials / Entropy only when those collections are ready
