@@ -1,5 +1,6 @@
 {
   "generatedAt": "2026-06-26T14:51:25.225Z",
+  "updatedAt": "2026-09-22T14:14:00.000Z",
   "network": "mainnet",
   "ethChainFolder": "eth-mainnet",
   "chains": {
@@ -47,6 +48,15 @@
           "oftOverlayerWrap": "0xD4E1CAF200b29585aADc9AF39c16D57C8c82EbF1",
           "stakedOverlayerWrap": "0xcda929Ac3016A17151CD63c1Ca210cFc56D85333"
         }
+      }
+    },
+    "robinhood-mainnet": {
+      "chainId": "4663",
+      "omnichain": {
+        "OverlayerTether": "0xeC71db1f6EB1D8184534cde41e5A14e246aCE57a",
+        "OverlayerUSDG": "0x2d4eD1202514c226f87304A5BcB771261481F73A",
+        "ShareOFT-T+": "0xa982a47dD6b120b544Ed523c2Ae1110B772b1850",
+        "ShareOFT-G+": "0xC681E34F289A3b31a46B6644A0A71B579dA72471"
       }
     }
   }
