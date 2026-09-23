@@ -11,7 +11,12 @@ import { USDC_ABI } from "../abi/USDC_abi";
 import { USDT_ABI } from "../abi/USDT_abi";
 import { DAI_ABI } from "../abi/DAI_abi";
 
-let SWAP_CODES = [0, 1, 2];
+const SWAP_ROUTER_02 = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45";
+const POOL_FEE = 3000;
+const ALL_SWAP_CODES = [0, 1, 2];
+const EXACT_INPUT_SINGLE_ABI = [
+  "function exactInputSingle((address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96) params) external payable returns (uint256 amountOut)"
+];
 
 // code 0: DAI
 // code 1: USDC
@@ -22,25 +27,14 @@ export async function swap(
   code?: number
 ) {
   const [deployer] = await ethers.getSigners();
-  console.log(
-    "Deploying UniswapV3SingleHopSwap contract with signer:",
-    deployer.address
-  );
+  console.log("Swapping on SwapRouter02 with signer:", deployer.address);
 
-  // define max fee for test network
   const block = await deployer.provider.getBlock("latest");
   const baseFee = block.baseFeePerGas;
   const maxFee = baseFee * BigInt(10);
-  const defaultTransactionOptions = {
+  const txOptions = {
     maxFeePerGas: maxFee
   };
-
-  const swapContract = await ethers.getContractFactory(
-    "UniswapV3SingleHopSwap"
-  );
-  const swapper = await swapContract.deploy(defaultTransactionOptions);
-  await swapper.waitForDeployment();
-  console.log("Contract deployed at:", await swapper.getAddress());
 
   const weth = new ethers.Contract(WETH_MAINNET_ADDRESS, WETH_ABI, deployer);
   await (weth.connect(deployer) as Contract).deposit({
@@ -52,23 +46,39 @@ export async function swap(
     "WETH balance:",
     ethers.formatEther(await weth.balanceOf(deployer.address))
   );
-  console.log("Approving the swap contract...");
+
+  const router = new ethers.Contract(
+    SWAP_ROUTER_02,
+    EXACT_INPUT_SINGLE_ABI,
+    deployer
+  );
   await (weth.connect(deployer) as Contract).approve(
-    await swapper.getAddress(),
+    SWAP_ROUTER_02,
     ethers.MaxUint256
   );
-  console.log("Spender approved");
+  console.log("SwapRouter02 approved");
 
-  SWAP_CODES = code === undefined ? SWAP_CODES : [code];
-  for (let i = 0; i < SWAP_CODES.length; ++i) {
-    await swapper
-      .connect(deployer)
-      .swapExactInputSingleHop(
-        ethers.parseUnits(wethAmountToSwap, 18),
-        1,
-        SWAP_CODES[i],
-        defaultTransactionOptions
-      );
+  const amountIn = ethers.parseUnits(wethAmountToSwap, 18);
+  const swapCodes = code === undefined ? ALL_SWAP_CODES : [code];
+  for (const swapCode of swapCodes) {
+    const tokenOut =
+      swapCode === 1
+        ? USDC_ADDRESS
+        : swapCode === 2
+        ? USDT_ADDRESS
+        : DAI_ADDRESS;
+    await (router.connect(deployer) as Contract).exactInputSingle(
+      {
+        tokenIn: WETH_MAINNET_ADDRESS,
+        tokenOut,
+        fee: POOL_FEE,
+        recipient: deployer.address,
+        amountIn,
+        amountOutMinimum: 1,
+        sqrtPriceLimitX96: 0
+      },
+      txOptions
+    );
   }
 
   const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, deployer);
