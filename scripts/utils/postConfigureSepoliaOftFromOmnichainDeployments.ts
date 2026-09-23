@@ -24,6 +24,7 @@ import {
   deploy_OverlayerWrapBacking,
   OverlayerWrap_mint,
   StakedOverlayerWrap_deposit,
+  StakedOverlayerWrap_connectBacking,
   deploy_Dispatcher
 } from "../functions";
 import OverlayerWrap_ABI from "../../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
@@ -203,6 +204,18 @@ export async function runSepoliaOftProductPostConfigure(
   if (futureAddress !== overlayerWrapBackingAddr) {
     throw new Error("The predicted OverlayerWrapBacking address is not valid");
   }
+
+  // Wire staking before the seed deposit so `_compound` is not a no-op at address(0).
+  await StakedOverlayerWrap_connectBacking(
+    sOverlayerWrapAddr,
+    overlayerWrapBackingAddr,
+    admin
+  );
+  console.log(
+    `${LOG} [${ts()}] [${
+      product.productLabel
+    }] StakedOverlayerWrap.overlayerWrapBacking = ${overlayerWrapBackingAddr}`
+  );
 
   const backing = new ethers.Contract(
     overlayerWrapBackingAddr,

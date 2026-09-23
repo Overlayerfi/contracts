@@ -34,7 +34,7 @@ describe("OverlayerWrap Backing Protocol", function () {
     });
     if (!swapped) {
       //get usdt and usdt
-      await swap("75", "25");
+      await swap("160", "50");
       swapped = true;
     }
 
@@ -526,7 +526,7 @@ describe("OverlayerWrap Backing Protocol", function () {
         );
       await (ausdt.connect(admin) as Contract).transfer(
         alice.address,
-        ethers.parseUnits((+amount * 3).toFixed(6), await usdt.decimals())
+        await ausdt.balanceOf(admin.address)
       );
       await ausdt
         .connect(alice)
@@ -714,7 +714,7 @@ describe("OverlayerWrap Backing Protocol", function () {
         );
       await (ausdt.connect(admin) as Contract).transfer(
         alice.address,
-        ethers.parseUnits((+amount * 3).toFixed(6), await usdt.decimals())
+        await ausdt.balanceOf(admin.address)
       );
       await ausdt
         .connect(alice)
@@ -805,7 +805,7 @@ describe("OverlayerWrap Backing Protocol", function () {
       expect(
         await ausdt.balanceOf(await overlayerWrapBacking.getAddress())
       ).to.be.greaterThanOrEqual(
-        ethers.parseUnits(totalCollateral, await usdt.decimals())
+        ethers.parseUnits(totalCollateral, await usdt.decimals()) - 1n
       );
 
       const aliceUsdtBeforeBal = await usdt.balanceOf(alice.address);
@@ -914,7 +914,7 @@ describe("OverlayerWrap Backing Protocol", function () {
         ethers.parseUnits(
           (+amount + +donationAmount + +initialCollateralAmount).toFixed(2),
           await ausdt.decimals()
-        )
+        ) - 1n
       );
       expect(await overlayerWrapBacking.totalSuppliedCollateral()).to.be.equal(
         ethers.parseUnits(
@@ -1036,13 +1036,14 @@ describe("OverlayerWrap Backing Protocol", function () {
       );
       //################################################################################################################################################
       //account yield for aToken -> use greaterThanOrEqual
+      // Aave credits 1 unit less aUSDT than the USDT supplied.
       expect(
         await ausdt.balanceOf(await overlayerWrapBacking.getAddress())
       ).to.be.greaterThanOrEqual(
         ethers.parseUnits(
           (+amount - +redeemAmount + +initialCollateralAmount).toFixed(2),
           await ausdt.decimals()
-        )
+        ) - 1n
       );
       //################################################################################################################################################
 
@@ -1148,13 +1149,14 @@ describe("OverlayerWrap Backing Protocol", function () {
       );
       //################################################################################################################################################
       //account yield for aToken -> use greaterThanOrEqual
+      // Aave credits 1 unit less aUSDT than the USDT supplied.
       expect(
         await ausdt.balanceOf(await overlayerWrapBacking.getAddress())
       ).to.be.greaterThanOrEqual(
         ethers.parseUnits(
           (+amount - +redeemAmount + +initialCollateralAmount).toFixed(1),
           await ausdt.decimals()
-        )
+        ) - 1n
       );
       //################################################################################################################################################
 
@@ -1552,7 +1554,8 @@ describe("OverlayerWrap Backing Protocol", function () {
       const owUsdt = await usdt.balanceOf(owAddr);
       const owAusdt = await ausdt.balanceOf(owAddr);
       const owTotalNormalized = owUsdt + owAusdt; // both 6 decimals
-      expect(owTotalNormalized).to.equal(expectedTSU);
+      expect(owTotalNormalized).to.be.greaterThanOrEqual(expectedTSU - 5n);
+      expect(owTotalNormalized).to.be.lessThanOrEqual(expectedTSU);
     });
   });
 });

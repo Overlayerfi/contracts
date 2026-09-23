@@ -27,11 +27,11 @@ import {
   deploy_OverlayerWrapBacking,
   OverlayerWrap_mint,
   StakedOverlayerWrap_deposit,
+  StakedOverlayerWrap_connectBacking,
   deploy_Dispatcher
 } from "../functions";
 import OverlayerWrap_ABI from "../../artifacts/contracts/overlayer/OverlayerWrap.sol/OverlayerWrap.json";
 import SOverlayerWrap_ABI from "../../artifacts/contracts/overlayer/StakedOverlayerWrap.sol/StakedOverlayerWrap.json";
-import OverlayerWrapBacking_ABI from "../../artifacts/contracts/overlayerbacking/OverlayerBacking.sol/OverlayerWrapBacking.json";
 import { getContractAddress } from "@ethersproject/address";
 import {
   USDT_ADDRESS,
@@ -40,6 +40,8 @@ import {
   AUSDC_ADDRESS,
   USDG_ADDRESS,
   AUSDG_ADDRESS,
+  GHO_ADDRESS,
+  SGHO_ADDRESS,
   AAVE_POOL_V3_ADDRESS
 } from "../addresses";
 import { ETH_MAINNET_TOKEN_DECIMALS } from "../constants";
@@ -49,6 +51,7 @@ const LOG = "[postConfigureMainnetOftFromOmnichain]";
 
 /** OpenZeppelin AccessControl DEFAULT_ADMIN_ROLE (bytes32(0)). */
 const DEFAULT_ADMIN_ROLE = ethers.ZeroHash;
+const BACKING_ABI = ["function acceptCollateralSpender() external"];
 
 /** Stable run order so logs and manifests are deterministic. */
 const PREFERRED_OVERLAYER_ORDER = [
@@ -76,25 +79,104 @@ function sortOverlayerJsonFiles(files: string[]): string[] {
   });
 }
 
+async function assertSignerHasDefaultAdmin(
+  target: string,
+  abi: readonly unknown[] | unknown[],
+  signer: ethers.Signer,
+  productLabel: string,
+  contractLabel: string,
+  nextStep: string
+): Promise<void> {
+  const c = new ethers.Contract(target, abi, signer) as Contract;
+  const me = await signer.getAddress();
+  const ok = await c.hasRole(DEFAULT_ADMIN_ROLE, me);
+  if (!ok) {
+    throw new Error(
+      `${LOG} [${productLabel}] Signer ${me} is not DEFAULT_ADMIN on ${contractLabel} at ${target}. ` +
+        `${nextStep}`
+    );
+  }
+}
+
 async function assertSignerIsDefaultAdminOnOverlayer(
   overlayerWrapAddress: string,
   signer: ethers.Signer,
   productLabel: string
+): Promise<void> {
+  await assertSignerHasDefaultAdmin(
+    overlayerWrapAddress,
+    OverlayerWrap_ABI.abi,
+    signer,
+    productLabel,
+    "OverlayerWrap",
+    "The next step calls grantRole(COLLATERAL_MANAGER_ROLE), which requires DEFAULT_ADMIN (on-chain: AccessControlUnauthorizedAccount). " +
+      "Use the key that administers this OFT (see omnichain deploy), and set OMNICHAIN_SIGNER_ADDR to that account."
+  );
+}
+
+async function assertOftCollateralSettings(
+  overlayerWrapAddress: string,
+  product: MainnetProductDeploymentInput,
+  signer: ethers.Signer
 ): Promise<void> {
   const c = new ethers.Contract(
     overlayerWrapAddress,
     OverlayerWrap_ABI.abi,
     signer
   ) as Contract;
-  const me = await signer.getAddress();
-  const ok = await c.hasRole(DEFAULT_ADMIN_ROLE, me);
-  if (!ok) {
+  const collateral = await c.collateral();
+  const aCollateral = await c.aCollateral();
+  const collateralAddr = String(collateral.addr ?? collateral[0]);
+  const aCollateralAddr = String(aCollateral.addr ?? aCollateral[0]);
+  const collateralDecimals = Number(collateral.decimals ?? collateral[1]);
+  const aCollateralDecimals = Number(aCollateral.decimals ?? aCollateral[1]);
+
+  if (collateralAddr.toLowerCase() !== product.collateralAddress.toLowerCase()) {
     throw new Error(
-      `${LOG} [${productLabel}] Signer ${me} is not DEFAULT_ADMIN on OverlayerWrap at ${overlayerWrapAddress}. ` +
-        `The next step calls grantRole(COLLATERAL_MANAGER_ROLE), which requires DEFAULT_ADMIN (on-chain: AccessControlUnauthorizedAccount). ` +
-        `Use the key that administers this OFT (see omnichain deploy), and set OMNICHAIN_SIGNER_ADDR to that account.`
+      `${LOG} [${product.productLabel}] collateral is ${collateralAddr}, expected ${product.collateralAddress}`
     );
   }
+  if (product.backingKind === "gho") {
+    // sGHO is not 1:1 with GHO. The OFT aCollateral slot must be a different token
+    // so the audited wrap rejects sGHO mint and redeem.
+    if (
+      aCollateralAddr.toLowerCase() === product.aCollateralAddress.toLowerCase()
+    ) {
+      throw new Error(
+        `${LOG} [${product.productLabel}] aCollateral must not be the sGHO vault ${product.aCollateralAddress}`
+      );
+    }
+  } else if (
+    aCollateralAddr.toLowerCase() !== product.aCollateralAddress.toLowerCase()
+  ) {
+    throw new Error(
+      `${LOG} [${product.productLabel}] aCollateral is ${aCollateralAddr}, expected ${product.aCollateralAddress}`
+    );
+  }
+  if (
+    collateralDecimals !== product.decimals ||
+    aCollateralDecimals !== product.decimals
+  ) {
+    throw new Error(
+      `${LOG} [${product.productLabel}] collateral decimals are ${collateralDecimals}/${aCollateralDecimals}, expected ${product.decimals}`
+    );
+  }
+}
+
+async function assertSignerIsDefaultAdminOnStakedOverlayer(
+  sOverlayerWrapAddress: string,
+  signer: ethers.Signer,
+  productLabel: string
+): Promise<void> {
+  await assertSignerHasDefaultAdmin(
+    sOverlayerWrapAddress,
+    SOverlayerWrap_ABI.abi,
+    signer,
+    productLabel,
+    "StakedOverlayerWrap",
+    "proposeOverlayerWrapBacking / executeOverlayerWrapBackingChange require DEFAULT_ADMIN. " +
+      "Use the key that administers this vault, and set OMNICHAIN_SIGNER_ADDR to that account."
+  );
 }
 
 // --- Shared mainnet post-config (one OFT product) ---------------------------------------------
@@ -113,6 +195,7 @@ export interface MainnetProductDeploymentInput {
   collateralAddress: string;
   aCollateralAddress: string;
   decimals: number;
+  backingKind: BackingKind;
 }
 
 export interface MainnetProductDeploymentResult {
@@ -121,6 +204,7 @@ export interface MainnetProductDeploymentResult {
   stakedOverlayerWrapAddr: string;
   dispatcherAddress: string;
   overlayerWrapBackingAddress: string;
+  backingContract: string;
 }
 
 function ts(): string {
@@ -130,6 +214,48 @@ function ts(): string {
 /**
  * Dispatcher, OverlayerWrapBacking, roles, and seed mint/stake for one OFT-backed product.
  */
+async function deployMainnetBacking(
+  product: MainnetProductDeploymentInput,
+  admin: ethers.Signer,
+  dispatcherAddress: string,
+  overlayerWrapAddr: string,
+  sOverlayerWrapAddr: string
+): Promise<{ address: string; contractName: string }> {
+  if (product.backingKind === "gho") {
+    const factory = await ethers.getContractFactory(
+      "OverlayerWrapGhoBacking",
+      admin
+    );
+    const backing = await factory.deploy(
+      await admin.getAddress(),
+      dispatcherAddress,
+      overlayerWrapAddr,
+      sOverlayerWrapAddr,
+      product.collateralAddress,
+      product.aCollateralAddress,
+      { gasLimit: 10000000 }
+    );
+    await backing.waitForDeployment();
+    const address = await backing.getAddress();
+    console.log(
+      `${LOG} [${ts()}] [${product.productLabel}] Deployed OverlayerWrapGhoBacking: ${address}`
+    );
+    return { address, contractName: "OverlayerWrapGhoBacking" };
+  }
+
+  const address = await deploy_OverlayerWrapBacking(
+    await admin.getAddress(),
+    dispatcherAddress,
+    overlayerWrapAddr,
+    sOverlayerWrapAddr,
+    AAVE_POOL_V3_ADDRESS,
+    product.collateralAddress,
+    product.aCollateralAddress,
+    admin
+  );
+  return { address, contractName: "OverlayerWrapBacking" };
+}
+
 export async function runMainnetOftProductPostConfigure(
   product: MainnetProductDeploymentInput,
   shared: MainnetSharedDeploymentConfig
@@ -160,6 +286,12 @@ export async function runMainnetOftProductPostConfigure(
     admin,
     product.productLabel
   );
+  await assertSignerIsDefaultAdminOnStakedOverlayer(
+    sOverlayerWrapAddr,
+    admin,
+    product.productLabel
+  );
+  await assertOftCollateralSettings(overlayerWrapAddr, product, admin);
 
   const dispatcherAddress = await deploy_Dispatcher(
     admin.address,
@@ -190,24 +322,34 @@ export async function runMainnetOftProductPostConfigure(
     admin
   );
 
-  const overlayerWrapBackingAddr = await deploy_OverlayerWrapBacking(
-    admin.address,
+  const deployedBacking = await deployMainnetBacking(
+    product,
+    admin,
     dispatcherAddress,
     overlayerWrapAddr,
-    sOverlayerWrapAddr,
-    AAVE_POOL_V3_ADDRESS,
-    product.collateralAddress,
-    product.aCollateralAddress,
-    admin
+    sOverlayerWrapAddr
   );
+  const overlayerWrapBackingAddr = deployedBacking.address;
 
   if (futureAddress !== overlayerWrapBackingAddr) {
     throw new Error("The predicted OverlayerWrapBacking address is not valid");
   }
 
+  // Wire staking before the seed deposit so `_compound` is not a no-op at address(0).
+  await StakedOverlayerWrap_connectBacking(
+    sOverlayerWrapAddr,
+    overlayerWrapBackingAddr,
+    admin
+  );
+  console.log(
+    `${LOG} [${ts()}] [${
+      product.productLabel
+    }] StakedOverlayerWrap.overlayerWrapBacking = ${overlayerWrapBackingAddr}`
+  );
+
   const backing = new ethers.Contract(
     overlayerWrapBackingAddr,
-    OverlayerWrapBacking_ABI.abi,
+    BACKING_ABI,
     admin
   );
   let tx = await (backing.connect(admin) as Contract).acceptCollateralSpender(
@@ -278,7 +420,8 @@ export async function runMainnetOftProductPostConfigure(
     oftOverlayerWrapAddr: overlayerWrapAddr,
     stakedOverlayerWrapAddr: sOverlayerWrapAddr,
     dispatcherAddress,
-    overlayerWrapBackingAddress: overlayerWrapBackingAddr
+    overlayerWrapBackingAddress: overlayerWrapBackingAddr,
+    backingContract: deployedBacking.contractName
   };
 }
 
@@ -287,12 +430,16 @@ export async function runMainnetOftProductPostConfigure(
 type ProductMapEntry = {
   vaultSuffix: string;
   decimalsKey: string;
+  backingKind?: BackingKind;
 };
+
+type BackingKind = "aave" | "gho";
 
 const DEFAULT_MAINNET_OVERLAYER_TO_PRODUCT: Record<string, ProductMapEntry> = {
   OverlayerTether: { vaultSuffix: "T+", decimalsKey: "USDT" },
   OverlayerCircle: { vaultSuffix: "C+", decimalsKey: "USDC" },
-  OverlayerUSDG: { vaultSuffix: "G+", decimalsKey: "USDG" }
+  OverlayerUSDG: { vaultSuffix: "G+", decimalsKey: "USDG" },
+  OverlayerGHO: { vaultSuffix: "GHO+", decimalsKey: "GHO", backingKind: "gho" }
 };
 
 const MAINNET_COLLATERAL_BY_DECIMALS_KEY: Record<
@@ -310,6 +457,10 @@ const MAINNET_COLLATERAL_BY_DECIMALS_KEY: Record<
   USDG: {
     collateral: USDG_ADDRESS,
     aCollateral: AUSDG_ADDRESS
+  },
+  GHO: {
+    collateral: GHO_ADDRESS,
+    aCollateral: SGHO_ADDRESS
   }
 };
 
@@ -449,6 +600,7 @@ async function main() {
     {
       OvaDispatcher: string;
       OverlayerWrapBacking: string;
+      backingContract: string;
       oftOverlayerWrap: string;
       stakedOverlayerWrap: string;
     }
@@ -520,7 +672,8 @@ async function main() {
           stakedOverlayerWrapAddr: readJsonAddress(vaultPath),
           collateralAddress: coll.collateral,
           aCollateralAddress: coll.aCollateral,
-          decimals
+          decimals,
+          backingKind: meta.backingKind || "aave"
         },
         shared
       );
@@ -528,6 +681,7 @@ async function main() {
       contractsRepoDeployments[base] = {
         OvaDispatcher: result.dispatcherAddress,
         OverlayerWrapBacking: result.overlayerWrapBackingAddress,
+        backingContract: result.backingContract,
         oftOverlayerWrap: result.oftOverlayerWrapAddr,
         stakedOverlayerWrap: result.stakedOverlayerWrapAddr
       };
@@ -560,7 +714,17 @@ async function main() {
   console.log(`${LOG} Wrote manifest: ${outputPath}`);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exitCode = 1;
-});
+function isExecutedAsHardhatScript(): boolean {
+  return process.argv.some((arg) =>
+    arg
+      .replace(/\\/g, "/")
+      .includes("postConfigureMainnetOftFromOmnichainDeployments")
+  );
+}
+
+if (isExecutedAsHardhatScript()) {
+  main().catch((e) => {
+    console.error(e);
+    process.exitCode = 1;
+  });
+}

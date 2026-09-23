@@ -4,6 +4,7 @@ export const ETH_MAINNET_TOKEN_DECIMALS: { [tokenName: string]: number } = {
   USDC: 6,
   USDT: 6,
   USDG: 6,
+  GHO: 18,
   EURS: 2
 };
 

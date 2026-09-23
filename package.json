@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Overlayer smart contracts",
   "scripts": {
-    "unit": "npx hardhat test",
+    "unit": "npx hardhat test --network hardhat",
     "configure": "git submodule update --init --recursive && bash setup.sh",
     "compile": "npx hardhat compile",
     "docgen": "npx hardhat docgen",

@@ -139,10 +139,15 @@ abstract contract AaveHandler is
 
     /// @notice Withdraw all tracked collateral from Aave to overlayerWrap in aToken form. Yield surplus goes to the dispatcher.
     function adminWithdraw() external onlyOwner nonReentrant {
-        uint256 aCollateralWant = totalSuppliedCollateral;
+        uint256 principal = totalSuppliedCollateral;
+        uint256 aBal = IERC20(aCollateral).balanceOf(address(this));
+        // Aave rounds the aToken credit down, so the balance can be 1 unit under principal.
+        uint256 aCollateralWant = aBal < principal ? aBal : principal;
 
         // Return collateral to protocol token
-        IERC20(aCollateral).safeTransfer(overlayerWrap, aCollateralWant);
+        if (aCollateralWant > 0) {
+            IERC20(aCollateral).safeTransfer(overlayerWrap, aCollateralWant);
+        }
 
         // Surplus is yield only: full withdraw leaves no principal on this contract.
         uint256 surplusACollateral = IERC20(aCollateral).balanceOf(
@@ -155,7 +160,7 @@ abstract contract AaveHandler is
             );
         }
 
-        updateSuppliedAmounts(aCollateralWant);
+        updateSuppliedAmounts(principal);
         emit AaveAdminWithdraw(aCollateralWant);
     }
 

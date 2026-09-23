@@ -515,41 +515,83 @@ export async function StakedOverlayerWrap_setCooldownStaking(
 
 export async function StakedOverlayerWrap_proposeOverlayerWrapBacking(
   addr: string,
-  backing: string
+  backing: string,
+  signer?: Signer
 ): Promise<void> {
-  const [deployer] = await ethers.getSigners();
+  const admin = signer ?? (await ethers.getSigners())[0];
 
   console.log(
     "[StakedOverlayerWrap_proposeOverlayerWrapBacking] Proposing backing:",
     backing
   );
 
-  const contract = new ethers.Contract(addr, SOverlayerWrap_ABI.abi, deployer);
-  await (contract.connect(deployer) as Contract).proposeOverlayerWrapBacking(
-    backing,
-    { gasLimit: 2000000 }
-  );
+  const contract = new ethers.Contract(addr, SOverlayerWrap_ABI.abi, admin);
+  const tx = await (
+    contract.connect(admin) as Contract
+  ).proposeOverlayerWrapBacking(backing, { gasLimit: 2000000 });
+  await tx.wait();
 
   console.log("[StakedOverlayerWrap_proposeOverlayerWrapBacking] Proposal set");
 }
 
 export async function StakedOverlayerWrap_executeOverlayerWrapBackingChange(
-  addr: string
+  addr: string,
+  signer?: Signer
 ): Promise<void> {
-  const [deployer] = await ethers.getSigners();
+  const admin = signer ?? (await ethers.getSigners())[0];
 
   console.log(
     "[StakedOverlayerWrap_executeOverlayerWrapBackingChange] Executing backing change"
   );
 
-  const contract = new ethers.Contract(addr, SOverlayerWrap_ABI.abi, deployer);
-  await (
-    contract.connect(deployer) as Contract
+  const contract = new ethers.Contract(addr, SOverlayerWrap_ABI.abi, admin);
+  const tx = await (
+    contract.connect(admin) as Contract
   ).executeOverlayerWrapBackingChange({ gasLimit: 2000000 });
+  await tx.wait();
 
   console.log(
     "[StakedOverlayerWrap_executeOverlayerWrapBackingChange] Backing updated"
   );
+}
+
+/**
+ * Sets `overlayerWrapBacking` so staking deposit, mint, withdraw, and redeem call `compound`.
+ * While that address is zero those calls skip compounding. The first connection has no
+ * timelock. Calling again with the same backing is a no-op.
+ */
+export async function StakedOverlayerWrap_connectBacking(
+  addr: string,
+  backing: string,
+  signer?: Signer
+): Promise<void> {
+  const admin = signer ?? (await ethers.getSigners())[0];
+  if (!ethers.isAddress(backing) || backing === ethers.ZeroAddress) {
+    throw new Error(
+      "[StakedOverlayerWrap_connectBacking] Backing address is required"
+    );
+  }
+
+  const contract = new ethers.Contract(addr, SOverlayerWrap_ABI.abi, admin);
+  const current = String(await contract.overlayerWrapBacking()).toLowerCase();
+  if (current === backing.toLowerCase()) {
+    console.log(
+      "[StakedOverlayerWrap_connectBacking] already connected:",
+      backing
+    );
+    return;
+  }
+
+  await StakedOverlayerWrap_proposeOverlayerWrapBacking(addr, backing, admin);
+  await StakedOverlayerWrap_executeOverlayerWrapBackingChange(addr, admin);
+
+  const wired = String(await contract.overlayerWrapBacking()).toLowerCase();
+  if (wired !== backing.toLowerCase()) {
+    throw new Error(
+      `[StakedOverlayerWrap_connectBacking] overlayerWrapBacking is ${wired}, expected ${backing}`
+    );
+  }
+  console.log("[StakedOverlayerWrap_connectBacking] connected:", backing);
 }
 
 export async function deploy_AirdropPoolCurveStableStake(

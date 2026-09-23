@@ -126,7 +126,7 @@ const config: HardhatUserConfig = {
       forking: {
         url: PRIVATE_ETH_RPC_PREFIX + process.env.ALCHEMY_KEY!,
         enabled: true,
-        blockNumber: 22917626,
+        blockNumber: 25344826,
       },
       accounts: testAccounts,
       allowUnlimitedContractSize: true,

@@ -38,4 +38,4 @@ jobs:
           USER_D_WALLET_KEY: ${{ secrets.USER_D_WALLET_KEY }}
           USER_E_WALLET_KEY: ${{ secrets.USER_E_WALLET_KEY }}
         run: |
-          npx hardhat node & npm run unit
+          npm run unit
