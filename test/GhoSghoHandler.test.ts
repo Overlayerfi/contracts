@@ -494,7 +494,7 @@ describe("GhoSghoHandler", function () {
       expect(await overlayerWrap.totalSupply()).to.be.gt(owSupplyBefore);
     });
 
-    it("staking deposit, mint, withdraw, and redeem revert when sGHO cannot pay pending yield", async function () {
+    it("staking deposit, mint, withdraw, and redeem stay live when sGHO cannot pay pending yield", async function () {
       const { gho, vault, overlayerWrap, sOverlayerWrap, backing, alice, admin } =
         await loadFixture(deployBackingFixture);
 
@@ -513,41 +513,38 @@ describe("GhoSghoHandler", function () {
 
       const stake = ethers.parseEther("10");
       await sOverlayerWrap.connect(alice).deposit(stake, alice.address);
-      const aliceShares = await sOverlayerWrap.balanceOf(alice.address);
 
       await gho
         .connect(admin)
         .transfer(await vault.getAddress(), ethers.parseEther("25"));
       await vault.setMaxWithdrawLimit(0n);
 
+      // H-05: the harvest is deferred, not reverted. OW supply must not grow while it is deferred.
+      const owSupplyBefore = await overlayerWrap.totalSupply();
       await expect(
         sOverlayerWrap.connect(alice).deposit(stake, alice.address)
-      ).to.be.revertedWithCustomError(
-        backing,
-        "GhoSghoHandlerPendingYieldNotWithdrawable"
-      );
-      await expect(
-        sOverlayerWrap.connect(alice).mint(stake, alice.address)
-      ).to.be.revertedWithCustomError(
-        backing,
-        "GhoSghoHandlerPendingYieldNotWithdrawable"
-      );
+      ).to.emit(backing, "GhoSghoHarvestDeferred");
+      await expect(sOverlayerWrap.connect(alice).mint(stake, alice.address)).to
+        .not.be.reverted;
       await expect(
         sOverlayerWrap
           .connect(alice)
           .withdraw(stake, alice.address, alice.address)
-      ).to.be.revertedWithCustomError(
-        backing,
-        "GhoSghoHandlerPendingYieldNotWithdrawable"
-      );
+      ).to.not.be.reverted;
+      const aliceShares = await sOverlayerWrap.balanceOf(alice.address);
       await expect(
         sOverlayerWrap
           .connect(alice)
           .redeem(aliceShares, alice.address, alice.address)
-      ).to.be.revertedWithCustomError(
-        backing,
-        "GhoSghoHandlerPendingYieldNotWithdrawable"
-      );
+      ).to.not.be.reverted;
+
+      expect(await sOverlayerWrap.balanceOf(alice.address)).to.equal(0n);
+      expect(await overlayerWrap.totalSupply()).to.equal(owSupplyBefore);
+
+      // The yield is not lost: it is harvested once sGHO can pay again.
+      await vault.setMaxWithdrawLimit(ethers.MaxUint256);
+      await backing.connect(admin).compound(false);
+      expect(await overlayerWrap.totalSupply()).to.be.gt(owSupplyBefore);
     });
 
     it("ignores sGHO passed to supplyToBacking and leaves those shares on OverlayerWrap", async function () {
@@ -679,7 +676,7 @@ describe("GhoSghoHandler", function () {
       expect(await gho.balanceOf(await backing.getAddress())).to.equal(0n);
     });
 
-    it("compound reverts when sGHO yield is not withdrawable", async function () {
+    it("compound defers the harvest when sGHO yield is not withdrawable", async function () {
       const { gho, vault, overlayerWrap, backing, alice, admin } =
         await loadFixture(deployBackingFixture);
 
@@ -694,9 +691,8 @@ describe("GhoSghoHandler", function () {
       await overlayerWrap.connect(alice).supplyToBacking(0n, 0n);
 
       const ts = await backing.totalSuppliedCollateral();
-      await gho
-        .connect(admin)
-        .transfer(await vault.getAddress(), ethers.parseEther("25"));
+      const yieldAmount = ethers.parseEther("25");
+      await gho.connect(admin).transfer(await vault.getAddress(), yieldAmount);
       expect(
         await vault.convertToAssets(
           await vault.balanceOf(await backing.getAddress())
@@ -705,12 +701,36 @@ describe("GhoSghoHandler", function () {
 
       await vault.setMaxWithdrawLimit(0n);
 
-      await expect(
-        backing.connect(admin).compound(false)
-      ).to.be.revertedWithCustomError(
-        backing,
-        "GhoSghoHandlerPendingYieldNotWithdrawable"
+      const backingAddr = await backing.getAddress();
+      const supplyBefore = await overlayerWrap.totalSupply();
+      const sharesBefore = await vault.balanceOf(backingAddr);
+      // No idle GHO here, so the whole harvestable amount has to come out of sGHO.
+      const harvestable =
+        (await gho.balanceOf(backingAddr)) +
+        (await vault.convertToAssets(sharesBefore)) -
+        ts;
+      expect(harvestable).to.be.closeTo(
+        yieldAmount,
+        ethers.parseEther("0.0001")
       );
+
+      await expect(backing.connect(admin).compound(false))
+        .to.emit(backing, "GhoSghoHarvestDeferred")
+        .withArgs(harvestable, harvestable, 0n);
+
+      // No mint, no share burn, no accounting change: the yield simply stays in the backing.
+      expect(await overlayerWrap.totalSupply()).to.equal(supplyBefore);
+      expect(await vault.balanceOf(backingAddr)).to.equal(sharesBefore);
+      expect(await backing.totalSuppliedCollateral()).to.equal(ts);
+      expect(await gho.balanceOf(backingAddr)).to.equal(0n);
+
+      // It is harvested by the next compound once sGHO can pay.
+      await vault.setMaxWithdrawLimit(ethers.MaxUint256);
+      await backing.connect(admin).compound(false);
+      expect(await overlayerWrap.totalSupply()).to.equal(
+        supplyBefore + harvestable
+      );
+      expect(await backing.totalSuppliedCollateral()).to.equal(ts);
     });
 
     it("adminWithdraw returns principal as GHO so redeem and re-supply remain live", async function () {
@@ -1155,7 +1175,7 @@ describe("GhoSghoHandler", function () {
       );
     });
 
-    it("adminWithdraw reverts when sGHO cannot cover vault principal and leaves the buffer", async function () {
+    it("adminWithdraw returns the buffer and keeps the rest tracked when sGHO cannot pay", async function () {
       const { gho, vault, overlayerWrap, backing, alice, admin } =
         await loadFixture(deployBackingFixture);
 
@@ -1173,17 +1193,32 @@ describe("GhoSghoHandler", function () {
       await overlayerWrap.connect(alice).supplyToBacking(0n, 0n);
 
       const backingAddr = await backing.getAddress();
+      const dispatcher = await backing.ovaRewardsDispatcher();
       const ts = await backing.totalSuppliedCollateral();
+      const sharesBefore = await vault.balanceOf(backingAddr);
       await vault.setMaxWithdrawLimit(0n);
 
-      await expect(
-        backing.connect(admin).adminWithdraw()
-      ).to.be.revertedWithCustomError(backing, "AaveHandlerInsufficientBalance");
+      // H-06: degrade to a partial exit instead of reverting.
+      await expect(backing.connect(admin).adminWithdraw())
+        .to.emit(backing, "GhoSghoAdminWithdrawPartial")
+        .withArgs(buffer, ts - buffer);
 
-      expect(await backing.totalSuppliedCollateral()).to.equal(ts);
-      expect(await gho.balanceOf(backingAddr)).to.equal(buffer);
+      expect(await backing.totalSuppliedCollateral()).to.equal(ts - buffer);
+      expect(await gho.balanceOf(backingAddr)).to.equal(0n);
       expect(await gho.balanceOf(await overlayerWrap.getAddress())).to.equal(
-        0n
+        buffer
+      );
+      // The shares still back the remaining principal: they must NOT be swept as yield.
+      expect(await vault.balanceOf(backingAddr)).to.equal(sharesBefore);
+      expect(await vault.balanceOf(dispatcher)).to.equal(0n);
+
+      // Calling again once sGHO recovers finishes the exit.
+      await vault.setMaxWithdrawLimit(ethers.MaxUint256);
+      await backing.connect(admin).adminWithdraw();
+      expect(await backing.totalSuppliedCollateral()).to.equal(0n);
+      expect(await vault.balanceOf(backingAddr)).to.equal(0n);
+      expect(await gho.balanceOf(await overlayerWrap.getAddress())).to.equal(
+        ts
       );
     });
 
@@ -1324,7 +1359,7 @@ describe("GhoSghoHandler", function () {
       );
     });
 
-    it("compound reverts when sGHO cannot pay the yield that must come from the vault", async function () {
+    it("compound defers the harvest when sGHO can pay only part of the yield it needs", async function () {
       const { gho, vault, overlayerWrap, backing, alice, admin } =
         await loadFixture(deployBackingFixture);
 
@@ -1345,15 +1380,26 @@ describe("GhoSghoHandler", function () {
       await gho
         .connect(admin)
         .transfer(await vault.getAddress(), ethers.parseEther("8"));
-      await vault.setMaxWithdrawLimit(ethers.parseEther("1"));
+      const payable = ethers.parseEther("1");
+      await vault.setMaxWithdrawLimit(payable);
 
-      await expect(
-        backing.connect(admin).compound(false)
-      ).to.be.revertedWithCustomError(
-        backing,
-        "GhoSghoHandlerPendingYieldNotWithdrawable"
-      );
+      const ts = await backing.totalSuppliedCollateral();
+      const sharesBefore = await vault.balanceOf(backingAddr);
+      const supplyBefore = await overlayerWrap.totalSupply();
+      // Idle sits exactly at the floor, so every wei of yield has to come out of sGHO.
+      const harvestable =
+        buffer + (await vault.convertToAssets(sharesBefore)) - ts;
+      expect(harvestable).to.be.gt(payable);
+
+      await expect(backing.connect(admin).compound(false))
+        .to.emit(backing, "GhoSghoHarvestDeferred")
+        .withArgs(harvestable, harvestable, payable);
+
+      // Nothing is pulled out of sGHO: it is all-or-nothing, never a partial drain.
       expect(await gho.balanceOf(backingAddr)).to.equal(buffer);
+      expect(await vault.balanceOf(backingAddr)).to.equal(sharesBefore);
+      expect(await overlayerWrap.totalSupply()).to.equal(supplyBefore);
+      expect(await backing.totalSuppliedCollateral()).to.equal(ts);
     });
 
     it("compound is a no-op while the buffer is unfilled and there is no excess idle", async function () {
@@ -1576,28 +1622,100 @@ describe("GhoSghoHandler", function () {
       expect(await backing.totalSuppliedCollateral()).to.equal(ts - available);
     });
 
-    it("with no idle buffer, adminWithdraw reverts unless sGHO can return the full principal", async function () {
+    it("a partial adminWithdraw keeps yield shares on the backing and stays solvent", async function () {
+      const fx = await loadFixture(deployBackingFixture);
+      const { gho, vault, overlayerWrap, backing, alice, admin } = fx;
+      await mintAndSupply(fx, ethers.parseEther("80"));
+      const backingAddr = await backing.getAddress();
+      const owAddr = await overlayerWrap.getAddress();
+      const dispatcher = await backing.ovaRewardsDispatcher();
+      const principal = await backing.totalSuppliedCollateral();
+
+      // Real yield sitting in sGHO on top of the principal.
+      await ghoYield(gho, vault, admin, ethers.parseEther("20"));
+
+      const slice = ethers.parseEther("30");
+      await vault.setMaxWithdrawLimit(slice);
+      await backing.connect(admin).adminWithdraw();
+
+      const remaining = await backing.totalSuppliedCollateral();
+      expect(remaining).to.equal(principal - slice);
+      expect(await gho.balanceOf(owAddr)).to.equal(slice);
+      // The sweep must not run on a partial exit: those shares still back `remaining`.
+      expect(await vault.balanceOf(dispatcher)).to.equal(0n);
+      expect(
+        await vault.convertToAssets(await vault.balanceOf(backingAddr))
+      ).to.be.gt(remaining);
+
+      // Redemption of the part already returned to the wrap works without touching sGHO.
+      const aliceGhoBefore = await gho.balanceOf(alice.address);
+      await overlayerWrap.connect(alice).redeem({
+        benefactor: alice.address,
+        beneficiary: alice.address,
+        collateral: await gho.getAddress(),
+        collateralAmount: slice,
+        overlayerWrapAmount: slice
+      });
+      expect(await gho.balanceOf(alice.address)).to.equal(
+        aliceGhoBefore + slice
+      );
+      expect(await backing.totalSuppliedCollateral()).to.equal(remaining);
+
+      // The yield left behind is still harvestable, and only the yield.
+      await vault.setMaxWithdrawLimit(ethers.MaxUint256);
+      const supplyBefore = await overlayerWrap.totalSupply();
+      await backing.connect(admin).compound(false);
+      expect(await overlayerWrap.totalSupply()).to.be.gt(supplyBefore);
+      expect(await backing.totalSuppliedCollateral()).to.equal(remaining);
+      expect(
+        await vault.convertToAssets(await vault.balanceOf(backingAddr))
+      ).to.be.gte(remaining);
+    });
+
+    it("with no idle buffer, adminWithdraw drains sGHO in instalments as liquidity allows", async function () {
       const fx = await loadFixture(deployBackingFixture);
       const { gho, vault, overlayerWrap, backing, admin } = fx;
       await mintAndSupply(fx, ethers.parseEther("80"));
       const backingAddr = await backing.getAddress();
+      const owAddr = await overlayerWrap.getAddress();
+      const dispatcher = await backing.ovaRewardsDispatcher();
       const principal = await backing.totalSuppliedCollateral();
       const sharesBefore = await vault.balanceOf(backingAddr);
 
-      await vault.setMaxWithdrawLimit(ethers.parseEther("25"));
-      await expect(
-        backing.connect(admin).adminWithdraw()
-      ).to.be.revertedWithCustomError(backing, "AaveHandlerInsufficientBalance");
+      // sGHO can pay 25 of the 80: take the 25 and keep the rest tracked.
+      const firstSlice = ethers.parseEther("25");
+      await vault.setMaxWithdrawLimit(firstSlice);
+      await expect(backing.connect(admin).adminWithdraw())
+        .to.emit(backing, "GhoSghoAdminWithdrawPartial")
+        .withArgs(firstSlice, principal - firstSlice);
 
+      expect(await backing.totalSuppliedCollateral()).to.equal(
+        principal - firstSlice
+      );
+      expect(await gho.balanceOf(owAddr)).to.equal(firstSlice);
+      expect(await vault.balanceOf(backingAddr)).to.be.lt(sharesBefore);
+      // Remaining shares still back the remaining principal.
+      expect(await vault.balanceOf(dispatcher)).to.equal(0n);
+
+      // sGHO pays nothing: a no-op, not a revert, and nothing moves.
       await vault.setMaxWithdrawLimit(0n);
-      await expect(
-        backing.connect(admin).adminWithdraw()
-      ).to.be.revertedWithCustomError(backing, "AaveHandlerInsufficientBalance");
+      const sharesMid = await vault.balanceOf(backingAddr);
+      await expect(backing.connect(admin).adminWithdraw())
+        .to.emit(backing, "GhoSghoAdminWithdrawPartial")
+        .withArgs(0n, principal - firstSlice);
+      expect(await backing.totalSuppliedCollateral()).to.equal(
+        principal - firstSlice
+      );
+      expect(await vault.balanceOf(backingAddr)).to.equal(sharesMid);
+      expect(await gho.balanceOf(owAddr)).to.equal(firstSlice);
 
-      expect(await backing.totalSuppliedCollateral()).to.equal(principal);
+      // sGHO recovers: the remainder comes out and the exit completes.
+      await vault.setMaxWithdrawLimit(ethers.MaxUint256);
+      await backing.connect(admin).adminWithdraw();
+      expect(await backing.totalSuppliedCollateral()).to.equal(0n);
+      expect(await gho.balanceOf(owAddr)).to.equal(principal);
       expect(await gho.balanceOf(backingAddr)).to.equal(0n);
-      expect(await gho.balanceOf(await overlayerWrap.getAddress())).to.equal(0n);
-      expect(await vault.balanceOf(backingAddr)).to.equal(sharesBefore);
+      expect(await vault.balanceOf(backingAddr)).to.equal(0n);
     });
 
     it("with no idle buffer, sG+ can exit to O-GHO while sGHO cannot pay GHO, and G+ redeem then reverts", async function () {
@@ -1643,7 +1761,7 @@ describe("GhoSghoHandler", function () {
       );
     });
 
-    it("with no idle buffer, sG+ entry and exit revert when sGHO yield exists but no GHO can be withdrawn", async function () {
+    it("with no idle buffer, sG+ entry and exit stay open when sGHO yield exists but no GHO can be withdrawn", async function () {
       const fx = await loadFixture(deployBackingFixture);
       const { gho, vault, overlayerWrap, sOverlayerWrap, backing, alice, admin } =
         fx;
@@ -1653,37 +1771,40 @@ describe("GhoSghoHandler", function () {
         .approve(await sOverlayerWrap.getAddress(), ethers.MaxUint256);
       const stake = ethers.parseEther("20");
       await sOverlayerWrap.connect(alice).deposit(stake, alice.address);
-      const shares = await sOverlayerWrap.balanceOf(alice.address);
       await ghoYield(gho, vault, admin, ethers.parseEther("10"));
       await vault.setMaxWithdrawLimit(0n);
 
       const backingAddr = await backing.getAddress();
       const supplyBefore = await overlayerWrap.totalSupply();
-      await expect(
-        backing.connect(admin).compound(false)
-      ).to.be.revertedWithCustomError(
-        backing,
-        "GhoSghoHandlerPendingYieldNotWithdrawable"
-      );
-      for (const call of [
-        sOverlayerWrap.connect(alice).deposit(stake, alice.address),
-        sOverlayerWrap.connect(alice).mint(ethers.parseEther("1"), alice.address),
-        sOverlayerWrap
-          .connect(alice)
-          .withdraw(stake, alice.address, alice.address),
-        sOverlayerWrap
-          .connect(alice)
-          .redeem(shares, alice.address, alice.address)
-      ]) {
-        await expect(call).to.be.revertedWithCustomError(
-          backing,
-          "GhoSghoHandlerPendingYieldNotWithdrawable"
-        );
-      }
+      const tsBefore = await backing.totalSuppliedCollateral();
+      const vaultSharesBefore = await vault.balanceOf(backingAddr);
 
+      await expect(backing.connect(admin).compound(false)).to.emit(
+        backing,
+        "GhoSghoHarvestDeferred"
+      );
+
+      await sOverlayerWrap.connect(alice).deposit(stake, alice.address);
+      await sOverlayerWrap
+        .connect(alice)
+        .mint(ethers.parseEther("1"), alice.address);
+      await sOverlayerWrap
+        .connect(alice)
+        .withdraw(stake, alice.address, alice.address);
+      await sOverlayerWrap
+        .connect(alice)
+        .redeem(
+          await sOverlayerWrap.balanceOf(alice.address),
+          alice.address,
+          alice.address
+        );
+
+      expect(await sOverlayerWrap.balanceOf(alice.address)).to.equal(0n);
+      // The deferred harvest leaves the backing untouched.
       expect(await gho.balanceOf(backingAddr)).to.equal(0n);
+      expect(await vault.balanceOf(backingAddr)).to.equal(vaultSharesBefore);
       expect(await overlayerWrap.totalSupply()).to.equal(supplyBefore);
-      expect(await sOverlayerWrap.balanceOf(alice.address)).to.equal(shares);
+      expect(await backing.totalSuppliedCollateral()).to.equal(tsBefore);
     });
 
     it("sG+ mint harvests payable sGHO yield before issuing shares", async function () {
@@ -1776,7 +1897,7 @@ describe("GhoSghoHandler", function () {
       expect(await overlayerWrap.totalSupply()).to.be.gt(supplyBefore);
     });
 
-    it("sG+ deposit, mint, withdraw, and redeem revert when buffered sGHO yield is not payable", async function () {
+    it("sG+ deposit, mint, withdraw, and redeem stay open when buffered sGHO yield is not payable", async function () {
       const fx = await loadFixture(deployBackingFixture);
       const { gho, vault, overlayerWrap, sOverlayerWrap, backing, alice, admin } =
         fx;
@@ -1788,7 +1909,6 @@ describe("GhoSghoHandler", function () {
         .approve(await sOverlayerWrap.getAddress(), ethers.MaxUint256);
       const stake = ethers.parseEther("10");
       await sOverlayerWrap.connect(alice).deposit(stake, alice.address);
-      const shares = await sOverlayerWrap.balanceOf(alice.address);
 
       await ghoYield(gho, vault, admin, ethers.parseEther("8"));
       await vault.setMaxWithdrawLimit(0n);
@@ -1796,29 +1916,29 @@ describe("GhoSghoHandler", function () {
       const backingAddr = await backing.getAddress();
       const supplyBefore = await overlayerWrap.totalSupply();
       const idleBefore = await gho.balanceOf(backingAddr);
+      const vaultSharesBefore = await vault.balanceOf(backingAddr);
 
-      for (const call of [
-        sOverlayerWrap.connect(alice).deposit(stake, alice.address),
-        sOverlayerWrap.connect(alice).mint(stake, alice.address),
-        sOverlayerWrap
-          .connect(alice)
-          .withdraw(stake, alice.address, alice.address),
-        sOverlayerWrap
-          .connect(alice)
-          .redeem(shares, alice.address, alice.address)
-      ]) {
-        await expect(call).to.be.revertedWithCustomError(
-          backing,
-          "GhoSghoHandlerPendingYieldNotWithdrawable"
+      await sOverlayerWrap.connect(alice).deposit(stake, alice.address);
+      await sOverlayerWrap.connect(alice).mint(stake, alice.address);
+      await sOverlayerWrap
+        .connect(alice)
+        .withdraw(stake, alice.address, alice.address);
+      await sOverlayerWrap
+        .connect(alice)
+        .redeem(
+          await sOverlayerWrap.balanceOf(alice.address),
+          alice.address,
+          alice.address
         );
-      }
 
-      expect(await sOverlayerWrap.balanceOf(alice.address)).to.equal(shares);
+      expect(await sOverlayerWrap.balanceOf(alice.address)).to.equal(0n);
       expect(await overlayerWrap.totalSupply()).to.equal(supplyBefore);
+      // The idle buffer is below its floor, so compound must not dip into it either.
       expect(await gho.balanceOf(backingAddr)).to.equal(idleBefore);
+      expect(await vault.balanceOf(backingAddr)).to.equal(vaultSharesBefore);
     });
 
-    it("sG+ calls revert when sGHO can pay only part of the pending yield", async function () {
+    it("sG+ calls defer the harvest when sGHO can pay only part of the pending yield", async function () {
       const fx = await loadFixture(deployBackingFixture);
       const { vault, overlayerWrap, sOverlayerWrap, backing, alice, admin } =
         fx;
@@ -1832,24 +1952,24 @@ describe("GhoSghoHandler", function () {
       await ghoYield(fx.gho, vault, admin, ethers.parseEther("10"));
       await vault.setMaxWithdrawLimit(ethers.parseEther("1"));
 
-      const shares = await sOverlayerWrap.balanceOf(alice.address);
+      const backingAddr = await backing.getAddress();
       const supplyBefore = await overlayerWrap.totalSupply();
+      const vaultSharesBefore = await vault.balanceOf(backingAddr);
+
       await expect(
         sOverlayerWrap.connect(alice).deposit(stake, alice.address)
-      ).to.be.revertedWithCustomError(
-        backing,
-        "GhoSghoHandlerPendingYieldNotWithdrawable"
-      );
+      ).to.emit(backing, "GhoSghoHarvestDeferred");
+      const shares = await sOverlayerWrap.balanceOf(alice.address);
       await expect(
         sOverlayerWrap
           .connect(alice)
           .redeem(shares, alice.address, alice.address)
-      ).to.be.revertedWithCustomError(
-        backing,
-        "GhoSghoHandlerPendingYieldNotWithdrawable"
-      );
+      ).to.emit(backing, "GhoSghoHarvestDeferred");
+
+      // Partial sGHO liquidity is never drained: the harvest is all-or-nothing.
       expect(await overlayerWrap.totalSupply()).to.equal(supplyBefore);
-      expect(await sOverlayerWrap.balanceOf(alice.address)).to.equal(shares);
+      expect(await vault.balanceOf(backingAddr)).to.equal(vaultSharesBefore);
+      expect(await sOverlayerWrap.balanceOf(alice.address)).to.equal(0n);
     });
 
     it("sG+ deposit harvests again after sGHO liquidity is restored", async function () {
@@ -1862,14 +1982,13 @@ describe("GhoSghoHandler", function () {
       await overlayerWrap
         .connect(alice)
         .approve(await sOverlayerWrap.getAddress(), ethers.MaxUint256);
+      const deferredSupply = await overlayerWrap.totalSupply();
       await expect(
         sOverlayerWrap
           .connect(alice)
           .deposit(ethers.parseEther("10"), alice.address)
-      ).to.be.revertedWithCustomError(
-        backing,
-        "GhoSghoHandlerPendingYieldNotWithdrawable"
-      );
+      ).to.emit(backing, "GhoSghoHarvestDeferred");
+      expect(await overlayerWrap.totalSupply()).to.equal(deferredSupply);
 
       await vault.setMaxWithdrawLimit(ethers.MaxUint256);
       const supplyBefore = await overlayerWrap.totalSupply();

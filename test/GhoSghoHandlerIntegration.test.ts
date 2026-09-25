@@ -348,7 +348,7 @@ describe("GHO mainnet fork integration", function () {
     expect(await gho.balanceOf(alice.address)).to.be.gte(depositGho);
   });
 
-  it("compound is a no-op when sGHO index shows yield but maxWithdraw does not exceed principal", async function () {
+  it("compound defers the harvest when sGHO index shows yield but maxWithdraw does not exceed principal", async function () {
     const { admin, alice, gho, sgho, overlayerWrap, backing, seedGho, txOpts } =
       await loadFixture(deployGhoStackFixture);
 
@@ -375,15 +375,16 @@ describe("GHO mainnet fork integration", function () {
     expect(await sgho.maxWithdraw(backingAddr)).to.equal(0n);
 
     const owSupplyBefore = await overlayerWrap.totalSupply();
-    await expect(
-      backing.connect(admin).compound(false)
-    ).to.be.revertedWithCustomError(
+    const sharesBefore = await sgho.balanceOf(backingAddr);
+    await expect(backing.connect(admin).compound(false)).to.emit(
       backing,
-      "GhoSghoHandlerPendingYieldNotWithdrawable"
+      "GhoSghoHarvestDeferred"
     );
 
     expect(await overlayerWrap.totalSupply()).to.equal(owSupplyBefore);
     expect(await backing.totalSuppliedCollateral()).to.equal(ts);
+    expect(await sgho.balanceOf(backingAddr)).to.equal(sharesBefore);
+    expect(await gho.balanceOf(backingAddr)).to.equal(0n);
   });
 
   it("adminWithdraw returns user principal as GHO and routes sGHO surplus to dispatcher", async function () {
@@ -453,6 +454,62 @@ describe("GHO mainnet fork integration", function () {
 
     expect(await overlayerWrap.balanceOf(alice.address)).to.equal(0n);
     expect(await gho.balanceOf(alice.address)).to.equal(aliceGhoBeforeMint);
+  });
+
+  it("adminWithdraw degrades to a partial exit when sGHO cannot pay the whole principal", async function () {
+    const {
+      admin,
+      alice,
+      gho,
+      sgho,
+      overlayerWrap,
+      backing,
+      dispatcher,
+      txOpts
+    } = await loadFixture(deployGhoStackFixture);
+
+    const backingAddr = await backing.getAddress();
+    const dispatcherAddr = await dispatcher.getAddress();
+    const wrapAddr = await overlayerWrap.getAddress();
+
+    await overlayerWrap.connect(alice).mint({
+      benefactor: alice.address,
+      beneficiary: alice.address,
+      collateral: GHO_ADDRESS,
+      collateralAmount: ethers.parseEther("100"),
+      overlayerWrapAmount: ethers.parseEther("100")
+    });
+    await overlayerWrap.connect(alice).supplyToBacking(0n, 0n);
+
+    const principal = await backing.totalSuppliedCollateral();
+    await time.increase(60 * 24 * 60 * 60);
+
+    // Leave sGHO with only a fraction of the GHO the handler needs back.
+    await drainSghoOnHandGho(admin, gho, ethers.parseEther("30"), txOpts);
+    const payable = await sgho.maxWithdraw(backingAddr);
+    expect(payable).to.be.gt(0n);
+    expect(payable).to.be.lt(principal);
+    expect(await gho.balanceOf(backingAddr)).to.equal(0n);
+
+    const dispatcherSharesBefore = await sgho.balanceOf(dispatcherAddr);
+    const wrapGhoBefore = await gho.balanceOf(wrapAddr);
+
+    await expect(backing.connect(admin).adminWithdraw()).to.emit(
+      backing,
+      "GhoSghoAdminWithdrawPartial"
+    );
+
+    const delivered = (await gho.balanceOf(wrapAddr)) - wrapGhoBefore;
+    expect(delivered).to.be.closeTo(payable, ethers.parseEther("0.01"));
+
+    const remaining = await backing.totalSuppliedCollateral();
+    expect(remaining).to.equal(principal - delivered);
+    expect(remaining).to.be.gt(0n);
+    // Shares left over still back `remaining`; the yield sweep must stay off.
+    expect(await sgho.balanceOf(dispatcherAddr)).to.equal(
+      dispatcherSharesBefore
+    );
+    expect(await backingVaultAssets(sgho, backingAddr)).to.be.gte(remaining);
   });
 
   it("stakes OW, compounds yield, unstakes more OW, redeems for more GHO, and routes protocol share to dispatcher accounts", async function () {

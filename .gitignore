@@ -12,6 +12,8 @@ contracts/cowswap/*
 contracts/pancake/*
 docs*
 !docs
+process.env
+security-audit-*.md
 
 .qwen
 .cursor

@@ -26,13 +26,22 @@ import "../overlayer/types/OverlayerWrapCoreTypes.sol";
 /// @dev Local errors/events so GhoSghoHandler matches hp-branch AaveHandler fixes without changing IAaveHandlerDefs.
 interface GhoSghoHandlerLocalDefs {
     error GhoSghoHandlerNoProposal();
-    /// @notice sGHO reports yield that `maxWithdraw` cannot cover. `compound` reverts so that yield
-    ///         is not left out of the staking share price. Staking mint, deposit, withdraw, and redeem
-    ///         call `compound` first, so they revert until sGHO can pay the yield.
-    error GhoSghoHandlerPendingYieldNotWithdrawable();
 
     event OvaDispatcherAllocationUpdated(uint8 amount);
     event GhoSghoLiquidReserveTargetUpdated(uint256 amount);
+    /// @notice Emitted when `compound` skips harvesting because the required amount cannot be withdrawn from sGHO.
+    /// @param harvestable Total yield that would have been harvested.
+    /// @param neededFromVault Amount that needed to come from sGHO.
+    /// @param vaultWithdrawable Amount sGHO could pay.
+    event GhoSghoHarvestDeferred(
+        uint256 harvestable,
+        uint256 neededFromVault,
+        uint256 vaultWithdrawable
+    );
+    /// @notice Emitted when `adminWithdraw` returns less than the tracked principal.
+    /// @param withdrawn Amount returned to OverlayerWrap.
+    /// @param remaining Principal still tracked in `totalSuppliedCollateral`.
+    event GhoSghoAdminWithdrawPartial(uint256 withdrawn, uint256 remaining);
 }
 
 abstract contract GhoSghoHandler is
@@ -112,38 +121,42 @@ abstract contract GhoSghoHandler is
         IERC20(aCollateral).forceApprove(overlayerWrap, type(uint256).max);
     }
 
-    /// @notice Withdraw all tracked principal as GHO to OverlayerWrap. Surplus shares (yield) go to the dispatcher.
+    /// @notice Withdraw tracked principal as GHO to OverlayerWrap. Surplus shares (yield) go to the dispatcher.
+    /// @dev Withdraws idle GHO first, then up to `_vaultWithdrawable()` from sGHO. Any unpaid principal remains
+    ///      in `totalSuppliedCollateral` and can be withdrawn in a later call. Surplus sGHO shares are transferred
+    ///      to the dispatcher only when the full principal has been withdrawn.
     function adminWithdraw() external onlyOwner nonReentrant {
         uint256 principal = totalSuppliedCollateral;
         uint256 liquid = IERC20(collateral).balanceOf(address(this));
         uint256 fromReserve = Math.min(principal, liquid);
-        uint256 fromVault = principal - fromReserve;
-        if (fromVault > _vaultWithdrawable()) {
-            revert AaveHandlerInsufficientBalance();
-        }
+        // `_withdrawFromVault` already clamps to `min(requested, _vaultWithdrawable())`.
+        uint256 fromVault = _withdrawFromVault(
+            principal - fromReserve,
+            overlayerWrap
+        );
 
-        if (fromVault > 0) {
-            IERC4626(aCollateral).withdraw(
-                fromVault,
-                overlayerWrap,
-                address(this)
-            );
-        }
         if (fromReserve > 0) {
             IERC20(collateral).safeTransfer(overlayerWrap, fromReserve);
         }
 
-        // Surplus is yield only: full principal withdrawal leaves no tracked backing on this contract.
-        uint256 surplusShares = IERC20(aCollateral).balanceOf(address(this));
-        if (surplusShares > 0) {
-            IERC20(aCollateral).safeTransfer(
-                ovaRewardsDispatcher,
-                surplusShares
+        uint256 withdrawn = fromReserve + fromVault;
+        if (withdrawn == principal) {
+            // Surplus is yield only: full principal withdrawal leaves no tracked backing on this contract.
+            uint256 surplusShares = IERC20(aCollateral).balanceOf(
+                address(this)
             );
+            if (surplusShares > 0) {
+                IERC20(aCollateral).safeTransfer(
+                    ovaRewardsDispatcher,
+                    surplusShares
+                );
+            }
+        } else {
+            emit GhoSghoAdminWithdrawPartial(withdrawn, principal - withdrawn);
         }
 
-        updateSuppliedAmounts(principal);
-        emit AaveAdminWithdraw(principal);
+        updateSuppliedAmounts(withdrawn);
+        emit AaveAdminWithdraw(withdrawn);
     }
 
     /// @param withdrawToCollateral_ Ignored (interface parity with AaveHandler). Yield is always withdrawn as GHO
@@ -151,7 +164,8 @@ abstract contract GhoSghoHandler is
     /// @dev Harvestable yield is `idle GHO + sGHO assets - totalSuppliedCollateral`. Idle principal is not yield,
     ///      including GHO left above `liquidReserveTarget` before it is deployed. The reserve kept on this contract
     ///      is `min(liquidReserveTarget, totalSuppliedCollateral)`.
-    /// @dev Reverts if the sGHO portion of that yield cannot be fully withdrawn.
+    /// @dev If the sGHO portion of that yield cannot be withdrawn, returns without minting and emits
+    ///      `GhoSghoHarvestDeferred`. The yield remains in the backing until a later successful `compound`.
     function compound(bool withdrawToCollateral_) external nonReentrant {
         withdrawToCollateral_;
         uint256 liquid = IERC20(collateral).balanceOf(address(this));
@@ -168,12 +182,26 @@ abstract contract GhoSghoHandler is
         uint256 fromIdle = Math.min(harvestable, excessIdle);
         uint256 needFromVault = harvestable - fromIdle;
 
-        if (needFromVault > 0 && _vaultWithdrawable() < needFromVault) {
-            revert GhoSghoHandlerPendingYieldNotWithdrawable();
-        }
-        uint256 fromVault = _withdrawFromVault(needFromVault, address(this));
-        if (fromVault < needFromVault) {
-            revert GhoSghoHandlerPendingYieldNotWithdrawable();
+        uint256 fromVault = 0;
+        if (needFromVault > 0) {
+            uint256 withdrawable = _vaultWithdrawable();
+            if (withdrawable < needFromVault) {
+                emit GhoSghoHarvestDeferred(
+                    harvestable,
+                    needFromVault,
+                    withdrawable
+                );
+                return;
+            }
+            fromVault = _withdrawFromVault(needFromVault, address(this));
+            if (fromVault < needFromVault) {
+                emit GhoSghoHarvestDeferred(
+                    harvestable,
+                    needFromVault,
+                    fromVault
+                );
+                return;
+            }
         }
 
         uint256 toCompound = fromIdle + fromVault;
